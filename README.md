@@ -2,7 +2,11 @@
 
 A terminal-styled web application for managing and viewing LANCER RPG job postings. Features password-protected access with separate client and admin interfaces.
 <img width="1139" height="568" alt="image" src="https://github.com/user-attachments/assets/d6f08521-b564-4cba-917a-8fe22a6298c3" />
-<img width="2559" height="1006" alt="image" src="https://github.com/user-attachments/assets/2fcb85c0-b4c8-40ce-a8e5-1a867a724482" />
+
+
+<img width="1272" height="990" alt="image" src="https://github.com/user-attachments/assets/2880302d-acc6-4018-b3e2-76bf0b7252e4" />
+
+
 <img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/c1ae53d8-f48d-415a-9ce4-51c4ea392412" />
 
 
