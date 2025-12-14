@@ -1,8 +1,21 @@
 # LANCER RPG Job Board
 
-A terminal-styled web application for managing and viewing LANCER RPG job postings. Features password-protected access with separate client and admin interfaces.
+A terminal-styled web application for managing and viewing LANCER RPG job postings. Features password-gated access with separate client and admin interfaces.
+
+### Login
+<img width="1139" height="568" alt="image" src="https://github.com/user-attachments/assets/d6f08521-b564-4cba-917a-8fe22a6298c3" />
+
+### CLIENT page
+<img width="1272" height="990" alt="image" src="https://github.com/user-attachments/assets/2880302d-acc6-4018-b3e2-76bf0b7252e4" />
+
+### ADMIN page
+<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/c1ae53d8-f48d-415a-9ce4-51c4ea392412" />
+
 
 ## How to Run Locally
+0. **You will need Node Package Manager (NPM) and therefore Node.js to use this.** 
+
+   For Windows at least, you'll want to install Node.js through the installer on their website here: https://nodejs.org/en/download
 
 1. **Clone the repository**:
    ```bash
@@ -26,7 +39,7 @@ A terminal-styled web application for managing and viewing LANCER RPG job postin
    - **CLIENT Mode**: Enter `IMHOTEP` (view-only access)
    - **ADMIN Mode**: Enter `TARASQUE` (full management access)
 
-## Features
+### Features
 
 - **Terminal-Styled Interface**: Client view features a retro terminal aesthetic with green-on-black color scheme, scanline effects, and glowing text
 - **Dual Access Modes**:
