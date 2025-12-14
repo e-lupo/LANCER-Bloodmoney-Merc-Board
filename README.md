@@ -1,3 +1,114 @@
-# LANCER-Bloodmoney-Merc-Board
+# LANCER RPG Job Board
 
-itsareamda.
+A terminal-styled web application for managing and viewing LANCER RPG job postings. Features password-protected access with separate client and admin interfaces.
+
+## How to Run Locally
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Shteb/LANCER-RPG-Job-Board.git
+   cd LANCER-RPG-Job-Board
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start the server**:
+   ```bash
+   npm start
+   ```
+
+4. **Open your browser** and navigate to `http://localhost:3000`
+
+5. **Login** with one of the following access codes:
+   - **CLIENT Mode**: Enter `IMHOTEP` (view-only access)
+   - **ADMIN Mode**: Enter `TARASQUE` (full management access)
+
+## Features
+
+- **Terminal-Styled Interface**: Client view features a retro terminal aesthetic with green-on-black color scheme, scanline effects, and glowing text
+- **Dual Access Modes**:
+  - **CLIENT Mode** (Password: `IMHOTEP`): View-only grid of job cards
+  - **ADMIN Mode** (Password: `TARASQUE`): Full CRUD operations for managing job postings
+- **Persistent Storage**: Job data is stored in a JSON file for persistence across restarts
+- **Global Settings**: Customizable settings displayed in the client view:
+  - **User Group**: Displayed below the portal header (e.g., "FREELANCE_OPERATORS")
+  - **UNT Date**: Universal time/date in DD/MM/YYYY format
+  - **Galactic Position**: Current location in the galaxy
+  - **Color Scheme**: Terminal color theme (grey, orange, green, or blue)
+- **Comprehensive Job Information**: Each job card includes:
+  - Job name
+  - Job rank (1-3 stars)
+  - Client name
+  - Job description
+  - Client brief
+  - Currency payment (e.g., "100m")
+  - Additional payment information
+
+### Access Codes
+
+- **CLIENT Mode**: Enter `IMHOTEP` at the landing page
+- **ADMIN Mode**: Enter `TARASQUE` at the landing page
+
+### Client View
+
+The client view displays all job postings in a terminal-styled grid layout. Each card shows:
+- Job name with rank indicator (★ stars)
+- Client information
+- Job description and brief
+- Payment details
+
+### Admin View
+
+The admin panel provides a clean, functional interface for managing job postings and global settings:
+- **Global Settings**: Configure system-wide settings
+  - **Color Scheme**: Choose terminal color theme for client and landing views
+  - **UNT**: Set the universal time/date (DD/MM/YYYY format)
+  - **Current Galactic Position**: Set the current location
+  - **User Group**: Set the user group name displayed in client view
+- **Add New Jobs**: Fill out the form to create new job postings
+- **Edit Jobs**: Click the "Edit" button to modify existing jobs
+- **Delete Jobs**: Click the "Delete" button to remove jobs
+
+## Data Persistence
+
+Job data is stored in `data/jobs.json` and global settings are stored in `data/settings.json`. These files are automatically created on first run with default data. The files persist across restarts, ensuring your job postings and settings are saved.
+
+**Note**: The `data/jobs.json` and `data/settings.json` files are excluded from version control via `.gitignore` to prevent accidental commits of user data.
+
+## Project Structure
+
+```
+LANCER-RPG-Job-Board/
+├── server.js           # Express server and API routes
+├── package.json        # Project dependencies
+├── views/
+│   ├── landing.ejs     # Password entry page
+│   ├── client.ejs      # Terminal-styled client view
+│   └── admin.ejs       # Admin management interface
+├── public/
+│   └── css/
+│       └── terminal.css # Terminal styling for client view
+└── data/
+    ├── jobs.json       # Persistent job storage (created on first run)
+    └── settings.json   # Global settings (created on first run)
+```
+
+## Technologies Used
+
+- **Node.js**: Runtime environment
+- **Express**: Web framework
+- **EJS**: Templating engine
+- **Body-Parser**: Request body parsing middleware
+- **CSS3**: Terminal effects and styling
+
+## Development Notes
+
+- The application uses port 3000 by default (configurable via `PORT` environment variable)
+- No database required - uses file-based JSON storage
+
+# License
+
+I have no idea how licensing works, but I'm using default emblems from https://logobook.com/.

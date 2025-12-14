@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Client View</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> HERM00R MERCENARY PORTAL - CLIENT INTERFACE_</h1>
+      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
+      <p>> AVAILABLE MISSIONS: <%= jobs.length %>_</p>
+      <a href="/" class="terminal-link">[LOGOUT]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+    </div>
+  </div>
+  
+  <div class="jobs-grid">
+    <% jobs.forEach(job => { %>
+      <div class="job-card">
+        <% if (job.emblem) { %>
+          <div class="job-emblem">
+            <img src="/emblems/<%= job.emblem %>" alt="Emblem">
+          </div>
+        <% } %>
+        <div class="job-card-header">
+          <h2>> <%= job.name %></h2>
+          <div class="job-rank"><%
+            for(let i = 0; i < job.rank; i++) { %><span class="star">★</span><% }
+            for(let i = job.rank; i < 3; i++) { %><span class="star">☆</span><% }
+          %></div>
+        </div>
+        
+        <div class="job-field">
+          <span class="field-label">CLIENT:</span>
+          <span class="field-value"><%= job.client %></span>
+        </div>
+        
+        <div class="job-field">
+          <span class="field-label">JOB_TYPE:</span>
+          <span class="field-value"><%= job.jobType %></span>
+        </div>
+        
+        <div class="job-field">
+          <span class="field-label">OBJECTIVE:</span>
+          <span class="field-value"><%= job.description %></span>
+        </div>
+        
+        <div class="job-field">
+          <span class="field-label">CLIENT_BRIEF:</span>
+          <span class="field-value"><%= job.clientBrief %></span>
+        </div>
+        
+        <div class="job-field">
+          <span class="field-label">PAYMENT:</span>
+          <span class="field-value"><%= job.currencyPay %></span>
+        </div>
+        
+        <% if (job.additionalPay) { %>
+        <div class="job-field">
+          <span class="field-label">ADDITIONAL_PAY:</span>
+          <span class="field-value"><%= job.additionalPay %></span>
+        </div>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+</body>
+</html>

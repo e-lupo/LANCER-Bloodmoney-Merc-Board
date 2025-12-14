@@ -1,0 +1,23 @@
+{
+  "name": "lancer-rpg-job-board",
+  "version": "1.0.0",
+  "description": "A terminal-styled job board for LANCER RPG with admin and client interfaces",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "lancer",
+    "rpg",
+    "job-board"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "potrace": "^2.1.8"
+  }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Access</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <style>
+    .landing-container {
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 40px;
+      text-align: center;
+    }
+    .landing-form input[type="password"] {
+      width: 100%;
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 16px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      border: 2px solid var(--border-color);
+      font-family: 'Courier New', monospace;
+    }
+    .landing-form button {
+      padding: 15px 40px;
+      font-size: 16px;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+    }
+    .landing-form button:hover {
+      background-color: var(--button-hover);
+    }
+    .error-message {
+      color: var(--error-color);
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body class="<%= colorScheme %>">
+  <div class="landing-container">
+    <h1>> HERM00R MERCENARY PORTAL_</h1>
+    <p>> ENTER ACCESS CODE TO CONTINUE_</p>
+    <form class="landing-form" method="POST" action="/authenticate">
+      <input type="password" name="password" placeholder="ACCESS CODE" required autofocus>
+      <button type="submit">> AUTHENTICATE</button>
+    </form>
+    <% if (typeof error !== 'undefined') { %>
+      <p class="error-message">> ACCESS DENIED: INVALID CODE_</p>
+    <% } %>
+  </div>
+</body>
+</html>
