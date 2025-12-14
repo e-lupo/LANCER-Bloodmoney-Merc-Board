@@ -1,0 +1,13 @@
+/* Shared currency icon styling (client + admin) */
+
+.currency-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.currency-icon {
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  vertical-align: middle;
+}

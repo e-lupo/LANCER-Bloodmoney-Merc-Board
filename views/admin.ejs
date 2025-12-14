@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LANCER Job Board - Admin</title>
+  <link rel="stylesheet" href="/css/currency.css">
   <style>
     * {
       margin: 0;
@@ -131,6 +132,34 @@
     
     .btn-delete:hover {
       background-color: #da190b;
+    }
+    
+    .btn-neutral {
+      background-color: #6a6a6a;
+      color: white;
+    }
+    
+    .btn-neutral:hover {
+      background-color: #5a5a5a;
+    }
+    
+    .btn-neutral:focus {
+      outline: 2px solid #66BB6A;
+      outline-offset: 1px;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: flex-start;
+      margin-top: 20px;
+    }
+    
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     
     .jobs-list {
@@ -379,7 +408,10 @@
       </div>
       
       <div class="form-group">
-        <label for="jobCurrencyPay">Currency Pay (e.g., 100m)</label>
+        <label for="jobCurrencyPay" class="currency-label">
+          Currency Pay (e.g., 100m)
+          <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+        </label>
         <input type="text" id="jobCurrencyPay" name="currencyPay" required>
       </div>
       
@@ -402,27 +434,31 @@
           <% }); %>
         </div>
       </div>
-      
-      <button type="submit" class="btn btn-primary">Add Job</button>
     </form>
 	
-<form id="uploadForm" enctype="multipart/form-data">
-	<input type="file" id="fileInput" name="myFile" style="display:none;" accept="image/png,image/jpeg,image/bmp">
-	<button type="button" class="btn btn-primary" style="margin-top:20px;"
-		onclick="document.getElementById('fileInput').click();"
-    title="Uploads an image and converts it to SVG">
-		Upload Emblem
-	</button>
-  <p style="margin-top:8px; font-size:0.9em; color:#e0e0e0;">Accepts PNG, JPEG, BMP (max 10MB)</p>
-</form>
-
-<div style="margin-top:20px;">
-	<button type="button" class="btn btn-delete" id="deleteEmblemBtn" onclick="deleteSelectedEmblem()"
-    title="Deletes the currently selected emblem (if not in use by any jobs)">
-		Delete Selected Emblem
-	</button>
-  <p style="margin-top:8px; font-size:0.9em; color:#e0e0e0;">Deletes the selected emblem if not in use</p>
+<div class="button-group">
+  <div class="button-container">
+    <form id="uploadForm" enctype="multipart/form-data" style="display:inline;">
+      <input type="file" id="fileInput" name="myFile" style="display:none;" accept="image/png,image/jpeg,image/bmp">
+      <button type="button" class="btn btn-neutral"
+        onclick="document.getElementById('fileInput').click();"
+        title="Uploads an image and converts it to SVG">
+        Upload Emblem
+      </button>
+    </form>
+    <p style="font-size:0.9em; color:#e0e0e0;">Accepts PNG, JPEG, BMP (max 10MB)</p>
+  </div>
+  
+  <div class="button-container">
+    <button type="button" class="btn btn-delete" id="deleteEmblemBtn" onclick="deleteSelectedEmblem()"
+      title="Deletes the currently selected emblem (if not in use by any jobs)">
+      Delete Selected Emblem
+    </button>
+    <p style="font-size:0.9em; color:#e0e0e0;">Deletes the selected emblem if not in use</p>
+  </div>
 </div>
+
+<button type="submit" class="btn btn-primary" form="addJobForm" style="margin-top:25px; padding:15px 30px; font-size:16px; font-weight:bold; box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);">Add Job</button>
 	
   </div>
 
@@ -443,7 +479,10 @@
           <div class="job-item-field"><strong>Job Type:</strong> <%= job.jobType %></div>
           <div class="job-item-field"><strong>Objective:</strong> <%= job.description %></div>
           <div class="job-item-field"><strong>Client Brief:</strong> <%= job.clientBrief %></div>
-          <div class="job-item-field"><strong>Payment:</strong> <%= job.currencyPay %></div>
+          <div class="job-item-field"><strong>Payment:</strong>
+            <%= job.currencyPay %>
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </div>
           <% if (job.additionalPay) { %>
             <div class="job-item-field"><strong>Additional Pay:</strong> <%= job.additionalPay %></div>
           <% } %>
@@ -510,10 +549,13 @@
         </div>
         
         <div class="form-group">
-          <label for="editJobCurrencyPay">Currency Pay (e.g., 100m)</label>
+          <label for="editJobCurrencyPay" class="currency-label">
+            Currency Pay (e.g., 100m)
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </label>
           <input type="text" id="editJobCurrencyPay" name="currencyPay" required>
         </div>
-        
+
         <div class="form-group">
           <label for="editJobAdditionalPay">Additional Pay</label>
           <input type="text" id="editJobAdditionalPay" name="additionalPay">

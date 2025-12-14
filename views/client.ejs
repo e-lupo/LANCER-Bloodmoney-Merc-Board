@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LANCER Job Board - Client View</title>
   <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
 </head>
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
@@ -58,7 +59,9 @@
         
         <div class="job-field">
           <span class="field-label">PAYMENT:</span>
-          <span class="field-value"><%= job.currencyPay %></span>
+          <span class="field-value field-value--payment"><%= job.currencyPay %>
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </span>
         </div>
         
         <% if (job.additionalPay) { %>

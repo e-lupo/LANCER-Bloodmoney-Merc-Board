@@ -219,6 +219,12 @@ body.blue .job-emblem img {
   font-size: 14px;
 }
 
+.field-value--payment {
+  display: inline-flex;
+  align-items: center;
+}
+
+
 /* Blinking cursor effect */
 h1::after,
 p::after {
