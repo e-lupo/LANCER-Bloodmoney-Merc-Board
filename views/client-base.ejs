@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Base</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> <%= settings.portalHeading %> - BASE MANAGEMENT_</h1>
+      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
+      <p>> MODULE_STATUS: OPERATIONAL_</p>
+      <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+    </div>
+  </div>
+  
+  <div class="base-container">
+    <div class="modules-section">
+      <h2>> CORE_MODULES:</h2>
+      <div class="modules-grid core">
+        <% for (let i = 0; i < 3; i++) { %>
+          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
+            <div class="module-type">CORE</div>
+            <% if (base.modules[i].title) { %>
+              <div class="module-title"><%= base.modules[i].title %></div>
+              <% if (base.modules[i].description) { %>
+                <div class="module-description"><%= base.modules[i].description %></div>
+              <% } %>
+            <% } else { %>
+              <div class="module-empty">[EMPTY_SLOT]</div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+    
+    <div class="modules-section">
+      <h2>> MAJOR_MODULES:</h2>
+      <div class="modules-grid major">
+        <% for (let i = 3; i < 9; i++) { %>
+          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
+            <div class="module-type">MAJOR</div>
+            <% if (base.modules[i].title) { %>
+              <div class="module-title"><%= base.modules[i].title %></div>
+              <% if (base.modules[i].description) { %>
+                <div class="module-description"><%= base.modules[i].description %></div>
+              <% } %>
+            <% } else { %>
+              <div class="module-empty">[EMPTY_SLOT]</div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+    
+    <div class="modules-section">
+      <h2>> MINOR_MODULES:</h2>
+      <div class="modules-grid minor">
+        <% for (let i = 9; i < 15; i++) { %>
+          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
+            <div class="module-type">MINOR</div>
+            <% if (base.modules[i].disabled) { %>
+              <div class="module-empty">[DISABLED]</div>
+            <% } else if (base.modules[i].title) { %>
+              <div class="module-title"><%= base.modules[i].title %></div>
+              <% if (base.modules[i].description) { %>
+                <div class="module-description"><%= base.modules[i].description %></div>
+              <% } %>
+            <% } else { %>
+              <div class="module-empty">[EMPTY_SLOT]</div>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    .base-container {
+      max-width: 1200px;
+      margin: 30px auto;
+    }
+    
+    .modules-section {
+      margin-bottom: 40px;
+    }
+    
+    .modules-section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px var(--text-color);
+    }
+    
+    .modules-grid {
+      display: grid;
+      gap: 20px;
+    }
+    
+    .modules-grid.core {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modules-grid.major {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modules-grid.minor {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .module-card {
+      border: 2px solid var(--border-color);
+      padding: 20px;
+      background-color: var(--card-bg);
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+    
+    .module-card:not(.disabled):hover {
+      background-color: var(--hover-bg);
+      box-shadow: 0 0 20px var(--border-color);
+    }
+    
+    .module-card.disabled {
+      opacity: 0.3;
+      border-style: dashed;
+      cursor: not-allowed;
+    }
+    
+    .module-type {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--label-color);
+      margin-bottom: 10px;
+      text-shadow: 0 0 5px var(--label-color);
+    }
+    
+    .module-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-shadow: 0 0 5px var(--text-color);
+    }
+    
+    .module-description {
+      font-size: 14px;
+      color: var(--text-color);
+      line-height: 1.4;
+    }
+    
+    .module-empty {
+      font-size: 16px;
+      color: var(--label-color);
+      text-align: center;
+      margin: auto;
+    }
+    
+    @media (max-width: 900px) {
+      .modules-grid.core,
+      .modules-grid.major,
+      .modules-grid.minor {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .modules-grid.core,
+      .modules-grid.major,
+      .modules-grid.minor {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</body>
+</html>

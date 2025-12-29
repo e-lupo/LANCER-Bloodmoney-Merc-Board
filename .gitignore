@@ -2,4 +2,7 @@ node_modules/
 *.log
 .DS_Store
 data/jobs.json
+data/manna.json
+data/base.json
+data/factions.json
 data/settings.json

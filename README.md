@@ -5,12 +5,20 @@ A terminal-styled web application for managing and viewing LANCER RPG job postin
 ### Login
 <img width="1139" height="568" alt="image" src="https://github.com/user-attachments/assets/d6f08521-b564-4cba-917a-8fe22a6298c3" />
 
-### CLIENT page
-<img width="1276" height="1002" alt="image" src="https://github.com/user-attachments/assets/ae9ff546-e781-4349-b60b-36c8eb61bf90" />
+### Overview Page
+<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/38c364ac-c0b7-4dab-a30b-1900c44e8a2e" />
+
+### Job Board page
+<img width="1276" height="1002" alt="image" src="https://github.com/user-attachments/assets/6be8400d-4539-434f-b17a-8e18288f4a11" />
+
+### Base Management
+<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/4068086c-22c7-4c51-87e2-9ac532b09558" />
+
+### Faction Relations
+<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/959b93d8-0ac5-4f7d-b5f4-ac838bbe38b7" />
 
 ### ADMIN page
-<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/c1ae53d8-f48d-415a-9ce4-51c4ea392412" />
-
+<img width="920" height="916" alt="image" src="https://github.com/user-attachments/assets/b6c936a0-8192-4501-9b80-aed059fa1917" />
 
 ## How to Run Locally
 0. **You will need Node Package Manager (NPM) and therefore Node.js to use this.** 
@@ -95,18 +103,27 @@ Job data is stored in `data/jobs.json` and global settings are stored in `data/s
 
 ```
 LANCER-RPG-Job-Board/
-├── server.js           # Express server and API routes
-├── package.json        # Project dependencies
+├── server.js                  # Express server and API routes
+├── package.json               # Project dependencies
 ├── views/
-│   ├── landing.ejs     # Password entry page
-│   ├── client.ejs      # Terminal-styled client view
-│   └── admin.ejs       # Admin management interface
+│   ├── landing.ejs            # Password entry page
+│   ├── admin.ejs              # Admin panel with tabbed interface
+│   ├── client-overview.ejs    # Client landing page (Manna balance + navigation)
+│   ├── client-jobs.ejs        # Job board listing
+│   ├── client-base.ejs        # Base modules display
+│   ├── client-factions.ejs    # Faction relations display
+│   └── client-finances.ejs    # Full transaction history view
 ├── public/
 │   └── css/
-│       └── terminal.css # Terminal styling for client view
-└── data/
-    ├── jobs.json       # Persistent job storage (created on first run)
-    └── settings.json   # Global settings (created on first run)
+│       ├── terminal.css       # Terminal styling with color scheme support
+│       └── currency.css       # Currency icon styling
+├── logo_art/                  # Emblem/logo SVG files (shared by jobs and factions)
+└── data/                      # JSON data files (gitignored)
+    ├── jobs.json              # Job postings
+    ├── manna.json             # Manna balance and transaction history
+    ├── base.json              # Base module configurations
+    ├── factions.json          # Faction data with standings
+    └── settings.json          # Global settings
 ```
 
 ## Technologies Used
