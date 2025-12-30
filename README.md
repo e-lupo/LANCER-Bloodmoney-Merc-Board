@@ -9,7 +9,7 @@ A terminal-styled web application for managing and viewing LANCER RPG job postin
 
    You will also need Git installed, which can be done from their website here: https://git-scm.com/install/
 
-0.5 Open a Termiinal or CMD and `cd` to a folder of your preference where this will be stored.
+    0.5 Open a Terminal or CMD and `cd` to a folder of your preference where this will be stored.
 
 1. **Clone the repository**:
    ```bash
