@@ -8,6 +8,9 @@ A terminal-styled web application for managing and viewing LANCER RPG job postin
    For Windows at least, you'll want to install Node.js through the installer on their website here: https://nodejs.org/en/download
 
    You will also need Git installed, which can be done from their website here: https://git-scm.com/install/
+
+0.5 Open a Termiinal or CMD and `cd` to a folder of your preference where this will be stored.
+
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Shteb/LANCER-RPG-Job-Board.git
