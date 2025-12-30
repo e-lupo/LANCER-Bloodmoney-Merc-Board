@@ -49,15 +49,13 @@ A terminal-styled web application for managing and viewing LANCER RPG job postin
 
 ## Features
 
-- **Terminal-Styled Interface**: Client view features a retro terminal aesthetic with green-on-black color scheme, scanline effects, and glowing text
-- **Dual Access Modes**:
-  - **CLIENT Mode** (Password: `IMHOTEP`): View-only grid of job cards
-  - **ADMIN Mode** (Password: `TARASQUE`): Full CRUD operations for managing job postings
+- **CLIENT Mode** (Password: `IMHOTEP`): View-only grid of job cards
+- **ADMIN Mode** (Password: `TARASQUE`): Full CRUD operations for managing job postings
 - **Persistent Storage**: Job data is stored in a JSON file for persistence across restarts
 - **Global Settings**: Customizable settings displayed in the client view:
-  - **User Group**: Displayed below the portal header (e.g., "FREELANCE_OPERATORS")
-  - **UNT Date**: Universal time/date in DD/MM/YYYY format
-  - **Galactic Position**: Current location in the galaxy
+  - **User Group**: Displayed below the portal header
+  - **UNT Date**: Universal time/date in DD/MM/YYYY format, `U` appended for Union vibes. 
+  - **Galactic Position**: Current location in the galaxy.
   - **Color Scheme**: Terminal color theme (grey, orange, green, or blue)
 - **Comprehensive Job Information**: Each job card includes:
   - Job name
@@ -97,8 +95,6 @@ The admin panel provides a clean, functional interface for managing job postings
 
 Job data is stored in `data/jobs.json` and global settings are stored in `data/settings.json`. These files are automatically created on first run with default data. The files persist across restarts, ensuring your job postings and settings are saved.
 
-**Note**: The `data/jobs.json` and `data/settings.json` files are excluded from version control via `.gitignore` to prevent accidental commits of user data.
-
 ## Project Structure
 
 ```
@@ -137,7 +133,6 @@ LANCER-RPG-Job-Board/
 ## Development Notes
 
 - The application uses port 3000 by default (configurable via `PORT` environment variable)
-- No database required - uses file-based JSON storage
 
 # License
 
