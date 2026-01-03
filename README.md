@@ -1,6 +1,6 @@
-# LANCER RPG Job Board
+# LANCER Bloodmoney Merc Board
 
-A terminal-styled web application for managing and viewing LANCER RPG job postings. Features password-gated access with separate client and admin interfaces.
+A terminal-styled web application for managing and viewing LANCER Bloodmoney Merc postings. Features password-gated access with separate client and admin interfaces.
 
 ## How to Run Locally
 0. **You will need Node Package Manager (NPM) and therefore Node.js to use this.** 
@@ -56,47 +56,89 @@ At the same folder level you ran `npm install`, now run `git pull`.
 
 ## Features
 
-- **CLIENT Mode** (Password: `IMHOTEP`): View-only grid of job cards
-- **ADMIN Mode** (Password: `TARASQUE`): Full CRUD operations for managing job postings
-- **Persistent Storage**: Job data is stored in a JSON file for persistence across restarts
-- **Global Settings**: Customizable settings displayed in the client view:
-  - **User Group**: Displayed below the portal header
-  - **UNT Date**: Universal time/date in DD/MM/YYYY format, `U` appended for Union vibes. 
-  - **Galactic Position**: Current location in the galaxy.
-  - **Color Scheme**: Terminal color theme (grey, orange, green, or blue)
-- **Comprehensive Job Information**: Each job card includes:
-  - Job name
-  - Job rank (1-3 stars)
-  - Client name
-  - Job description
-  - Client brief
-  - Currency payment (e.g., "100m")
-  - Additional payment information
+Here's a simplified, non-technical summary of the application's features:
 
-### Access Codes
+## LANCER Bloodmoney Merc Board - User Features
 
-- **CLIENT Mode**: Enter `IMHOTEP` at the landing page
-- **ADMIN Mode**: Enter `TARASQUE` at the landing page
+### Visual Style
+- **4 color themes** to choose from (Grey, Orange, Green, Blue)
 
-### Client View
+### Access Levels
+- **Player Access** (password: IMHOTEP) - View information only
+- **Game Master Access** (password: TARASQUE) - Create and edit everything
 
-The client view displays all job postings in a terminal-styled grid layout. Each card shows:
-- Job name with rank indicator (★ stars)
-- Client information
-- Job description and brief
-- Payment details
+### For Players (CLIENT Mode)
 
-### Admin View
+**Main Dashboard**
+- See your company's current money (Manna)
+- View recent transactions
+- Navigate to different sections
 
-The admin panel provides a clean, functional interface for managing job postings and global settings:
-- **Global Settings**: Configure system-wide settings
-  - **Color Scheme**: Choose terminal color theme for client and landing views
-  - **UNT**: Set the universal time/date (DD/MM/YYYY format)
-  - **Current Galactic Position**: Set the current location
-  - **User Group**: Set the user group name displayed in client view
-- **Add New Jobs**: Fill out the form to create new job postings
-- **Edit Jobs**: Click the "Edit" button to modify existing jobs
-- **Delete Jobs**: Click the "Delete" button to remove jobs
+**Mission Board**
+- Browse available missions
+- See mission details: difficulty, type, objectives, payment
+- View client information and logos
+
+**Base Status**
+- View your base's facilities and modules
+- See what's operational and what's empty
+
+**Faction Relations**
+- Track relationships with different organizations
+- See who trusts you and who doesn't
+- View how many jobs you've completed for each faction
+- Check your reputation level with each group
+
+**Pilot Roster**
+- See all your pilots and their details
+- Edit pilot equipment and notes
+- View which missions each pilot has worked on
+- See active and inactive pilots
+
+**Live Updates**
+- Everything updates automatically when changes are made
+- No need to refresh your browser
+
+### For Game Masters (ADMIN Mode)
+
+**Everything players can see, plus:**
+
+**Manage Missions**
+- Create new missions
+- Edit or delete existing missions
+- Change mission status (pending, active, completed, failed)
+- Assign missions to factions
+- Upload mission logos
+
+**Manage Money**
+- Add or remove funds
+- Record transactions
+- Edit transaction history
+
+**Manage Base**
+- Configure all base modules
+- Write descriptions for facilities
+- Enable or disable modules
+
+**Manage Factions**
+- Create and edit organizations
+- Set relationship levels
+- Upload faction logos
+- Track job performance
+
+**Manage Pilots**
+- Add new pilots
+- Edit pilot information
+- Assign pilots to missions
+- Mark pilots as active or inactive
+
+**Settings**
+- Change the portal title
+- Set the date
+- Change color scheme
+- Update location information
+
+All changes appear instantly for everyone viewing the app.
 
 ## Data Persistence
 
@@ -107,6 +149,7 @@ Job data is stored in `data/jobs.json` and global settings are stored in `data/s
 ```
 LANCER-Bloodmoney-Merc-Board/
 ├── server.js                  # Express server and API routes
+├── helpers.js                 # Validation and helper functions
 ├── package.json               # Project dependencies
 ├── views/
 │   ├── landing.ejs            # Password entry page
@@ -115,18 +158,23 @@ LANCER-Bloodmoney-Merc-Board/
 │   ├── client-jobs.ejs        # Job board listing
 │   ├── client-base.ejs        # Base modules display
 │   ├── client-factions.ejs    # Faction relations display
-│   └── client-finances.ejs    # Full transaction history view
+│   ├── client-finances.ejs    # Full transaction history view
+│   └── client-pilots.ejs      # Pilot list with reserves editing
 ├── public/
-│   └── css/
-│       ├── terminal.css       # Terminal styling with color scheme support
-│       └── currency.css       # Currency icon styling
+│   ├── css/
+│   │   ├── terminal.css       # Terminal styling with color scheme support
+│   │   └── currency.css       # Currency icon styling
+│   └── js/
+│       ├── sse-client.js      # SSE client for real-time updates
+│       └── shared-handlers.js # Shared SSE event handlers
 ├── logo_art/                  # Emblem/logo SVG files (shared by jobs and factions)
 └── data/                      # JSON data files (gitignored)
-    ├── jobs.json              # Job postings
+    ├── jobs.json              # Job postings with state and faction relationships
     ├── manna.json             # Manna balance and transaction history
     ├── base.json              # Base module configurations
     ├── factions.json          # Faction data with standings
-    └── settings.json          # Global settings
+    ├── pilots.json            # Pilot roster with related jobs
+    └── settings.json          # Global settings including operation progress
 ```
 
 ## Technologies Used

@@ -6,6 +6,9 @@ const helpers = require('./helpers');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// SSE client management
+const sseClients = new Set();
+
 // Constants
 const PASSWORDS = {
   CLIENT: 'IMHOTEP',
@@ -38,6 +41,7 @@ const SETTINGS_FILE = path.join(__dirname, 'data', 'settings.json');
 const MANNA_FILE = path.join(__dirname, 'data', 'manna.json');
 const BASE_FILE = path.join(__dirname, 'data', 'base.json');
 const FACTIONS_FILE = path.join(__dirname, 'data', 'factions.json');
+const PILOTS_FILE = path.join(__dirname, 'data', 'pilots.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
@@ -61,40 +65,43 @@ function initializeData() {
   if (!fs.existsSync(DATA_FILE)) {
     const dummyJobs = [
       {
-        id: '1',
+        id: helpers.generateId(),
         name: 'Lorem Ipsum Dolorem',
         rank: 2,
-        client: 'Consectetur Corporation',
         jobType: 'Finibus bonorum',
         description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         clientBrief: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
         currencyPay: '150m',
         additionalPay: 'Duis aute irure dolor in reprehenderit',
-        emblem: 'birds.svg'
+        emblem: 'birds.svg',
+        state: 'Active',
+        factionId: ''
       },
       {
-        id: '2',
+        id: helpers.generateId(),
         name: 'Sit Amet Consectetur',
         rank: 1,
-        client: 'Adipiscing Industries',
         jobType: 'Malorum extrema',
         description: 'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
         clientBrief: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
         currencyPay: '75m',
         additionalPay: 'Totam rem aperiam',
-        emblem: 'sun.svg'
+        emblem: 'sun.svg',
+        state: 'Active',
+        factionId: ''
       },
       {
-        id: '3',
+        id: helpers.generateId(),
         name: 'Tempor Incididunt',
         rank: 3,
-        client: 'Eiusmod Enterprises',
         jobType: 'Ratione voluptatem',
         description: 'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores.',
         clientBrief: 'Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
         currencyPay: '250m',
         additionalPay: 'Sed quia non numquam eius modi tempora',
-        emblem: 'triangle.svg'
+        emblem: 'triangle.svg',
+        state: 'Pending',
+        factionId: ''
       }
     ];
     fs.writeFileSync(DATA_FILE, JSON.stringify(dummyJobs, null, 2));
@@ -116,13 +123,190 @@ function writeJobs(jobs) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(jobs, null, 2));
 }
 
+// Migrate old jobs to add state and factionId fields (one-time operation)
+function migrateJobsIfNeeded() {
+  const jobs = readJobs();
+  let needsMigration = false;
+  
+  const migratedJobs = jobs.map(job => {
+    const stateMissing = job.state === undefined || job.state === null;
+    const factionIdMissing = !job.hasOwnProperty('factionId');
+
+    if (stateMissing || factionIdMissing) {
+      needsMigration = true;
+      return {
+        ...job,
+        // Only default when state is actually missing (undefined or null)
+        state: job.state ?? helpers.DEFAULT_JOB_STATE,
+        // Only default factionId when the property is missing
+        factionId: factionIdMissing ? '' : job.factionId
+      };
+    }
+    return job;
+  });
+  
+  if (needsMigration) {
+    writeJobs(migratedJobs);
+    console.log('Jobs migrated to include state and factionId fields');
+  }
+}
+
+// Helper function to create faction lookup map
+function createFactionMap(factions) {
+  const factionMap = {};
+  factions.forEach(f => {
+    factionMap[f.id] = f;
+  });
+  return factionMap;
+}
+
+// Helper function to enrich jobs with faction data
+function enrichJobsWithFactions(jobs, factions) {
+  const factionMap = createFactionMap(factions);
+  return jobs.map(job => ({
+    ...job,
+    faction: factionMap[job.factionId] || null
+  }));
+}
+
+// Helper function to enrich all factions with job counts
+function enrichAllFactions(factions, jobs) {
+  return factions.map(faction => helpers.enrichFactionWithJobCounts(faction, jobs));
+}
+
+// Helper function to validate job data
+function validateJobData(jobData, factions, uploadDir) {
+  // Validate emblem
+  const emblemValidation = helpers.validateEmblem(jobData.emblem, uploadDir);
+  if (!emblemValidation.valid) {
+    return { valid: false, message: emblemValidation.message };
+  }
+  
+  // Validate job state
+  const stateValidation = helpers.validateJobState(jobData.state);
+  if (!stateValidation.valid) {
+    return { valid: false, message: stateValidation.message };
+  }
+  
+  // Validate factionId if provided (optional)
+  const factionId = jobData.factionId || '';
+  if (factionId) {
+    const factionValidation = helpers.validateFactionId(factionId, factions);
+    if (!factionValidation.valid) {
+      return { valid: false, message: factionValidation.message };
+    }
+  }
+  
+  return { 
+    valid: true, 
+    emblem: jobData.emblem,
+    state: stateValidation.value,
+    factionId: factionId
+  };
+}
+
+// Helper function to validate faction data
+function validateFactionData(factionData, uploadDir) {
+  // Validate title
+  const titleValidation = helpers.validateRequiredString(factionData.title, 'Faction title');
+  if (!titleValidation.valid) {
+    return { valid: false, message: titleValidation.message };
+  }
+  
+  // Validate brief
+  const briefValidation = helpers.validateRequiredString(factionData.brief, 'Faction brief');
+  if (!briefValidation.valid) {
+    return { valid: false, message: briefValidation.message };
+  }
+  
+  // Validate emblem
+  const emblemValidation = helpers.validateEmblem(factionData.emblem, uploadDir);
+  if (!emblemValidation.valid) {
+    return { valid: false, message: emblemValidation.message };
+  }
+  
+  // Validate standing
+  const standingValidation = helpers.validateInteger(factionData.standing, 'Standing', 0, 4);
+  if (!standingValidation.valid) {
+    return { valid: false, message: standingValidation.message };
+  }
+  
+  return {
+    valid: true,
+    title: titleValidation.value,
+    brief: briefValidation.value,
+    emblem: factionData.emblem,
+    standing: standingValidation.value,
+    jobsCompletedOffset: parseInt(factionData.jobsCompletedOffset) || 0,
+    jobsFailedOffset: parseInt(factionData.jobsFailedOffset) || 0
+  };
+}
+
+// Helper function to validate pilot data
+function validatePilotData(pilotData) {
+  // Validate name
+  const nameValidation = helpers.validateRequiredString(pilotData.name, 'Pilot name');
+  if (!nameValidation.valid) {
+    return { valid: false, message: nameValidation.message };
+  }
+  
+  // Validate callsign
+  const callsignValidation = helpers.validateRequiredString(pilotData.callsign, 'Callsign');
+  if (!callsignValidation.valid) {
+    return { valid: false, message: callsignValidation.message };
+  }
+  
+  // Validate LL (License Level)
+  const llValidation = helpers.validateInteger(pilotData.ll, 'License Level', 0, 12);
+  if (!llValidation.valid) {
+    return { valid: false, message: llValidation.message };
+  }
+  
+  // Validate personalOperationProgress (0-3)
+  const progressValidation = helpers.validateInteger(
+    pilotData.personalOperationProgress ?? 0,
+    'Personal Operation Progress',
+    0,
+    3
+  );
+  if (!progressValidation.valid) {
+    return { valid: false, message: progressValidation.message };
+  }
+  
+  // Validate relatedJobs array if provided
+  let relatedJobs = [];
+  if (pilotData.relatedJobs) {
+    try {
+      relatedJobs = Array.isArray(pilotData.relatedJobs) ? pilotData.relatedJobs : JSON.parse(pilotData.relatedJobs);
+      if (!Array.isArray(relatedJobs)) {
+        return { valid: false, message: 'Related jobs must be an array' };
+      }
+    } catch (e) {
+      return { valid: false, message: 'Invalid related jobs format' };
+    }
+  }
+  
+  return {
+    valid: true,
+    name: nameValidation.value,
+    callsign: callsignValidation.value,
+    ll: llValidation.value,
+    reserves: (pilotData.reserves || '').trim(),
+    active: pilotData.active === 'true' || pilotData.active === true,
+    relatedJobs: relatedJobs,
+    personalOperationProgress: progressValidation.value
+  };
+}
+
 // Default settings object
 const DEFAULT_SETTINGS = {
   portalHeading: 'HERM00R MERCENARY PORTAL',
   unt: '',
   currentGalacticPos: '',
   colorScheme: 'grey',
-  userGroup: 'FREELANCE_OPERATORS'
+  userGroup: 'FREELANCE_OPERATORS',
+  operationProgress: 0,
+  openTable: false
 };
 
 // Read settings from file
@@ -146,35 +330,28 @@ function writeSettings(settings) {
 function initializeManna() {
   if (!fs.existsSync(MANNA_FILE)) {
     const defaultManna = {
-      balance: 1500,
+      balance: 1300,
       transactions: [
         {
           id: helpers.generateId(),
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          amount: 500,
-          description: 'Contract completion bonus',
-          balance: 1000
-        },
-        {
-          id: helpers.generateId(),
           date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          amount: -200,
-          description: 'Equipment maintenance costs',
+          amount: 500,
+          description: 'Lorem ipsum dolor sit',
           balance: 800
         },
         {
           id: helpers.generateId(),
           date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          amount: 750,
-          description: 'Mission payment received',
-          balance: 1550
+          amount: -200,
+          description: 'Consectetur adipiscing',
+          balance: 600
         },
         {
           id: helpers.generateId(),
           date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          amount: -50,
-          description: 'Docking fees',
-          balance: 1500
+          amount: 700,
+          description: 'Sed do eiusmod tempor',
+          balance: 1300
         }
       ]
     };
@@ -203,18 +380,18 @@ function initializeBase() {
     const defaultBase = {
       modules: [
         // 3 Core modules - at least one partially filled
-        { type: 'Core', title: 'Primary Systems', description: 'Main operational systems and life support infrastructure', disabled: false },
+        { type: 'Core', title: 'Lorem Ipsum', description: 'Dolor sit amet consectetur adipiscing elit', disabled: false },
         { type: 'Core', title: '', description: '', disabled: false },
         { type: 'Core', title: '', description: '', disabled: false },
         // 6 Major modules - at least one partially filled
-        { type: 'Major', title: 'Defense Grid', description: 'Automated perimeter defense and surveillance systems', disabled: false },
+        { type: 'Major', title: 'Sed Do Eiusmod', description: 'Tempor incididunt ut labore et dolore magna', disabled: false },
         { type: 'Major', title: '', description: '', disabled: false },
         { type: 'Major', title: '', description: '', disabled: false },
         { type: 'Major', title: '', description: '', disabled: false },
         { type: 'Major', title: '', description: '', disabled: false },
         { type: 'Major', title: '', description: '', disabled: false },
         // 6 Minor modules (last 2 disabled by default) - at least one partially filled
-        { type: 'Minor', title: 'Recreation Bay', description: 'Common area for crew rest and relaxation', disabled: false },
+        { type: 'Minor', title: 'Ut Enim Minim', description: 'Quis nostrud exercitation ullamco laboris', disabled: false },
         { type: 'Minor', title: '', description: '', disabled: false },
         { type: 'Minor', title: '', description: '', disabled: false },
         { type: 'Minor', title: '', description: '', disabled: false },
@@ -252,8 +429,8 @@ function initializeFactions() {
         emblem: 'construction.svg',
         brief: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         standing: 2,
-        jobsCompleted: 3,
-        jobsFailed: 1
+        jobsCompletedOffset: 3,
+        jobsFailedOffset: 1
       },
       {
         id: '2',
@@ -261,8 +438,8 @@ function initializeFactions() {
         emblem: 'cosmetics.svg',
         brief: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
         standing: 3,
-        jobsCompleted: 5,
-        jobsFailed: 0
+        jobsCompletedOffset: 5,
+        jobsFailedOffset: 0
       },
       {
         id: '3',
@@ -270,8 +447,8 @@ function initializeFactions() {
         emblem: 'engineering.svg',
         brief: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
         standing: 1,
-        jobsCompleted: 1,
-        jobsFailed: 2
+        jobsCompletedOffset: 1,
+        jobsFailedOffset: 2
       }
     ];
     fs.writeFileSync(FACTIONS_FILE, JSON.stringify(defaultFactions, null, 2));
@@ -291,6 +468,119 @@ function readFactions() {
 // Write Factions
 function writeFactions(factions) {
   fs.writeFileSync(FACTIONS_FILE, JSON.stringify(factions, null, 2));
+}
+
+// Migrate old factions to add offset fields (one-time operation)
+function migrateFactionsIfNeeded() {
+  const factions = readFactions();
+  let needsMigration = false;
+  
+  const migratedFactions = factions.map(faction => {
+    const hasJobsCompletedOffset = Object.prototype.hasOwnProperty.call(faction, 'jobsCompletedOffset');
+    const hasJobsFailedOffset = Object.prototype.hasOwnProperty.call(faction, 'jobsFailedOffset');
+    const hasLegacyJobsCompleted = Object.prototype.hasOwnProperty.call(faction, 'jobsCompleted');
+    const hasLegacyJobsFailed = Object.prototype.hasOwnProperty.call(faction, 'jobsFailed');
+    const offsetFieldsMissing = !hasJobsCompletedOffset || !hasJobsFailedOffset;
+    
+    // Always strip legacy fields from the returned object
+    const { jobsCompleted, jobsFailed, ...rest } = faction;
+    
+    if (offsetFieldsMissing || hasLegacyJobsCompleted || hasLegacyJobsFailed) {
+      needsMigration = true;
+      // Remove legacy fields and initialize missing offset fields from their values (or 0 if missing)
+      return {
+        ...rest,
+        ...(hasJobsCompletedOffset ? {} : { jobsCompletedOffset: jobsCompleted || 0 }),
+        ...(hasJobsFailedOffset ? {} : { jobsFailedOffset: jobsFailed || 0 })
+      };
+    }
+    
+    // No migration needed: offsets already exist and no legacy fields were present
+    return rest;
+  });
+  
+  if (needsMigration) {
+    writeFactions(migratedFactions);
+    console.log('Factions migrated to use offset fields for job counts');
+  }
+}
+
+// Initialize Pilots
+function initializePilots() {
+  if (!fs.existsSync(PILOTS_FILE)) {
+    const defaultPilots = [
+      {
+        id: helpers.generateId(),
+        name: 'Lorem Ipsum',
+        callsign: 'Dolor',
+        ll: 3,
+        reserves: 'Lorem ipsum dolor sit amet\nConsectetur adipiscing elit',
+        active: true,
+        relatedJobs: [],
+        personalOperationProgress: 2
+      },
+      {
+        id: helpers.generateId(),
+        name: 'Sit Amet',
+        callsign: 'Consectetur',
+        ll: 5,
+        reserves: 'Sed do eiusmod tempor\nIncididunt ut labore',
+        active: true,
+        relatedJobs: [],
+        personalOperationProgress: 0
+      },
+      {
+        id: helpers.generateId(),
+        name: 'Magna Aliqua',
+        callsign: 'Tempor',
+        ll: 2,
+        reserves: 'Ut enim ad minim veniam\nQuis nostrud exercitation',
+        active: false,
+        relatedJobs: [],
+        personalOperationProgress: 0
+      }
+    ];
+    fs.writeFileSync(PILOTS_FILE, JSON.stringify(defaultPilots, null, 2));
+  }
+}
+
+// Read Pilots
+function readPilots() {
+  try {
+    const data = fs.readFileSync(PILOTS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+// Write Pilots
+function writePilots(pilots) {
+  fs.writeFileSync(PILOTS_FILE, JSON.stringify(pilots, null, 2));
+}
+
+// Migrate old pilots to add personalOperationProgress field (one-time operation)
+function migratePilotsIfNeeded() {
+  const pilots = readPilots();
+  let needsMigration = false;
+  
+  const migratedPilots = pilots.map(pilot => {
+    const progressMissing = !pilot.hasOwnProperty('personalOperationProgress');
+    
+    if (progressMissing) {
+      needsMigration = true;
+      return {
+        ...pilot,
+        personalOperationProgress: 0
+      };
+    }
+    return pilot;
+  });
+  
+  if (needsMigration) {
+    writePilots(migratedPilots);
+    console.log('Pilots migrated to include personalOperationProgress field');
+  }
 }
 
 // File storage (Upload Emblem)
@@ -385,6 +675,60 @@ initializeSettings();
 initializeManna();
 initializeBase();
 initializeFactions();
+initializePilots();
+
+// Migrate existing jobs to add new fields
+migrateJobsIfNeeded();
+
+// Migrate existing factions to add offset fields
+migrateFactionsIfNeeded();
+
+// Migrate existing pilots to add personalOperationProgress field
+migratePilotsIfNeeded();
+
+// SSE broadcast function
+function broadcastSSE(eventType, data) {
+  const message = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+  sseClients.forEach(client => {
+    try {
+      client.write(message);
+    } catch (err) {
+      // Client disconnected, remove from client set to prevent repeated errors
+      sseClients.delete(client);
+      console.error('Error writing to SSE client:', err);
+    }
+  });
+}
+
+// SSE endpoint
+app.get('/api/sse', (req, res) => {
+  // Set headers for SSE
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  
+  // Send initial connection message
+  res.write('event: connected\ndata: {"message":"SSE connection established"}\n\n');
+  
+  // Add client to set
+  sseClients.add(res);
+  
+  // Send keep-alive every 30 seconds
+  const keepAliveInterval = setInterval(() => {
+    try {
+      res.write(': keepalive\n\n');
+    } catch (err) {
+      clearInterval(keepAliveInterval);
+    }
+  }, 30000);
+  
+  // Remove client on disconnect
+  req.on('close', () => {
+    clearInterval(keepAliveInterval);
+    sseClients.delete(res);
+  });
+});
 
 // Routes
 app.get('/', (req, res) => {
@@ -423,9 +767,16 @@ app.get('/client/finances', (req, res) => {
 });
 
 app.get('/client/jobs', (req, res) => {
-  const jobs = readJobs();
+  const allJobs = readJobs();
+  // Filter to show only Active jobs for clients
+  const jobs = allJobs.filter(job => job.state === 'Active');
   const settings = readSettings();
-  res.render('client-jobs', { jobs, settings, colorScheme: settings.colorScheme });
+  const factions = readFactions();
+  
+  // Enrich jobs with faction data
+  const enrichedJobs = enrichJobsWithFactions(jobs, factions);
+  
+  res.render('client-jobs', { jobs: enrichedJobs, settings, colorScheme: settings.colorScheme });
 });
 
 app.get('/client/base', (req, res) => {
@@ -437,7 +788,18 @@ app.get('/client/base', (req, res) => {
 app.get('/client/factions', (req, res) => {
   const settings = readSettings();
   const factions = readFactions();
-  res.render('client-factions', { settings, colorScheme: settings.colorScheme, factions });
+  const jobs = readJobs();
+  
+  // Enrich factions with calculated job counts
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  
+  res.render('client-factions', { settings, colorScheme: settings.colorScheme, factions: enrichedFactions });
+});
+
+app.get('/client/pilots', (req, res) => {
+  const settings = readSettings();
+  const pilots = readPilots();
+  res.render('client-pilots', { settings, colorScheme: settings.colorScheme, pilots });
 });
 
 app.get('/admin', (req, res) => {
@@ -446,70 +808,151 @@ app.get('/admin', (req, res) => {
   const manna = readManna();
   const base = readBase();
   const factions = readFactions();
+  const pilots = readPilots();
   const emblemFiles = fs.readdirSync(path.join(__dirname, 'logo_art'))
     .filter(file => file.endsWith('.svg'))
     .sort();
-  res.render('admin', { jobs, settings, manna, base, factions, emblems: emblemFiles, formatEmblemTitle: helpers.formatEmblemTitle });
+  
+  // Enrich factions with calculated job counts
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  
+  // Create faction lookup map for efficient template rendering
+  const factionMap = createFactionMap(enrichedFactions);
+  
+  // Enrich jobs with faction data and state class
+  const enrichedJobs = jobs.map(job => ({
+    ...job,
+    stateClass: job.state ? job.state.toLowerCase() : helpers.DEFAULT_JOB_STATE.toLowerCase(),
+    faction: factionMap[job.factionId] || null
+  }));
+  
+  res.render('admin', { 
+    jobs: enrichedJobs, 
+    settings, 
+    manna, 
+    base, 
+    factions: enrichedFactions, 
+    pilots,
+    emblems: emblemFiles, 
+    formatEmblemTitle: helpers.formatEmblemTitle,
+    jobStates: helpers.JOB_STATES,
+    defaultJobState: helpers.DEFAULT_JOB_STATE
+  });
 });
 
 // API endpoints for admin operations
+app.get('/api/jobs', (req, res) => {
+  const jobs = readJobs();
+  const factions = readFactions();
+  
+  // Enrich jobs with faction data
+  const enrichedJobs = enrichJobsWithFactions(jobs, factions);
+  
+  res.json(enrichedJobs);
+});
+
 app.post('/api/jobs', (req, res) => {
   const jobs = readJobs();
-  const emblem = req.body.emblem;
-  const validation = helpers.validateEmblem(emblem, uploadDir);
+  const factions = readFactions();
+  
+  // Validate job data
+  const validation = validateJobData(req.body, factions, uploadDir);
   if (!validation.valid) {
     return res.status(400).json({ success: false, message: validation.message });
   }
+  
   const newJob = {
     id: helpers.generateId(),
     name: req.body.name,
     rank: parseInt(req.body.rank),
-    client: req.body.client,
     jobType: req.body.jobType,
     description: req.body.description,
     clientBrief: req.body.clientBrief,
     currencyPay: req.body.currencyPay,
     additionalPay: req.body.additionalPay,
-    emblem: emblem
+    emblem: validation.emblem,
+    state: validation.state,
+    factionId: validation.factionId
   };
   jobs.push(newJob);
   writeJobs(jobs);
+  
+  // Broadcast SSE update
+  broadcastSSE('jobs', { action: 'create', job: newJob, jobs });
+  
   res.json({ success: true, job: newJob });
 });
 
 app.put('/api/jobs/:id', (req, res) => {
   const jobs = readJobs();
+  const factions = readFactions();
+  
   const index = jobs.findIndex(j => j.id === req.params.id);
-  if (index !== -1) {
-    const emblem = req.body.emblem;
-    const validation = helpers.validateEmblem(emblem, uploadDir);
-    if (!validation.valid) {
-      return res.status(400).json({ success: false, message: validation.message });
-    }
-    jobs[index] = {
-      id: req.params.id,
-      name: req.body.name,
-      rank: parseInt(req.body.rank),
-      client: req.body.client,
-      jobType: req.body.jobType,
-      description: req.body.description,
-      clientBrief: req.body.clientBrief,
-      currencyPay: req.body.currencyPay,
-      additionalPay: req.body.additionalPay,
-      emblem: emblem
-    };
-    writeJobs(jobs);
-    res.json({ success: true, job: jobs[index] });
-  } else {
-    res.status(404).json({ success: false, message: 'Job not found' });
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Job not found' });
   }
+  
+  // Validate job data
+  const validation = validateJobData(req.body, factions, uploadDir);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  jobs[index] = {
+    id: req.params.id,
+    name: req.body.name,
+    rank: parseInt(req.body.rank),
+    jobType: req.body.jobType,
+    description: req.body.description,
+    clientBrief: req.body.clientBrief,
+    currencyPay: req.body.currencyPay,
+    additionalPay: req.body.additionalPay,
+    emblem: validation.emblem,
+    state: validation.state,
+    factionId: validation.factionId
+  };
+  writeJobs(jobs);
+  
+  // Broadcast SSE update
+  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs });
+  
+  res.json({ success: true, job: jobs[index] });
 });
 
 app.delete('/api/jobs/:id', (req, res) => {
   let jobs = readJobs();
   jobs = jobs.filter(j => j.id !== req.params.id);
   writeJobs(jobs);
+  
+  // Broadcast SSE update
+  broadcastSSE('jobs', { action: 'delete', jobId: req.params.id, jobs });
+  
   res.json({ success: true });
+});
+
+// API endpoint to update job state only
+app.put('/api/jobs/:id/state', (req, res) => {
+  const jobs = readJobs();
+  const index = jobs.findIndex(j => j.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Job not found' });
+  }
+  
+  // Validate job state
+  const stateValidation = helpers.validateJobState(req.body.state);
+  if (!stateValidation.valid) {
+    return res.status(400).json({ success: false, message: stateValidation.message });
+  }
+  
+  // Update only the state field
+  jobs[index].state = stateValidation.value;
+  writeJobs(jobs);
+  
+  // Broadcast SSE update
+  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs });
+  
+  res.json({ success: true, job: jobs[index] });
 });
 
 // API endpoints for settings
@@ -547,15 +990,33 @@ app.put('/api/settings', (req, res) => {
     return res.status(400).json({ success: false, message: dateValidation.message });
   }
   
+  // Validate operation progress
+  const operationProgress = parseInt(req.body.operationProgress ?? 0);
+  if (isNaN(operationProgress) || operationProgress < 0 || operationProgress > 3) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Operation Progress must be between 0 and 3' 
+    });
+  }
+  
+  // Parse openTable boolean
+  const openTable = req.body.openTable === 'true' || req.body.openTable === true;
+  
   const settings = {
     portalHeading: headingValidation.value,
     unt: unt.trim(),
     currentGalacticPos: (req.body.currentGalacticPos ?? '').trim(),
     colorScheme: colorScheme,
-    userGroup: userGroupValidation.value
+    userGroup: userGroupValidation.value,
+    operationProgress: operationProgress,
+    openTable: openTable
   };
   
   writeSettings(settings);
+  
+  // Broadcast SSE update
+  broadcastSSE('settings', { action: 'update', settings });
+  
   res.json({ success: true, settings });
 });
 
@@ -647,6 +1108,10 @@ app.put('/api/manna', (req, res) => {
   }
   
   writeManna(manna);
+  
+  // Broadcast SSE update
+  broadcastSSE('manna', { action: 'update', manna });
+  
   res.json({ success: true, manna });
 });
 
@@ -673,6 +1138,10 @@ app.post('/api/manna/transaction', (req, res) => {
   });
   
   writeManna(manna);
+  
+  // Broadcast SSE update
+  broadcastSSE('manna', { action: 'transaction', manna });
+  
   res.json({ success: true, manna });
 });
 
@@ -723,6 +1192,10 @@ app.put('/api/manna/transaction/:id', (req, res) => {
   };
   
   writeManna(manna);
+  
+  // Broadcast SSE update
+  broadcastSSE('manna', { action: 'update', manna });
+  
   res.json({ success: true, transaction: manna.transactions[transactionIndex] });
 });
 
@@ -741,6 +1214,10 @@ app.delete('/api/manna/transaction/:id', (req, res) => {
   manna.transactions.splice(transactionIndex, 1);
   
   writeManna(manna);
+  
+  // Broadcast SSE update
+  broadcastSSE('manna', { action: 'delete', manna });
+  
   res.json({ success: true });
 });
 
@@ -761,54 +1238,53 @@ app.put('/api/base', (req, res) => {
   }
   
   writeBase({ modules });
+  
+  // Broadcast SSE update
+  broadcastSSE('base', { action: 'update', base: { modules } });
+  
   res.json({ success: true, base: { modules } });
 });
 
 // Factions API endpoints
 app.get('/api/factions', (req, res) => {
   const factions = readFactions();
-  res.json(factions);
+  const jobs = readJobs();
+  
+  // Enrich factions with calculated job counts
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  
+  res.json(enrichedFactions);
 });
 
 app.post('/api/factions', (req, res) => {
-  // Validate title
-  const titleValidation = helpers.validateRequiredString(req.body.title, 'Faction title');
-  if (!titleValidation.valid) {
-    return res.status(400).json({ success: false, message: titleValidation.message });
-  }
-  
-  // Validate brief
-  const briefValidation = helpers.validateRequiredString(req.body.brief, 'Faction brief');
-  if (!briefValidation.valid) {
-    return res.status(400).json({ success: false, message: briefValidation.message });
-  }
-  
-  // Validate emblem
-  const emblem = req.body.emblem;
-  const emblemValidation = helpers.validateEmblem(emblem, uploadDir);
-  if (!emblemValidation.valid) {
-    return res.status(400).json({ success: false, message: emblemValidation.message });
-  }
-  
-  // Validate standing
-  const standingValidation = helpers.validateInteger(req.body.standing, 'Standing', 0, 4);
-  if (!standingValidation.valid) {
-    return res.status(400).json({ success: false, message: standingValidation.message });
+  // Validate faction data
+  const validation = validateFactionData(req.body, uploadDir);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
   }
   
   const factions = readFactions();
+  const jobs = readJobs();
   const newFaction = {
     id: helpers.generateId(),
-    title: titleValidation.value,
-    emblem: emblem,
-    brief: briefValidation.value,
-    standing: standingValidation.value,
-    jobsCompleted: parseInt(req.body.jobsCompleted) || 0,
-    jobsFailed: parseInt(req.body.jobsFailed) || 0
+    title: validation.title,
+    emblem: validation.emblem,
+    brief: validation.brief,
+    standing: validation.standing,
+    jobsCompletedOffset: validation.jobsCompletedOffset,
+    jobsFailedOffset: validation.jobsFailedOffset
   };
   factions.push(newFaction);
   writeFactions(factions);
-  res.json({ success: true, faction: newFaction });
+  
+  // Enrich the new faction with calculated counts for the response
+  const enrichedFaction = helpers.enrichFactionWithJobCounts(newFaction, jobs);
+  
+  // Broadcast SSE update with all enriched factions
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  broadcastSSE('factions', { action: 'create', faction: enrichedFaction, factions: enrichedFactions });
+  
+  res.json({ success: true, faction: enrichedFaction });
 });
 
 app.put('/api/factions/:id', (req, res) => {
@@ -819,49 +1295,227 @@ app.put('/api/factions/:id', (req, res) => {
     return res.status(404).json({ success: false, message: 'Faction not found' });
   }
   
-  // Validate title
-  const titleValidation = helpers.validateRequiredString(req.body.title, 'Faction title');
-  if (!titleValidation.valid) {
-    return res.status(400).json({ success: false, message: titleValidation.message });
+  // Validate faction data
+  const validation = validateFactionData(req.body, uploadDir);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
   }
   
-  // Validate brief
-  const briefValidation = helpers.validateRequiredString(req.body.brief, 'Faction brief');
-  if (!briefValidation.valid) {
-    return res.status(400).json({ success: false, message: briefValidation.message });
-  }
-  
-  // Validate emblem
-  const emblem = req.body.emblem;
-  const emblemValidation = helpers.validateEmblem(emblem, uploadDir);
-  if (!emblemValidation.valid) {
-    return res.status(400).json({ success: false, message: emblemValidation.message });
-  }
-  
-  // Validate standing
-  const standingValidation = helpers.validateInteger(req.body.standing, 'Standing', 0, 4);
-  if (!standingValidation.valid) {
-    return res.status(400).json({ success: false, message: standingValidation.message });
-  }
-  
+  const jobs = readJobs();
   factions[index] = {
     id: req.params.id,
-    title: titleValidation.value,
-    emblem: emblem,
-    brief: briefValidation.value,
-    standing: standingValidation.value,
-    jobsCompleted: parseInt(req.body.jobsCompleted) || 0,
-    jobsFailed: parseInt(req.body.jobsFailed) || 0
+    title: validation.title,
+    emblem: validation.emblem,
+    brief: validation.brief,
+    standing: validation.standing,
+    jobsCompletedOffset: validation.jobsCompletedOffset,
+    jobsFailedOffset: validation.jobsFailedOffset
   };
   writeFactions(factions);
-  res.json({ success: true, faction: factions[index] });
+  
+  // Enrich the updated faction with calculated counts for the response
+  const enrichedFaction = helpers.enrichFactionWithJobCounts(factions[index], jobs);
+  
+  // Broadcast SSE update with all enriched factions
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  broadcastSSE('factions', { action: 'update', faction: enrichedFaction, factions: enrichedFactions });
+  
+  res.json({ success: true, faction: enrichedFaction });
 });
 
 app.delete('/api/factions/:id', (req, res) => {
   let factions = readFactions();
+  const jobs = readJobs();
   factions = factions.filter(f => f.id !== req.params.id);
   writeFactions(factions);
+  
+  // Broadcast SSE update with enriched factions
+  const enrichedFactions = enrichAllFactions(factions, jobs);
+  broadcastSSE('factions', { action: 'delete', factionId: req.params.id, factions: enrichedFactions });
+  
   res.json({ success: true });
+});
+
+// Pilots API endpoints
+app.get('/api/pilots', (req, res) => {
+  const pilots = readPilots();
+  res.json(pilots);
+});
+
+app.post('/api/pilots', (req, res) => {
+  // Validate pilot data
+  const validation = validatePilotData(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  const pilots = readPilots();
+  const newPilot = {
+    id: helpers.generateId(),
+    name: validation.name,
+    callsign: validation.callsign,
+    ll: validation.ll,
+    reserves: validation.reserves,
+    active: validation.active,
+    relatedJobs: [],
+    personalOperationProgress: validation.personalOperationProgress
+  };
+  pilots.push(newPilot);
+  writePilots(pilots);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'create', pilot: newPilot, pilots });
+  
+  res.json({ success: true, pilot: newPilot });
+});
+
+app.put('/api/pilots/:id', (req, res) => {
+  const pilots = readPilots();
+  const index = pilots.findIndex(p => p.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Pilot not found' });
+  }
+  
+  // Validate pilot data
+  const validation = validatePilotData(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  pilots[index] = {
+    id: req.params.id,
+    name: validation.name,
+    callsign: validation.callsign,
+    ll: validation.ll,
+    reserves: validation.reserves,
+    active: validation.active,
+    relatedJobs: validation.relatedJobs,
+    personalOperationProgress: validation.personalOperationProgress
+  };
+  writePilots(pilots);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilot: pilots[index], pilots });
+  
+  res.json({ success: true, pilot: pilots[index] });
+});
+
+app.delete('/api/pilots/:id', (req, res) => {
+  let pilots = readPilots();
+  pilots = pilots.filter(p => p.id !== req.params.id);
+  writePilots(pilots);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'delete', pilotId: req.params.id, pilots });
+  
+  res.json({ success: true });
+});
+
+// Update pilot reserves only (CLIENT-side endpoint)
+app.put('/api/pilots/:id/reserves', (req, res) => {
+  const pilots = readPilots();
+  const index = pilots.findIndex(p => p.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Pilot not found' });
+  }
+  
+  // Update only reserves field
+  pilots[index].reserves = (req.body.reserves || '').trim();
+  writePilots(pilots);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilot: pilots[index], pilots });
+  
+  res.json({ success: true, pilot: pilots[index] });
+});
+
+// Progress all jobs endpoint
+app.post('/api/jobs/progress-all', (req, res) => {
+  const jobs = readJobs();
+  const pilots = readPilots();
+  
+  // Update job states and track newly active jobs in a single pass
+  const newlyActiveJobIds = [];
+  let jobsModified = 0;
+  
+  const updatedJobs = jobs.map(job => {
+    if (job.state === 'Active') {
+      jobsModified++;
+      return { ...job, state: 'Ignored' };
+    } else if (job.state === 'Pending') {
+      jobsModified++;
+      newlyActiveJobIds.push(job.id);
+      return { ...job, state: 'Active' };
+    }
+    return job;
+  });
+  
+  // Add newly active jobs to all active pilots' related jobs
+  const updatedPilots = pilots.map(pilot => {
+    if (pilot.active && newlyActiveJobIds.length > 0) {
+      const existingJobIds = new Set(pilot.relatedJobs || []);
+      newlyActiveJobIds.forEach(jobId => existingJobIds.add(jobId));
+      return { ...pilot, relatedJobs: Array.from(existingJobIds) };
+    }
+    return pilot;
+  });
+  
+  // Write updated data
+  writeJobs(updatedJobs);
+  writePilots(updatedPilots);
+  
+  // Broadcast SSE updates
+  broadcastSSE('jobs', { action: 'progress-all', jobs: updatedJobs });
+  broadcastSSE('pilots', { action: 'update-multiple', pilots: updatedPilots });
+  
+  res.json({ 
+    success: true, 
+    jobsProgressed: jobsModified,
+    pilotsUpdated: updatedPilots.filter(p => p.active).length,
+    newlyActiveJobs: newlyActiveJobIds.length
+  });
+});
+
+// Progress operation for active pilots endpoint
+app.post('/api/pilots/progress-operation', (req, res) => {
+  const pilots = readPilots();
+  
+  // Track pilots that were reset to 0
+  const resetPilots = [];
+  let pilotsProgressed = 0;
+  
+  // Update personalOperationProgress for all active pilots
+  const updatedPilots = pilots.map(pilot => {
+    if (pilot.active) {
+      pilotsProgressed++;
+      const currentProgress = pilot.personalOperationProgress ?? 0;
+      const newProgress = currentProgress >= 3 ? 0 : currentProgress + 1;
+      
+      if (newProgress === 0 && currentProgress === 3) {
+        resetPilots.push({
+          name: pilot.name,
+          callsign: pilot.callsign
+        });
+      }
+      
+      return { ...pilot, personalOperationProgress: newProgress };
+    }
+    return pilot;
+  });
+  
+  // Write updated data
+  writePilots(updatedPilots);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'progress-operation', pilots: updatedPilots });
+  
+  res.json({
+    success: true,
+    pilotsProgressed,
+    resetPilots
+  });
 });
 
 app.listen(PORT, () => {

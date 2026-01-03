@@ -109,6 +109,7 @@
     .btn-primary {
       background-color: #4CAF50;
       color: white;
+      margin-right: 5px;
     }
     
     .btn-primary:hover {
@@ -128,6 +129,7 @@
     .btn-delete {
       background-color: #f44336;
       color: white;
+      margin-right: 5px;
     }
     
     .btn-delete:hover {
@@ -350,6 +352,72 @@
       font-weight: bold;
       box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
     }
+    
+    /* State Badge Styles */
+    .state-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .state-badge-pending {
+      background-color: #FFC107;
+      color: #000;
+    }
+    
+    .state-badge-active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .state-badge-complete {
+      background-color: #2196F3;
+      color: white;
+    }
+    
+    .state-badge-failed {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .state-badge-ignored {
+      background-color: #9E9E9E;
+      color: white;
+    }
+    
+    /* Filter Pills */
+    .filter-pills {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-pill {
+      padding: 8px 16px;
+      border: 2px solid #444;
+      border-radius: 20px;
+      background-color: #1a1a1a;
+      color: #b0b0b0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    
+    .filter-pill:hover {
+      border-color: #66BB6A;
+      color: #e0e0e0;
+    }
+    
+    .filter-pill.active {
+      background-color: #66BB6A;
+      color: white;
+      border-color: #66BB6A;
+    }
   
     /* Tab Navigation */
     .tab-navigation {
@@ -483,10 +551,11 @@
   </div>
   <!-- Tab Navigation -->
   <div class="tab-navigation">
-    <button class="tab-button active" onclick="switchTab('overview')">Overview Config</button>
-    <button class="tab-button" onclick="switchTab('jobs')">Job Board Config</button>
-    <button class="tab-button" onclick="switchTab('base')">Base Config</button>
-    <button class="tab-button" onclick="switchTab('factions')">Faction Config</button>
+    <button class="tab-button active" onclick="switchTab('overview', event)">Overview Config</button>
+    <button class="tab-button" onclick="switchTab('jobs', event)">Job Board Config</button>
+    <button class="tab-button" onclick="switchTab('base', event)">Base Config</button>
+    <button class="tab-button" onclick="switchTab('pilots', event)">Pilot Config</button>
+    <button class="tab-button" onclick="switchTab('factions', event)">Faction Config</button>
   </div>
 
   <!-- Overview Tab -->
@@ -522,6 +591,23 @@
         <div class="form-group">
           <label for="settingsUserGroup">User Group</label>
           <input type="text" id="settingsUserGroup" name="userGroup" value="<%= settings.userGroup %>" maxlength="100" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="settingsOperationProgress">Operation Progress (0-3)</label>
+          <select id="settingsOperationProgress" name="operationProgress" required>
+            <option value="0" <%= settings.operationProgress === 0 ? 'selected' : '' %>>0 - Initial</option>
+            <option value="1" <%= settings.operationProgress === 1 ? 'selected' : '' %>>1 - Developing</option>
+            <option value="2" <%= settings.operationProgress === 2 ? 'selected' : '' %>>2 - Advanced</option>
+            <option value="3" <%= settings.operationProgress === 3 ? 'selected' : '' %>>3 - Critical</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="settingsOpenTable" style="display: inline-block; font-weight: normal; margin-bottom: 0;">
+            Open Table (Show pilot personal operation progress)
+          </label>
+          <input type="checkbox" id="settingsOpenTable" name="openTable" value="true" <%= settings.openTable ? 'checked' : '' %> style="width: auto; margin-left: 10px; vertical-align: middle;">
         </div>
         
         <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -612,8 +698,22 @@
       </div>
       
       <div class="form-group">
-        <label for="jobClient">Client</label>
-        <input type="text" id="jobClient" name="client" required>
+        <label for="jobState">Job State</label>
+        <select id="jobState" name="state" required>
+          <% jobStates.forEach(state => { %>
+            <option value="<%= state %>" <%= state === defaultJobState ? 'selected' : '' %>><%= state %></option>
+          <% }); %>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="jobFaction">Faction (Optional)</label>
+        <select id="jobFaction" name="factionId">
+          <option value="">None</option>
+          <% factions.forEach(faction => { %>
+            <option value="<%= faction.id %>"><%= faction.title %></option>
+          <% }); %>
+        </select>
       </div>
       
       <div class="form-group">
@@ -688,10 +788,26 @@
 
   <div class="jobs-list">
     <h2>Existing Jobs</h2>
+    
+    <!-- Progress All Jobs Button -->
+    <div style="margin-bottom: 20px;">
+      <button class="btn btn-neutral" onclick="showProgressAllJobsModal()" style="font-size: 14px; padding: 10px 20px;">
+        Progress all Jobs
+      </button>
+    </div>
+    
+    <!-- Filter Pills -->
+    <div class="filter-pills">
+      <button class="filter-pill active" data-state="all" onclick="filterJobs('all')">All</button>
+      <% jobStates.forEach(state => { %>
+        <button class="filter-pill" data-state="<%= state %>" onclick="filterJobs('<%= state %>')"><%= state %></button>
+      <% }); %>
+    </div>
+    
     <div id="jobsList">
       <% jobs.forEach(job => { %>
-        <div class="job-item" data-id="<%= job.id %>">
-          <h3><%= job.name %></h3>
+        <div class="job-item" data-id="<%= job.id %>" data-state="<%= job.state || defaultJobState %>">
+          <h3><%= job.name %> <span class="state-badge state-badge-<%= job.stateClass %>"><%= job.state || defaultJobState %></span></h3>
           <div class="job-item-field">
             <strong>Rank:</strong> 
             <span class="rank-display">
@@ -699,7 +815,7 @@
               <% for(let i = job.rank; i < 3; i++) { %>☆<% } %>
             </span>
           </div>
-          <div class="job-item-field"><strong>Client:</strong> <%= job.client %></div>
+          <div class="job-item-field"><strong>Faction:</strong> <%= job.faction ? job.faction.title : 'FIELD_NULL' %></div>
           <div class="job-item-field"><strong>Job Type:</strong> <%= job.jobType %></div>
           <div class="job-item-field"><strong>Objective:</strong> <%= job.description %></div>
           <div class="job-item-field"><strong>Client Brief:</strong> <%= job.clientBrief %></div>
@@ -719,6 +835,10 @@
           <% } %>
           <div class="job-item-actions">
             <button class="btn btn-edit" onclick="editJob('<%= job.id %>')">Edit</button>
+            <% if (job.state === 'Active') { %>
+              <button class="btn btn-primary" onclick="markJobComplete('<%= job.id %>')">Mark Completed</button>
+              <button class="btn btn-delete" onclick="markJobFailed('<%= job.id %>')">Mark Failed</button>
+            <% } %>
             <button class="btn btn-delete" onclick="deleteJob('<%= job.id %>')">Delete</button>
           </div>
         </div>
@@ -753,8 +873,22 @@
         </div>
         
         <div class="form-group">
-          <label for="editJobClient">Client</label>
-          <input type="text" id="editJobClient" name="client" required>
+          <label for="editJobState">Job State</label>
+          <select id="editJobState" name="state" required>
+            <% jobStates.forEach(state => { %>
+              <option value="<%= state %>"><%= state %></option>
+            <% }); %>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editJobFaction">Faction (Optional)</label>
+          <select id="editJobFaction" name="factionId">
+            <option value="">None</option>
+            <% factions.forEach(faction => { %>
+              <option value="<%= faction.id %>"><%= faction.title %></option>
+            <% }); %>
+          </select>
         </div>
         
         <div class="form-group">
@@ -890,6 +1024,91 @@
     </div>
   </div>
 
+  <!-- Pilots Tab -->
+  <div id="pilots-tab" class="tab-content">
+    <div class="add-job-section">
+      <h2>Add New Pilot</h2>
+      <form id="addPilotForm">
+        <div class="form-group">
+          <label for="pilotName">Name</label>
+          <input type="text" id="pilotName" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="pilotCallsign">Callsign</label>
+          <input type="text" id="pilotCallsign" name="callsign" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="pilotLL">License Level (0-12)</label>
+          <input type="number" id="pilotLL" name="ll" min="0" max="12" value="0" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="pilotReserves">Reserves (multiline)</label>
+          <textarea id="pilotReserves" name="reserves" rows="4" placeholder="Optional"></textarea>
+        </div>
+        
+        <div class="form-group" id="addPilotPersonalOperationProgressGroup" style="display: <%= settings.openTable ? 'block' : 'none' %>">
+          <label for="pilotPersonalOperationProgress">Personal Operation Progress</label>
+          <select id="pilotPersonalOperationProgress" name="personalOperationProgress">
+            <option value="0" selected>0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label style="display: block; cursor: pointer;">
+            <span style="display: inline; margin-right: 8px;">Active:</span>
+            <input type="checkbox" id="pilotActive" name="active" value="true" checked style="width: auto;">
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-add-job">Add Pilot</button>
+      </form>
+    </div>
+
+    <div class="jobs-list">
+      <h2>Existing Pilots</h2>
+      
+      <!-- Progress Operation Button (only visible when openTable is ON) -->
+      <div id="progressOperationButtonContainer" style="margin-bottom: 20px; display: <%= settings.openTable ? 'block' : 'none' %>;">
+        <button class="btn btn-neutral" onclick="showProgressOperationModal()" style="font-size: 14px; padding: 10px 20px;">
+          Progress Operation Track for Active Pilots
+        </button>
+      </div>
+      
+      <div id="pilotsList">
+        <% if (pilots.length === 0) { %>
+          <p style="color: #b0b0b0;">No pilots created yet.</p>
+        <% } else { %>
+          <% pilots.forEach(pilot => { %>
+            <div class="job-item" data-id="<%= pilot.id %>">
+              <h3><%= pilot.name %> ("<%= pilot.callsign %>") <% if (pilot.active) { %><span class="state-badge state-badge-active">ACTIVE</span><% } else { %><span class="state-badge state-badge-ignored">INACTIVE</span><% } %></h3>
+              <div class="job-item-field"><strong>License Level:</strong> <%= pilot.ll %></div>
+              <% if (pilot.reserves) { %>
+                <div class="job-item-field"><strong>Reserves:</strong><br><pre style="margin: 5px 0; font-family: inherit; white-space: pre-wrap;"><%= pilot.reserves %></pre></div>
+              <% } %>
+              <div class="job-item-field">
+                <strong>Related Jobs:</strong> <%= (pilot.relatedJobs || []).length %> job(s)
+              </div>
+              <div class="job-item-field pilot-personal-operation-progress-display" style="display: <%= settings.openTable ? 'block' : 'none' %>">
+                <strong>Personal Operation Progress:</strong> <%= pilot.personalOperationProgress ?? 0 %>
+              </div>
+              <div class="job-item-actions">
+                <button class="btn btn-edit" onclick="editPilot('<%= pilot.id %>')">Edit</button>
+                <button class="btn btn-neutral" onclick="openPilotRelatedJobsModal('<%= pilot.id %>')">Related Jobs</button>
+                <button class="btn btn-delete" onclick="deletePilot('<%= pilot.id %>')">Delete</button>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
   <!-- Factions Tab -->
   <div id="factions-tab" class="tab-content">
     <div class="add-job-section">
@@ -917,17 +1136,17 @@
         </div>
         
         <div class="form-group">
-          <label for="factionJobsCompleted">Jobs Completed</label>
-          <input type="number" id="factionJobsCompleted" name="jobsCompleted" value="0" min="0" required>
+          <label for="factionJobsCompletedOffset">Jobs Completed Offset (This number is added to the completed jobs count)</label>
+          <input type="number" id="factionJobsCompletedOffset" name="jobsCompletedOffset" value="0" required>
         </div>
         
         <div class="form-group">
-          <label for="factionJobsFailed">Jobs Failed</label>
-          <input type="number" id="factionJobsFailed" name="jobsFailed" value="0" min="0" required>
+          <label for="factionJobsFailedOffset">Jobs Failed Offset (This number is added to the failed jobs count)</label>
+          <input type="number" id="factionJobsFailedOffset" name="jobsFailedOffset" value="0" required>
         </div>
         
         <div class="form-group">
-          <label for="factionEmblem">Emblem (shared with Jobs)</label>
+          <label for="factionEmblem">Emblem</label>
           <input type="hidden" id="factionEmblem" name="emblem" value="">
           <div class="emblem-grid" id="factionEmblemGrid">
             <div class="emblem-option none" data-emblem="">
@@ -957,8 +1176,8 @@
             <div class="faction-item" data-id="<%= faction.id %>">
               <h3><%= faction.title %></h3>
               <div class="faction-item-field"><strong>Standing:</strong> <%= standingLabels[faction.standing] || 'Unknown' %></div>
-              <div class="faction-item-field"><strong>Jobs Completed:</strong> <%= faction.jobsCompleted || 0 %></div>
-              <div class="faction-item-field"><strong>Jobs Failed:</strong> <%= faction.jobsFailed || 0 %></div>
+              <div class="faction-item-field"><strong>Jobs Completed:</strong> <%= faction.jobsCompleted || 0 %> (Offset: <%= faction.jobsCompletedOffset || 0 %>)</div>
+              <div class="faction-item-field"><strong>Jobs Failed:</strong> <%= faction.jobsFailed || 0 %> (Offset: <%= faction.jobsFailedOffset || 0 %>)</div>
               <div class="faction-item-field"><strong>Brief:</strong> <%= faction.brief %></div>
               <% if (faction.emblem) { %>
                 <div class="faction-item-field">
@@ -969,6 +1188,7 @@
               <% } %>
               <div class="faction-item-actions">
                 <button class="btn btn-edit" onclick="editFaction('<%= faction.id %>')">Edit</button>
+                <button class="btn btn-neutral" onclick="openFactionRelatedJobsModal('<%= faction.id %>')">Related Jobs</button>
                 <button class="btn btn-delete" onclick="deleteFaction('<%= faction.id %>')">Delete</button>
               </div>
             </div>
@@ -1009,13 +1229,13 @@
         </div>
         
         <div class="form-group">
-          <label for="editFactionJobsCompleted">Jobs Completed</label>
-          <input type="number" id="editFactionJobsCompleted" name="jobsCompleted" min="0" required>
+          <label for="editFactionJobsCompletedOffset">Jobs Completed Offset (calculated from jobs + this offset)</label>
+          <input type="number" id="editFactionJobsCompletedOffset" name="jobsCompletedOffset" required>
         </div>
         
         <div class="form-group">
-          <label for="editFactionJobsFailed">Jobs Failed</label>
-          <input type="number" id="editFactionJobsFailed" name="jobsFailed" min="0" required>
+          <label for="editFactionJobsFailedOffset">Jobs Failed Offset (calculated from jobs + this offset)</label>
+          <input type="number" id="editFactionJobsFailedOffset" name="jobsFailedOffset" required>
         </div>
         
         <div class="form-group">
@@ -1070,9 +1290,242 @@
       </form>
     </div>
   </div>
+  
+  <!-- Edit Pilot Modal -->
+  <div id="editPilotModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Pilot</h2>
+        <span class="close" onclick="closeEditPilotModal()">&times;</span>
+      </div>
+      <form id="editPilotForm">
+        <input type="hidden" id="editPilotId">
+        <div class="form-group">
+          <label for="editPilotName">Name</label>
+          <input type="text" id="editPilotName" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editPilotCallsign">Callsign</label>
+          <input type="text" id="editPilotCallsign" name="callsign" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editPilotLL">License Level (0-12)</label>
+          <input type="number" id="editPilotLL" name="ll" min="0" max="12" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editPilotReserves">Reserves (multiline)</label>
+          <textarea id="editPilotReserves" name="reserves" rows="4"></textarea>
+        </div>
+        
+        <div class="form-group" id="editPilotPersonalOperationProgressGroup" style="display: <%= settings.openTable ? 'block' : 'none' %>">
+          <label for="editPilotPersonalOperationProgress">Personal Operation Progress</label>
+          <select id="editPilotPersonalOperationProgress" name="personalOperationProgress">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label style="display: block; cursor: pointer;">
+            <span style="display: inline; margin-right: 8px;">Active:</span>
+            <input type="checkbox" id="editPilotActive" name="active" value="true" style="width: auto;">
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Pilot Related Jobs Modal -->
+  <div id="pilotRelatedJobsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Pilot Related Jobs</h2>
+        <span class="close" onclick="closePilotRelatedJobsModal()">&times;</span>
+      </div>
+      <input type="hidden" id="pilotRelatedJobsPilotId">
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Select jobs to associate with this pilot (non-Pending jobs only):</p>
+      <div id="pilotRelatedJobsList" style="max-height: 400px; overflow-y: auto; border: 1px solid #444; padding: 15px; border-radius: 3px; background-color: #1a1a1a;">
+        <!-- Populated dynamically -->
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-primary" onclick="savePilotRelatedJobs()">Save Related Jobs</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Faction Related Jobs Modal -->
+  <div id="factionRelatedJobsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Faction Related Jobs</h2>
+        <span class="close" onclick="closeFactionRelatedJobsModal()">&times;</span>
+      </div>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Jobs related to this faction:</p>
+      <div id="factionRelatedJobsList" style="max-height: 400px; overflow-y: auto;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Progress All Jobs Confirmation Modal -->
+  <div id="progressAllJobsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm: Progress All Jobs</h2>
+        <span class="close" onclick="closeProgressAllJobsModal()">&times;</span>
+      </div>
+      <div style="color: #e0e0e0; line-height: 1.6;">
+        <p style="margin-bottom: 15px;">This action will:</p>
+        <ul style="margin-left: 20px; margin-bottom: 15px;">
+          <li>Set all <strong>"Active"</strong> jobs to <strong>"Ignored"</strong></li>
+          <li>Set all <strong>"Pending"</strong> jobs to <strong>"Active"</strong></li>
+          <li>Add newly active jobs to all currently <strong>Active Pilots'</strong> related job lists</li>
+        </ul>
+        
+        <h3 style="margin: 20px 0 10px; color: #e0e0e0;">Jobs to be affected:</h3>
+        <div id="progressAllJobsList" style="max-height: 50vh; overflow-y: auto; border: 1px solid #444; padding: 15px; border-radius: 3px; background-color: #1a1a1a; margin-bottom: 15px;">
+          <!-- Populated dynamically -->
+        </div>
+        
+        <p style="margin-bottom: 20px; color: #f44336; font-weight: bold;">This action cannot be undone.</p>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-primary" onclick="confirmProgressAllJobs()">Confirm</button>
+          <button class="btn btn-neutral" onclick="closeProgressAllJobsModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Progress Operation Modal -->
+  <div id="progressOperationModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Confirm: Progress Operation Track for Active Pilots</h2>
+        <span class="close" onclick="closeProgressOperationModal()">&times;</span>
+      </div>
+      <div style="color: #e0e0e0; line-height: 1.6;">
+        <p style="margin-bottom: 15px;">This action will increment <strong>Personal Operation Progress</strong> for the following <strong>Active Pilots</strong>:</p>
+        <div id="progressOperationPilotList" style="margin-bottom: 15px; max-height: 50vh; overflow-y: auto; border: 1px solid #555; padding: 10px; background-color: #1a1a1a;">
+          <!-- Pilot list will be populated dynamically -->
+        </div>
+        <p style="margin-bottom: 20px; color: #f44336; font-weight: bold;">This action cannot be undone.</p>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-primary" onclick="confirmProgressOperation()">Confirm</button>
+          <button class="btn btn-neutral" onclick="closeProgressOperationModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="/js/sse-client.js"></script>
+<script>
+    // Handle settings update from SSE for admin view
+    function handleSettingsUpdate(data) {
+      if (!data || !data.settings) {
+        return;
+      }
+      
+      const settings = data.settings;
+      
+      // Update openTable state and toggle Personal Operation Progress fields
+      if (settings.openTable !== undefined) {
+        // Toggle "Add New Pilot" form Personal Operation Progress field
+        const addPilotProgressGroup = document.getElementById('addPilotPersonalOperationProgressGroup');
+        if (addPilotProgressGroup) {
+          addPilotProgressGroup.style.display = settings.openTable ? 'block' : 'none';
+        }
+        
+        // Toggle Personal Operation Progress display in existing pilots list
+        const existingPilotProgressFields = document.querySelectorAll('.pilot-personal-operation-progress-display');
+        existingPilotProgressFields.forEach(field => {
+          field.style.display = settings.openTable ? 'block' : 'none';
+        });
+        
+        // Toggle "Edit Pilot" modal Personal Operation Progress field
+        const editPilotProgressGroup = document.getElementById('editPilotPersonalOperationProgressGroup');
+        if (editPilotProgressGroup) {
+          editPilotProgressGroup.style.display = settings.openTable ? 'block' : 'none';
+        }
+        
+        // Toggle "Progress Operation for Active Pilots" button
+        const progressOperationButtonContainer = document.getElementById('progressOperationButtonContainer');
+        if (progressOperationButtonContainer) {
+          progressOperationButtonContainer.style.display = settings.openTable ? 'block' : 'none';
+        }
+      }
+    }
+
+    // Handle manna update from SSE for admin view
+    function handleMannaUpdate(data) {
+      if (!data || !data.manna) {
+        return;
+      }
+      
+      const manna = data.manna;
+      
+      // Update balance displays
+      const overviewMannaBalance = document.getElementById('overviewMannaBalance');
+      if (overviewMannaBalance) {
+        overviewMannaBalance.textContent = manna.balance;
+      }
+      
+      const directBalance = document.getElementById('directBalance');
+      if (directBalance) {
+        directBalance.value = manna.balance;
+      }
+      
+      // Update transaction list
+      const transactionsList = document.getElementById('transactionsList');
+      if (transactionsList) {
+        if (manna.transactions.length === 0) {
+          transactionsList.innerHTML = '<p style="color: #b0b0b0;">No transactions yet.</p>';
+        } else {
+          const reversedTransactions = manna.transactions.slice().reverse();
+          transactionsList.innerHTML = reversedTransactions.map(transaction => {
+            const date = new Date(transaction.date);
+            const formattedDate = date.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
+            const amountColor = transaction.amount >= 0 ? '#66BB6A' : '#f44336';
+            const amountPrefix = transaction.amount >= 0 ? '+' : '';
+            
+            return `
+              <div class="transaction-item" data-id="${transaction.id}">
+                <div class="transaction-item-field">
+                  <strong>Date:</strong> ${formattedDate}
+                </div>
+                <div class="transaction-item-field">
+                  <strong>Amount:</strong> 
+                  <span style="color: ${amountColor}">
+                    ${amountPrefix}${transaction.amount}
+                  </span>
+                  <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                </div>
+                <div class="transaction-item-field">
+                  <strong>Description:</strong> ${transaction.description}
+                </div>
+                <div class="transaction-item-field">
+                  <strong>Balance After:</strong> ${transaction.balance}
+                  <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                </div>
+                <div class="transaction-item-actions">
+                  <button class="btn btn-edit" onclick="editTransaction('${transaction.id}')">Edit</button>
+                  <button class="btn btn-delete" onclick="deleteTransaction('${transaction.id}')">Delete</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+  </script>
 <script>
     // Tab switching
-    function switchTab(tabName) {
+    function switchTab(tabName, eventOrButton) {
       // Hide all tabs
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -1087,7 +1540,21 @@
       document.getElementById(tabName + '-tab').classList.add('active');
       
       // Set button as active
-      event.target.classList.add('active');
+      // If eventOrButton has a target property, it's an event object
+      // Otherwise it's a button element directly
+      let button;
+      if (eventOrButton && typeof eventOrButton === 'object' && 'target' in eventOrButton) {
+        button = eventOrButton.target;
+      } else if (eventOrButton) {
+        button = eventOrButton;
+      }
+      
+      if (button) {
+        button.classList.add('active');
+      }
+      
+      // Update URL hash to persist tab state across page reloads
+      window.location.hash = tabName;
     }
     
     // Toggle minor module enable/disable
@@ -1224,6 +1691,55 @@
     setupEmblemGrid('factionEmblemGrid', 'factionEmblem');
     setupEmblemGrid('editFactionEmblemGrid', 'editFactionEmblem');
     
+    // Flag to prevent auto-selection during programmatic job edit form population
+    let isPopulatingJobEditForm = false;
+    
+    // Auto-select emblem when faction is selected
+    function autoSelectEmblemForFaction(factionSelectId, emblemGridId, emblemInputId) {
+      const factionSelect = document.getElementById(factionSelectId);
+      const emblemGrid = document.getElementById(emblemGridId);
+      const emblemInput = document.getElementById(emblemInputId);
+      const factionsList = <%- JSON.stringify(factions) %>;
+      
+      if (!factionSelect || !emblemGrid || !emblemInput) return;
+      
+      factionSelect.addEventListener('change', function() {
+        // Skip auto-selection if we're programmatically populating the job edit form
+        if (isPopulatingJobEditForm) {
+          return;
+        }
+        
+        const selectedFactionId = this.value;
+        
+        // If no faction selected, don't change the emblem
+        if (!selectedFactionId || selectedFactionId === '') {
+          return;
+        }
+        
+        // Find the selected faction
+        const selectedFaction = factionsList.find(f => f.id === selectedFactionId);
+        
+        if (selectedFaction && selectedFaction.emblem) {
+          // Find and select the matching emblem in the grid
+          const matchingEmblemOption = Array.from(emblemGrid.querySelectorAll('.emblem-option'))
+            .find(opt => opt.getAttribute('data-emblem') === selectedFaction.emblem);
+          
+          if (matchingEmblemOption) {
+            // Remove selected class from all options
+            emblemGrid.querySelectorAll('.emblem-option').forEach(opt => opt.classList.remove('selected'));
+            
+            // Select the matching emblem
+            matchingEmblemOption.classList.add('selected');
+            emblemInput.value = selectedFaction.emblem;
+          }
+        }
+      });
+    }
+    
+    // Setup auto-selection for both add and edit job forms
+    autoSelectEmblemForFaction('jobFaction', 'emblemGrid', 'jobEmblem');
+    autoSelectEmblemForFaction('editJobFaction', 'editEmblemGrid', 'editJobEmblem');
+    
     // Store notification timeout ID
     let notificationTimeoutId = null;
 
@@ -1330,7 +1846,8 @@
         
         if (response.ok) {
           showNotification('Job added successfully!');
-          setTimeout(() => location.reload(), 3000);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
         }
       } catch (error) {
         alert('Error adding job');
@@ -1341,11 +1858,16 @@
     function editJob(id) {
       const jobItem = document.querySelector(`.job-item[data-id="${id}"]`);
       const jobData = <%- JSON.stringify(jobs) %>.find(j => j.id === id);
+      const defaultJobState = '<%= defaultJobState %>';
+      
+      // Set flag to prevent auto-selection during form population
+      isPopulatingJobEditForm = true;
       
       document.getElementById('editJobId').value = jobData.id;
       document.getElementById('editJobName').value = jobData.name;
       document.getElementById('editJobRank').value = jobData.rank;
-      document.getElementById('editJobClient').value = jobData.client;
+      document.getElementById('editJobState').value = jobData.state || defaultJobState;
+      document.getElementById('editJobFaction').value = jobData.factionId || '';
       document.getElementById('editJobType').value = jobData.jobType;
       document.getElementById('editJobDescription').value = jobData.description;
       document.getElementById('editJobClientBrief').value = jobData.clientBrief;
@@ -1360,6 +1882,9 @@
       if (selectedEmblem) {
         selectedEmblem.classList.add('selected');
       }
+      
+      // Clear flag after form is populated
+      isPopulatingJobEditForm = false;
       
       document.getElementById('editModal').style.display = 'block';
     }
@@ -1384,7 +1909,8 @@
         if (response.ok) {
           showNotification('Changes successfully saved');
           closeEditModal();
-          setTimeout(() => location.reload(), 3000);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
         } else {
           let errorMsg = 'Failed to update job';
           try {
@@ -1411,13 +1937,84 @@
           });
           
           if (response.ok) {
-            alert('Job deleted successfully!');
+            saveScrollPositionForReload();
             location.reload();
           }
         } catch (error) {
           alert('Error deleting job');
         }
       }
+    }
+    
+    // Helper function to update job state
+    async function updateJobState(id, newState, confirmMessage, successMessage) {
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/jobs/${id}/state`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: newState })
+        });
+
+        if (response.ok) {
+          showNotification(successMessage);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          showNotification(errorData.message || 'Failed to update job state');
+        }
+      } catch (error) {
+        showNotification('Error updating job state');
+      }
+    }
+
+    // Mark job as complete
+    async function markJobComplete(id) {
+      return updateJobState(
+        id,
+        'Complete',
+        'Mark this job as Completed?',
+        'Job marked as Completed!'
+      );
+    }
+    
+    // Mark job as failed
+    async function markJobFailed(id) {
+      return updateJobState(
+        id,
+        'Failed',
+        'Mark this job as Failed?',
+        'Job marked as Failed!'
+      );
+    }
+    
+    // Filter jobs by state
+    function filterJobs(state) {
+      const jobItems = document.querySelectorAll('.job-item');
+      const filterPills = document.querySelectorAll('.filter-pill');
+      
+      // Update active pill
+      filterPills.forEach(pill => {
+        if (pill.getAttribute('data-state') === state) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+      
+      // Filter job items
+      jobItems.forEach(item => {
+        const itemState = item.getAttribute('data-state');
+        if (state === 'all' || itemState === state) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
 
     // Delete selected emblem
@@ -1439,7 +2036,8 @@
           
           if (response.ok) {
             showNotification('Emblem deleted successfully!');
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             alert(data.message || 'Failed to delete emblem');
           }
@@ -1449,22 +2047,6 @@
       }
     }
 
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-      const modal = document.getElementById('editModal');
-      const factionModal = document.getElementById('editFactionModal');
-      const transactionModal = document.getElementById('editTransactionModal');
-      if (event.target === modal) {
-        closeEditModal();
-      }
-      if (event.target === factionModal) {
-        closeEditFactionModal();
-      }
-      if (event.target === transactionModal) {
-        closeEditTransactionModal();
-      }
-    };
-    
     // ==================== BASE MANAGEMENT ====================
     if (document.getElementById('baseForm')) {
       document.getElementById('baseForm').addEventListener('submit', async (e) => {
@@ -1602,7 +2184,8 @@
           
           if (response.ok) {
             showNotification('Faction added successfully!');
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             const errorData = await response.json();
             alert(errorData.message || 'Failed to add faction');
@@ -1620,8 +2203,8 @@
       document.getElementById('editFactionTitle').value = factionData.title;
       document.getElementById('editFactionBrief').value = factionData.brief;
       document.getElementById('editFactionStanding').value = factionData.standing;
-      document.getElementById('editFactionJobsCompleted').value = factionData.jobsCompleted || 0;
-      document.getElementById('editFactionJobsFailed').value = factionData.jobsFailed || 0;
+      document.getElementById('editFactionJobsCompletedOffset').value = factionData.jobsCompletedOffset || 0;
+      document.getElementById('editFactionJobsFailedOffset').value = factionData.jobsFailedOffset || 0;
       document.getElementById('editFactionEmblem').value = factionData.emblem || '';
       
       // Select the correct emblem in the grid
@@ -1656,7 +2239,8 @@
           if (response.ok) {
             showNotification('Faction updated successfully');
             closeEditFactionModal();
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             const errorData = await response.json();
             alert(errorData.message || 'Failed to update faction');
@@ -1676,7 +2260,8 @@
           
           if (response.ok) {
             showNotification('Faction deleted successfully!');
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             alert('Failed to delete faction');
           }
@@ -1745,7 +2330,8 @@
           if (response.ok) {
             showNotification('Transaction updated successfully');
             closeEditTransactionModal();
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             const errorData = await response.json();
             alert(errorData.message || 'Failed to update transaction');
@@ -1765,7 +2351,8 @@
           
           if (response.ok) {
             showNotification('Transaction deleted successfully!');
-            setTimeout(() => location.reload(), 3000);
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
           } else {
             const errorData = await response.json();
             alert(errorData.message || 'Failed to delete transaction');
@@ -1775,4 +2362,493 @@
         }
       }
     }
+    
+    // ==================== PILOT MANAGEMENT ====================
+    if (document.getElementById('addPilotForm')) {
+      document.getElementById('addPilotForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        
+        // Ensure checkbox state is always captured explicitly
+        data.active = formData.get('active') === 'true' || formData.has('active');
+        
+        // Ensure personalOperationProgress has a value (default to 0 if field doesn't exist)
+        if (data.personalOperationProgress === undefined || data.personalOperationProgress === null) {
+          data.personalOperationProgress = 0;
+        }
+        
+        try {
+          const response = await fetch('/api/pilots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          if (response.ok) {
+            showNotification('Pilot added successfully!');
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
+          } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to add pilot');
+          }
+        } catch (error) {
+          alert('Error adding pilot');
+        }
+      });
+    }
+    
+    function editPilot(id) {
+      const pilotData = <%- JSON.stringify(pilots) %>.find(p => p.id === id);
+      
+      if (!pilotData) {
+        alert('Pilot not found');
+        return;
+      }
+      
+      document.getElementById('editPilotId').value = pilotData.id;
+      document.getElementById('editPilotName').value = pilotData.name;
+      document.getElementById('editPilotCallsign').value = pilotData.callsign;
+      document.getElementById('editPilotLL').value = pilotData.ll;
+      document.getElementById('editPilotReserves').value = pilotData.reserves || '';
+      document.getElementById('editPilotActive').checked = pilotData.active;
+      
+      // Set personalOperationProgress if the field exists (when openTable is ON)
+      // When openTable is OFF, the field is not rendered in the DOM and this safely skips setting the value
+      const personalProgressField = document.getElementById('editPilotPersonalOperationProgress');
+      if (personalProgressField) {
+        personalProgressField.value = pilotData.personalOperationProgress ?? 0;
+      }
+      
+      document.getElementById('editPilotModal').style.display = 'block';
+    }
+    
+    function closeEditPilotModal() {
+      document.getElementById('editPilotModal').style.display = 'none';
+    }
+    
+    if (document.getElementById('editPilotForm')) {
+      document.getElementById('editPilotForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        const id = document.getElementById('editPilotId').value;
+        
+        // Ensure checkbox state is always captured explicitly
+        data.active = formData.get('active') === 'true' || formData.has('active');
+        
+        // Get current pilot's related jobs
+        const pilotData = <%- JSON.stringify(pilots) %>.find(p => p.id === id);
+        data.relatedJobs = pilotData ? pilotData.relatedJobs : [];
+        
+        // Ensure personalOperationProgress has a value (preserve existing if field doesn't exist)
+        if (data.personalOperationProgress === undefined || data.personalOperationProgress === null) {
+          data.personalOperationProgress = pilotData ? (pilotData.personalOperationProgress ?? 0) : 0;
+        }
+        
+        try {
+          const response = await fetch(`/api/pilots/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          if (response.ok) {
+            showNotification('Pilot updated successfully');
+            closeEditPilotModal();
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
+          } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to update pilot');
+          }
+        } catch (error) {
+          alert('Error updating pilot');
+        }
+      });
+    }
+    
+    async function deletePilot(id) {
+      if (confirm('Are you sure you want to delete this pilot?')) {
+        try {
+          const response = await fetch(`/api/pilots/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            showNotification('Pilot deleted successfully!');
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
+          } else {
+            alert('Failed to delete pilot');
+          }
+        } catch (error) {
+          alert('Error deleting pilot');
+        }
+      }
+    }
+    
+    function openPilotRelatedJobsModal(pilotId) {
+      const pilotData = <%- JSON.stringify(pilots) %>.find(p => p.id === pilotId);
+      const allJobs = <%- JSON.stringify(jobs) %>;
+      
+      if (!pilotData) {
+        alert('Pilot not found');
+        return;
+      }
+      
+      // Filter out Pending jobs
+      const availableJobs = allJobs.filter(job => job.state !== 'Pending');
+      const pilotRelatedJobs = new Set(pilotData.relatedJobs || []);
+      
+      const listHtml = availableJobs.map(job => {
+        const isChecked = pilotRelatedJobs.has(job.id);
+        return `
+          <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #444; border-radius: 3px; background-color: #2a2a2a;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" value="${job.id}" ${isChecked ? 'checked' : ''} class="pilot-related-job-checkbox">
+              <span style="color: #e0e0e0;">
+                <strong>${job.name}</strong> (${job.state})
+              </span>
+            </label>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('pilotRelatedJobsPilotId').value = pilotId;
+      document.getElementById('pilotRelatedJobsList').innerHTML = listHtml || '<p style="color: #b0b0b0;">No non-Pending jobs available</p>';
+      document.getElementById('pilotRelatedJobsModal').style.display = 'block';
+    }
+    
+    function closePilotRelatedJobsModal() {
+      document.getElementById('pilotRelatedJobsModal').style.display = 'none';
+    }
+    
+    async function savePilotRelatedJobs() {
+      const pilotId = document.getElementById('pilotRelatedJobsPilotId').value;
+      const pilotData = <%- JSON.stringify(pilots) %>.find(p => p.id === pilotId);
+      
+      if (!pilotData) {
+        alert('Pilot not found');
+        return;
+      }
+      
+      // Get selected job IDs
+      const checkboxes = document.querySelectorAll('.pilot-related-job-checkbox:checked');
+      const relatedJobs = Array.from(checkboxes).map(cb => cb.value);
+      
+      try {
+        const response = await fetch(`/api/pilots/${pilotId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...pilotData,
+            relatedJobs: relatedJobs
+          })
+        });
+        
+        if (response.ok) {
+          showNotification('Related jobs updated successfully');
+          closePilotRelatedJobsModal();
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to update related jobs');
+        }
+      } catch (error) {
+        alert('Error updating related jobs');
+      }
+    }
+    
+    // ==================== FACTION RELATED JOBS ====================
+    function openFactionRelatedJobsModal(factionId) {
+      const allJobs = <%- JSON.stringify(jobs) %>;
+      const allPilots = <%- JSON.stringify(pilots) %>;
+      const factionData = <%- JSON.stringify(factions) %>.find(f => f.id === factionId);
+      
+      if (!factionData) {
+        alert('Faction not found');
+        return;
+      }
+      
+      // Filter jobs related to this faction
+      const relatedJobs = allJobs.filter(job => job.factionId === factionId);
+      
+      if (relatedJobs.length === 0) {
+        document.getElementById('factionRelatedJobsList').innerHTML = '<p style="color: #b0b0b0;">No jobs related to this faction</p>';
+      } else {
+        const listHtml = relatedJobs.map(job => {
+          // Find pilots related to this job
+          const relatedPilots = allPilots.filter(pilot => 
+            (pilot.relatedJobs || []).includes(job.id)
+          ).map(p => p.callsign).join(', ') || 'None';
+          
+          const stateClass = job.state ? job.state.toLowerCase() : 'pending';
+          
+          return `
+            <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #444; border-radius: 3px; background-color: #1a1a1a;">
+              <h4 style="color: #e0e0e0; margin-bottom: 8px;">${job.name}</h4>
+              <div style="color: #b0b0b0; margin-bottom: 5px;"><strong>State:</strong> <span class="state-badge state-badge-${stateClass}">${job.state}</span></div>
+              <div style="color: #b0b0b0;"><strong>Related Pilots:</strong> ${relatedPilots}</div>
+            </div>
+          `;
+        }).join('');
+        
+        document.getElementById('factionRelatedJobsList').innerHTML = listHtml;
+      }
+      
+      document.getElementById('factionRelatedJobsModal').style.display = 'block';
+    }
+    
+    function closeFactionRelatedJobsModal() {
+      document.getElementById('factionRelatedJobsModal').style.display = 'none';
+    }
+    
+    // ==================== PROGRESS ALL JOBS ====================
+    function showProgressAllJobsModal() {
+      const allJobs = <%- JSON.stringify(jobs) %>;
+      
+      // Filter jobs that will be affected (Active → Ignored, Pending → Active)
+      const affectedJobs = allJobs.filter(job => job.state === 'Active' || job.state === 'Pending');
+      
+      // Populate the job list
+      const jobListDiv = document.getElementById('progressAllJobsList');
+      if (affectedJobs.length === 0) {
+        jobListDiv.innerHTML = '<p style="color: #999; text-align: center;">No jobs will be affected.</p>';
+      } else {
+        jobListDiv.innerHTML = affectedJobs.map(job => {
+          const currentState = job.state || 'Pending';
+          const newState = currentState === 'Active' ? 'Ignored' : 'Active';
+          const currentStateClass = currentState.toLowerCase();
+          const newStateClass = newState.toLowerCase();
+          const factionName = job.faction ? job.faction.title : 'FIELD_NULL';
+          
+          return `
+            <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #444; border-radius: 3px; background-color: #2a2a2a;">
+              <div style="margin-bottom: 5px;">
+                <strong style="color: #e0e0e0;">${job.name}</strong>
+              </div>
+              <div style="margin-bottom: 5px; color: #b0b0b0;">
+                <strong>Faction:</strong> ${factionName}
+              </div>
+              <div style="color: #b0b0b0;">
+                <strong>State:</strong> 
+                <span class="state-badge state-badge-${currentStateClass}">${currentState}</span>
+                <span style="margin: 0 5px;">→</span>
+                <span class="state-badge state-badge-${newStateClass}">${newState}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('progressAllJobsModal').style.display = 'block';
+    }
+    
+    function closeProgressAllJobsModal() {
+      document.getElementById('progressAllJobsModal').style.display = 'none';
+    }
+    
+    async function confirmProgressAllJobs() {
+      try {
+        const response = await fetch('/api/jobs/progress-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          closeProgressAllJobsModal();
+          showNotification(`Jobs progressed successfully! ${result.newlyActiveJobs} jobs became active, ${result.pilotsUpdated} active pilots updated.`);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to progress jobs');
+        }
+      } catch (error) {
+        alert('Error progressing jobs');
+      }
+    }
+    
+    // ==================== PROGRESS OPERATION FOR ACTIVE PILOTS ====================
+    function showProgressOperationModal() {
+      // Get all active pilots from the DOM
+      const pilotsList = document.getElementById('pilotsList');
+      const pilotItems = pilotsList.querySelectorAll('.job-item');
+      const activePilots = [];
+      
+      pilotItems.forEach(item => {
+        const isActive = item.querySelector('.state-badge-active') !== null;
+        if (isActive) {
+          const name = item.querySelector('h3').textContent.split('(')[0].trim();
+          const callsignMatch = item.querySelector('h3').textContent.match(/\("([^"]+)"\)/);
+          const callsign = callsignMatch ? callsignMatch[1] : '';
+          
+          const llField = Array.from(item.querySelectorAll('.job-item-field')).find(field => 
+            field.textContent.includes('License Level:')
+          );
+          const ll = llField ? parseInt(llField.textContent.split(':')[1].trim()) : 0;
+          
+          const progressField = Array.from(item.querySelectorAll('.job-item-field')).find(field => 
+            field.textContent.includes('Personal Operation Progress:')
+          );
+          const currentProgress = progressField ? parseInt(progressField.textContent.split(':')[1].trim()) : 0;
+          const newProgress = currentProgress >= 3 ? 0 : currentProgress + 1;
+          
+          activePilots.push({ name, callsign, ll, currentProgress, newProgress });
+        }
+      });
+      
+      // Populate the pilot list in the modal
+      const pilotListDiv = document.getElementById('progressOperationPilotList');
+      if (activePilots.length === 0) {
+        pilotListDiv.innerHTML = '<p style="color: #999; text-align: center;">No active pilots found.</p>';
+      } else {
+        pilotListDiv.innerHTML = activePilots.map(pilot => `
+          <div style="margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #333;">
+            <div><strong>${pilot.name} ("${pilot.callsign}")</strong></div>
+            <div style="margin-top: 5px; font-size: 0.9em;">
+              <span style="margin-right: 15px;">License Level: ${pilot.ll}</span>
+              <span>Operation Progress: ${pilot.currentProgress} → ${pilot.newProgress}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      document.getElementById('progressOperationModal').style.display = 'block';
+    }
+    
+    function closeProgressOperationModal() {
+      document.getElementById('progressOperationModal').style.display = 'none';
+    }
+    
+    async function confirmProgressOperation() {
+      try {
+        const response = await fetch('/api/pilots/progress-operation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          closeProgressOperationModal();
+          
+          let message = `Operation progressed successfully! ${result.pilotsProgressed} active pilot(s) updated.`;
+          if (result.resetPilots && result.resetPilots.length > 0) {
+            const resetNames = result.resetPilots.map(p => `${p.name} ("${p.callsign}")`).join(', ');
+            message += ` Reset to 0: ${resetNames}`;
+          }
+          
+          showNotification(message);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to progress operation');
+        }
+      } catch (error) {
+        alert('Error progressing operation');
+      }
+    }
+    
+    // Update modal close handlers
+    window.onclick = function(event) {
+      const modal = document.getElementById('editModal');
+      const factionModal = document.getElementById('editFactionModal');
+      const transactionModal = document.getElementById('editTransactionModal');
+      const pilotModal = document.getElementById('editPilotModal');
+      const pilotRelatedJobsModal = document.getElementById('pilotRelatedJobsModal');
+      const factionRelatedJobsModal = document.getElementById('factionRelatedJobsModal');
+      const progressAllJobsModal = document.getElementById('progressAllJobsModal');
+      const progressOperationModal = document.getElementById('progressOperationModal');
+      
+      if (event.target === modal) {
+        closeEditModal();
+      }
+      if (event.target === factionModal) {
+        closeEditFactionModal();
+      }
+      if (event.target === transactionModal) {
+        closeEditTransactionModal();
+      }
+      if (event.target === pilotModal) {
+        closeEditPilotModal();
+      }
+      if (event.target === pilotRelatedJobsModal) {
+        closePilotRelatedJobsModal();
+      }
+      if (event.target === factionRelatedJobsModal) {
+        closeFactionRelatedJobsModal();
+      }
+      if (event.target === progressAllJobsModal) {
+        closeProgressAllJobsModal();
+      }
+      if (event.target === progressOperationModal) {
+        closeProgressOperationModal();
+      }
+    };
+    
+    // ==================== TAB PERSISTENCE AND SCROLL RESTORATION ====================
+    
+    // Constants
+    const SCROLL_RESTORE_TIMEOUT_MS = 5000; // Only restore scroll if saved within last 5 seconds
+    
+    // Helper function to save scroll position before form submission reloads
+    function saveScrollPositionForReload() {
+      sessionStorage.setItem('adminScrollY', window.scrollY.toString());
+      sessionStorage.setItem('adminScrollSaved', Date.now().toString());
+    }
+    
+    // Initialize tab from URL hash on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get tab from URL hash (e.g., #jobs -> 'jobs')
+      const hash = window.location.hash.substring(1);
+      const validTabs = ['overview', 'jobs', 'base', 'pilots', 'factions'];
+      
+      if (hash && validTabs.includes(hash)) {
+        // Find the button for this tab by matching the tab name in onclick attribute using a direct selector
+        const tabButton = document.querySelector(`.tab-button[onclick*="switchTab('${hash}'"]`);
+        
+        if (tabButton) {
+          // Use the existing switchTab function to avoid duplication
+          switchTab(hash, tabButton);
+        }
+      }
+      
+      // Restore scroll position using requestAnimationFrame for better timing
+      const savedScrollY = sessionStorage.getItem('adminScrollY');
+      const savedTime = sessionStorage.getItem('adminScrollSaved');
+      
+      // Only restore if saved recently to avoid restoring on intentional navigation
+      if (savedScrollY !== null && savedTime !== null) {
+        const parsedTime = parseInt(savedTime, 10);
+        const parsedScrollY = parseInt(savedScrollY, 10);
+        
+        // Validate that parsed values are valid numbers
+        if (Number.isFinite(parsedTime) && Number.isFinite(parsedScrollY)) {
+          const timeSinceSave = Date.now() - parsedTime;
+          if (timeSinceSave < SCROLL_RESTORE_TIMEOUT_MS) {
+            // Use requestAnimationFrame to ensure content is rendered
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                window.scrollTo(0, parsedScrollY);
+                sessionStorage.removeItem('adminScrollY');
+                sessionStorage.removeItem('adminScrollSaved');
+              });
+            });
+          } else {
+            // Clear stale data
+            sessionStorage.removeItem('adminScrollY');
+            sessionStorage.removeItem('adminScrollSaved');
+          }
+        } else {
+          // Clear invalid data
+          sessionStorage.removeItem('adminScrollY');
+          sessionStorage.removeItem('adminScrollSaved');
+        }
+      }
+    });
   </script></body></html>

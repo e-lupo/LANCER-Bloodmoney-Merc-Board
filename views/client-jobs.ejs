@@ -5,25 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LANCER Job Board - Jobs</title>
   <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/client.css">
   <link rel="stylesheet" href="/css/currency.css">
 </head>
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
     <div class="terminal-header-left">
-      <h1>> <%= settings.portalHeading %> - JOB BOARD_</h1>
-      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
-      <p>> AVAILABLE MISSIONS: <%= jobs.length %>_</p>
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - JOB BOARD_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> AVAILABLE MISSIONS: <span id="jobs-count"><%= jobs.length %></span>_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
-      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
-      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
   
-  <div class="jobs-grid">
+  <div class="jobs-grid" id="jobs-grid">
     <% jobs.forEach(job => { %>
-      <div class="job-card">
+      <div class="job-card" data-job-id="<%= job.id %>">
         <% if (job.emblem) { %>
           <div class="job-emblem">
             <img src="/emblems/<%= job.emblem %>" alt="Emblem">
@@ -39,7 +50,7 @@
         
         <div class="job-field">
           <span class="field-label">CLIENT:</span>
-          <span class="field-value"><%= job.client %></span>
+          <span class="field-value"><%= job.faction ? job.faction.title : 'FIELD_NULL' %></span>
         </div>
         
         <div class="job-field">
@@ -73,5 +84,104 @@
       </div>
     <% }); %>
   </div>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Handle jobs update from SSE
+    function handleJobsUpdate(data) {
+      if (data && data.jobs) {
+        renderJobs(data.jobs);
+      }
+    }
+    
+    // Render jobs grid
+    function renderJobs(jobs) {
+      const jobsGrid = document.getElementById('jobs-grid');
+      const jobsCount = document.getElementById('jobs-count');
+      
+      if (!jobsGrid || !jobsCount) {
+        console.error('LANCER Job Board: Missing jobs-grid or jobs-count element; cannot render jobs.');
+        return;
+      }
+      
+      // Filter to show only Active jobs for CLIENT interface
+      const activeJobs = jobs.filter(job => job.state === 'Active');
+      
+      jobsCount.textContent = activeJobs.length;
+      
+      jobsGrid.innerHTML = activeJobs.map(job => {
+        let emblemHtml = '';
+        if (job.emblem) {
+          emblemHtml = `
+            <div class="job-emblem">
+              <img src="/emblems/${job.emblem}" alt="Emblem">
+            </div>
+          `;
+        }
+        
+        let rankStars = '';
+        for (let i = 0; i < job.rank; i++) {
+          rankStars += '<span class="star">★</span>';
+        }
+        for (let i = job.rank; i < 3; i++) {
+          rankStars += '<span class="star">☆</span>';
+        }
+        
+        let additionalPayHtml = '';
+        if (job.additionalPay) {
+          additionalPayHtml = `
+            <div class="job-field">
+              <span class="field-label">ADDITIONAL_PAY:</span>
+              <span class="field-value">${job.additionalPay}</span>
+            </div>
+          `;
+        }
+        
+        return `
+          <div class="job-card" data-job-id="${job.id}">
+            ${emblemHtml}
+            <div class="job-card-header">
+              <h2>> ${job.name}</h2>
+              <div class="job-rank">${rankStars}</div>
+            </div>
+            
+            <div class="job-field">
+              <span class="field-label">CLIENT:</span>
+              <span class="field-value">${
+                (job.faction && typeof job.faction === 'object' && job.faction.title)
+                  ? job.faction.title
+                  : 'FIELD_NULL'
+              }</span>
+            </div>
+            
+            <div class="job-field">
+              <span class="field-label">JOB_TYPE:</span>
+              <span class="field-value">${job.jobType}</span>
+            </div>
+            
+            <div class="job-field">
+              <span class="field-label">OBJECTIVE:</span>
+              <span class="field-value">${job.description}</span>
+            </div>
+            
+            <div class="job-field">
+              <span class="field-label">CLIENT_BRIEF:</span>
+              <span class="field-value">${job.clientBrief}</span>
+            </div>
+            
+            <div class="job-field">
+              <span class="field-label">PAYMENT:</span>
+              <span class="field-value field-value--payment">${job.currencyPay}
+                <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+              </span>
+            </div>
+            
+            ${additionalPayHtml}
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
 </body>
 </html>

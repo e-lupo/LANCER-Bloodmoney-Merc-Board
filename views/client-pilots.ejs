@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Pilots</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
+  <link rel="stylesheet" href="/css/client.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - PILOT_LIST_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> REGISTERED_PILOTS: <span id="pilots-count"><%= pilots.length %></span>_</p>
+      <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <% if (pilots.length === 0) { %>
+    <div class="pilots-empty" id="pilots-empty">
+      <p>> NO_PILOT_DATA_AVAILABLE_</p>
+    </div>
+  <% } else { %>
+    <div class="pilots-grid" id="pilots-grid">
+      <% 
+        // Sort pilots: active first, then inactive
+        const sortedPilots = [...pilots].sort((a, b) => {
+          if (a.active === b.active) return 0;
+          return a.active ? -1 : 1;
+        });
+        
+        sortedPilots.forEach(pilot => { 
+      %>
+        <div class="pilot-card <%= pilot.active ? 'active' : 'inactive' %>" data-pilot-id="<%= pilot.id %>">
+          <div class="pilot-status <%= pilot.active ? 'active' : 'inactive' %>">
+            <%= pilot.active ? 'ACTIVE' : 'INACTIVE' %>
+          </div>
+          
+          <% if (settings.openTable) { %>
+          <div class="pilot-personal-progress">
+            <div class="pilot-progress-label">OPERATION:</div>
+            <div class="pilot-progress-bar-container">
+              <div class="pilot-progress-segment <%= (pilot.personalOperationProgress || 0) >= 3 ? 'filled' : '' %>" data-segment="3"></div>
+              <div class="pilot-progress-segment <%= (pilot.personalOperationProgress || 0) >= 2 ? 'filled' : '' %>" data-segment="2"></div>
+              <div class="pilot-progress-segment <%= (pilot.personalOperationProgress || 0) >= 1 ? 'filled' : '' %>" data-segment="1"></div>
+            </div>
+          </div>
+          <% } %>
+          
+          <div class="pilot-card-header">
+            <h2>> <%= pilot.name %></h2>
+            <div class="pilot-callsign">CALLSIGN: <%= pilot.callsign %></div>
+            <div class="pilot-ll">LICENSE_LEVEL: <%= pilot.ll %></div>
+          </div>
+          
+          <div class="pilot-field">
+            <span class="field-label">RESERVES:</span>
+            <span class="field-value" style="white-space: pre-line;"><%= pilot.reserves || 'NO_DATA' %></span>
+          </div>
+          
+          <div class="pilot-actions">
+            <button class="pilot-button" data-pilot-id="<%= pilot.id %>" data-pilot-name="<%= pilot.name %>" data-pilot-reserves-b64="<%= Buffer.from(pilot.reserves || '').toString('base64') %>" onclick="openEditReserves(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotReservesB64))">
+              [EDIT_RESERVES]
+            </button>
+            <button class="pilot-button" onclick="openPilotJobHistory('<%= pilot.id %>', '<%= pilot.name.replace(/'/g, "\\'") %>')">
+              [JOB_HISTORY]
+            </button>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Store current pilots, jobs, factions, and settings data
+    let currentPilots = <%- JSON.stringify(pilots) %>;
+    let currentJobs = [];
+    let currentFactions = [];
+    let currentSettings = <%- JSON.stringify(settings) %>;
+    
+    // Fetch initial jobs and factions data
+    fetch('/api/jobs').then(r => r.json()).then(jobs => { currentJobs = jobs; });
+    fetch('/api/factions').then(r => r.json()).then(factions => { currentFactions = factions; });
+    
+    // Handle pilots update from SSE
+    function handlePilotsUpdate(data) {
+      if (data && data.pilots) {
+        currentPilots = data.pilots;
+        renderPilots(data.pilots);
+      }
+    }
+    
+    // Handle jobs update from SSE
+    function handleJobsUpdate(data) {
+      if (data && data.jobs) {
+        currentJobs = data.jobs;
+      }
+    }
+    
+    // Render pilots grid
+    function renderPilots(pilots) {
+      const pilotsCount = document.getElementById('pilots-count');
+      if (pilotsCount) {
+        pilotsCount.textContent = pilots.length;
+      }
+      
+      const pilotsGrid = document.getElementById('pilots-grid');
+      const pilotsEmpty = document.getElementById('pilots-empty');
+      
+      if (pilots.length === 0) {
+        if (pilotsGrid) pilotsGrid.style.display = 'none';
+        if (!pilotsEmpty) {
+          const newEmpty = document.createElement('div');
+          newEmpty.id = 'pilots-empty';
+          newEmpty.className = 'pilots-empty';
+          newEmpty.innerHTML = '<p>> NO_PILOT_DATA_AVAILABLE_</p>';
+          document.body.appendChild(newEmpty);
+        } else {
+          pilotsEmpty.style.display = 'block';
+        }
+      } else {
+        if (pilotsEmpty) pilotsEmpty.style.display = 'none';
+        if (!pilotsGrid) {
+          const newGrid = document.createElement('div');
+          newGrid.id = 'pilots-grid';
+          newGrid.className = 'pilots-grid';
+          document.body.appendChild(newGrid);
+        }
+        
+        // Sort pilots: active first, then inactive
+        const sortedPilots = [...pilots].sort((a, b) => {
+          if (a.active === b.active) return 0;
+          return a.active ? -1 : 1;
+        });
+        
+        const grid = document.getElementById('pilots-grid');
+        grid.style.display = 'grid';
+        grid.innerHTML = sortedPilots.map(pilot => {
+          const reservesB64 = btoa(pilot.reserves || '');
+          const escapedNameForOnclick = pilot.name.replace(/'/g, "\\'");
+          const personalProgress = pilot.personalOperationProgress || 0;
+          
+          // Build personal progress HTML if openTable is enabled
+          let personalProgressHtml = '';
+          if (currentSettings.openTable) {
+            personalProgressHtml = `
+              <div class="pilot-personal-progress">
+                <div class="pilot-progress-label">OPERATION:</div>
+                <div class="pilot-progress-bar-container">
+                  <div class="pilot-progress-segment ${personalProgress >= 3 ? 'filled' : ''}" data-segment="3"></div>
+                  <div class="pilot-progress-segment ${personalProgress >= 2 ? 'filled' : ''}" data-segment="2"></div>
+                  <div class="pilot-progress-segment ${personalProgress >= 1 ? 'filled' : ''}" data-segment="1"></div>
+                </div>
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="pilot-card ${pilot.active ? 'active' : 'inactive'}" data-pilot-id="${pilot.id}">
+              <div class="pilot-status ${pilot.active ? 'active' : 'inactive'}">
+                ${pilot.active ? 'ACTIVE' : 'INACTIVE'}
+              </div>
+              
+              ${personalProgressHtml}
+              
+              <div class="pilot-card-header">
+                <h2>> ${pilot.name}</h2>
+                <div class="pilot-callsign">CALLSIGN: ${pilot.callsign}</div>
+                <div class="pilot-ll">LICENSE_LEVEL: ${pilot.ll}</div>
+              </div>
+              
+              <div class="pilot-field">
+                <span class="field-label">RESERVES:</span>
+                <span class="field-value" style="white-space: pre-line;">${pilot.reserves || 'NO_DATA'}</span>
+              </div>
+              
+              <div class="pilot-actions">
+                <button class="pilot-button" data-pilot-id="${pilot.id}" data-pilot-name="${pilot.name}" data-pilot-reserves-b64="${reservesB64}" onclick="openEditReserves(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotReservesB64))">
+                  [EDIT_RESERVES]
+                </button>
+                <button class="pilot-button" onclick="openPilotJobHistory('${pilot.id}', '${escapedNameForOnclick}')">
+                  [JOB_HISTORY]
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+    
+    // Open edit reserves modal
+    function openEditReserves(pilotId, pilotName, currentReserves) {
+      const modal = document.getElementById('edit-reserves-modal');
+      const title = document.getElementById('edit-reserves-title');
+      const textarea = document.getElementById('reserves-textarea');
+      const form = document.getElementById('reserves-form');
+      
+      title.textContent = `${pilotName} - EDIT RESERVES`;
+      textarea.value = currentReserves || '';
+      
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const newReserves = textarea.value;
+        
+        try {
+          const response = await fetch(`/api/pilots/${pilotId}/reserves`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reserves: newReserves })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            closeModal('edit-reserves-modal');
+            // Update will come via SSE
+          } else {
+            alert('Error: ' + (result.message || 'Failed to update reserves'));
+          }
+        } catch (err) {
+          console.error('Error updating reserves:', err);
+          alert('Error: Failed to update reserves');
+        }
+      };
+      
+      modal.classList.add('active');
+    }
+    
+    // Open pilot job history modal
+    function openPilotJobHistory(pilotId, pilotName) {
+      const pilot = currentPilots.find(p => p.id === pilotId);
+      if (!pilot) return;
+      
+      // Filter jobs: only Active, Complete, Failed (not Ignored)
+      const pilotJobs = currentJobs.filter(job => 
+        pilot.relatedJobs.includes(job.id) &&
+        ['Active', 'Complete', 'Failed'].includes(job.state)
+      );
+      
+      const jobListModal = document.getElementById('job-list-modal');
+      const jobListTitle = document.getElementById('job-list-title');
+      const jobListContainer = document.getElementById('job-list-container');
+      
+      jobListTitle.textContent = `${pilotName} - JOB HISTORY`;
+      
+      if (pilotJobs.length === 0) {
+        jobListContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">> NO_JOBS_FOUND_</p>';
+      } else {
+        jobListContainer.innerHTML = pilotJobs.map(job => {
+          const faction = currentFactions.find(f => f.id === job.factionId);
+          const jobEmblemHtml = job.emblem ? `
+            <div class="job-list-emblem">
+              <img src="/emblems/${job.emblem}" alt="Job Emblem">
+            </div>
+          ` : `
+            <div class="job-list-emblem">
+              <div style="width: 40px; height: 40px; border: 2px dashed var(--border-color);"></div>
+            </div>
+          `;
+          
+          return `
+            <div class="job-list-item" onclick="openJobDetails('${job.id}', currentJobs, currentFactions)">
+              <div class="job-list-item-left">
+                ${jobEmblemHtml}
+                <div class="job-list-info">
+                  <div class="job-list-name">${job.name}</div>
+                </div>
+              </div>
+              <div class="job-list-status ${job.state.toLowerCase()}">${job.state.toUpperCase()}</div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      jobListModal.classList.add('active');
+    }
+    
+    // Initialize modal handlers on page load
+    initializeModalHandlers();
+  </script>
+  
+  <!-- Edit Reserves Modal -->
+  <div id="edit-reserves-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="edit-reserves-title">EDIT RESERVES</h2>
+        <button class="modal-close" onclick="closeModal('edit-reserves-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <form id="reserves-form" class="reserves-form">
+          <textarea id="reserves-textarea" placeholder="Enter reserves information..."></textarea>
+          <button type="submit">[SAVE_RESERVES]</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job List Modal -->
+  <div id="job-list-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="job-list-title">JOB HISTORY</h2>
+        <button class="modal-close" onclick="closeModal('job-list-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <div id="job-list-container" class="job-list"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Details Modal -->
+  <div id="job-details-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>JOB DETAILS</h2>
+        <button class="modal-close" onclick="closeModal('job-details-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <div id="job-details-container"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

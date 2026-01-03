@@ -1,5 +1,5 @@
 /**
- * Helper functions for the LANCER RPG Job Board application
+ * Helper functions for the LANCER Bloodmoney Merc Board application
  */
 
 const crypto = require('crypto');
@@ -13,6 +13,8 @@ const STANDING_LABELS = ['DISTRUSTED', 'WARY', 'NEUTRAL', 'RESPECTED', 'TRUSTED'
 const VALID_COLOR_SCHEMES = ['grey', 'orange', 'green', 'blue'];
 const DATE_PATTERN = /^\d{2}\/\d{2}\/\d{4}$/;
 const SAFE_EMBLEM_PATTERN = /^[A-Za-z0-9_-]+\.svg$/;
+const JOB_STATES = ['Pending', 'Active', 'Complete', 'Failed', 'Ignored'];
+const DEFAULT_JOB_STATE = 'Pending';
 
 /**
  * Get the label for a faction standing level (0-4)
@@ -193,6 +195,81 @@ function validateInteger(value, fieldName, min = null, max = null) {
 }
 
 /**
+ * Validate job state
+ * @param {string} state - Job state to validate
+ * @returns {Object} { valid: boolean, value?: string, message?: string }
+ */
+function validateJobState(state) {
+  if (!state || state === '') {
+    return { valid: true, value: DEFAULT_JOB_STATE };
+  }
+  
+  if (!JOB_STATES.includes(state)) {
+    return { 
+      valid: false, 
+      message: `Invalid job state. Must be one of: ${JOB_STATES.join(', ')}` 
+    };
+  }
+  
+  return { valid: true, value: state };
+}
+
+/**
+ * Validate faction ID exists
+ * @param {string} factionId - Faction ID to validate
+ * @param {Array} factions - Array of faction objects
+ * @returns {Object} { valid: boolean, message?: string }
+ */
+function validateFactionId(factionId, factions) {
+  // Empty factionId is valid (no faction assigned)
+  if (!factionId || factionId === '') {
+    return { valid: true };
+  }
+  
+  // Check if faction exists
+  const factionExists = factions.some(f => f.id === factionId);
+  if (!factionExists) {
+    return { 
+      valid: false, 
+      message: 'Invalid faction ID. Faction does not exist.' 
+    };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Calculate faction job counts from job data
+ * @param {string} factionId - Faction ID
+ * @param {Array} jobs - Array of all jobs
+ * @returns {Object} { completed: number, failed: number }
+ */
+function calculateFactionJobCounts(factionId, jobs) {
+  const factionJobs = jobs.filter(job => job.factionId === factionId);
+  const completed = factionJobs.filter(job => job.state === 'Complete').length;
+  const failed = factionJobs.filter(job => job.state === 'Failed').length;
+  return { completed, failed };
+}
+
+/**
+ * Enrich faction with calculated job counts
+ * @param {Object} faction - Faction object with jobsCompletedOffset and jobsFailedOffset
+ * @param {Array} jobs - Array of all jobs
+ * @returns {Object} Enriched faction with jobsCompleted and jobsFailed totals
+ */
+function enrichFactionWithJobCounts(faction, jobs) {
+  const counts = calculateFactionJobCounts(faction.id, jobs);
+  const jobsCompletedOffset = faction.jobsCompletedOffset || 0;
+  const jobsFailedOffset = faction.jobsFailedOffset || 0;
+  
+  return {
+    ...faction,
+    jobsCompleted: counts.completed + jobsCompletedOffset,
+    jobsFailed: counts.failed + jobsFailedOffset
+  };
+}
+
+/**
  * Create standardized success response
  * @param {Object} data - Response data
  * @returns {Object} Success response
@@ -220,6 +297,8 @@ module.exports = {
   VALID_COLOR_SCHEMES,
   DATE_PATTERN,
   SAFE_EMBLEM_PATTERN,
+  JOB_STATES,
+  DEFAULT_JOB_STATE,
   
   // Functions
   getStandingLabel,
@@ -232,6 +311,10 @@ module.exports = {
   validateEmblem,
   validateRequiredString,
   validateInteger,
+  validateJobState,
+  validateFactionId,
+  calculateFactionJobCounts,
+  enrichFactionWithJobCounts,
   successResponse,
   errorResponse
 };

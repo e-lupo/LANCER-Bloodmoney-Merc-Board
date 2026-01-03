@@ -10,21 +10,31 @@
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
     <div class="terminal-header-left">
-      <h1>> <%= settings.portalHeading %> - BASE MANAGEMENT_</h1>
-      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - BASE MANAGEMENT_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
       <p>> MODULE_STATUS: OPERATIONAL_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
-      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
-      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
   
   <div class="base-container">
     <div class="modules-section">
       <h2>> CORE_MODULES:</h2>
-      <div class="modules-grid core">
+      <div class="modules-grid core" id="core-modules">
         <% for (let i = 0; i < 3; i++) { %>
           <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
             <div class="module-type">CORE</div>
@@ -43,7 +53,7 @@
     
     <div class="modules-section">
       <h2>> MAJOR_MODULES:</h2>
-      <div class="modules-grid major">
+      <div class="modules-grid major" id="major-modules">
         <% for (let i = 3; i < 9; i++) { %>
           <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
             <div class="module-type">MAJOR</div>
@@ -62,7 +72,7 @@
     
     <div class="modules-section">
       <h2>> MINOR_MODULES:</h2>
-      <div class="modules-grid minor">
+      <div class="modules-grid minor" id="minor-modules">
         <% for (let i = 9; i < 15; i++) { %>
           <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
             <div class="module-type">MINOR</div>
@@ -81,5 +91,74 @@
       </div>
     </div>
   </div>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Handle base update from SSE
+    function handleBaseUpdate(data) {
+      if (data && data.base && data.base.modules) {
+        renderBaseModules(data.base.modules);
+      }
+    }
+    
+    // Render base modules
+    function renderBaseModules(modules) {
+      // Ensure we have a safe, fixed-length (15) modules array
+      const safeModules = Array.isArray(modules) ? modules.slice(0, 15) : [];
+      const DEFAULT_MODULE = { title: '', description: '', disabled: false };
+      for (let i = safeModules.length; i < 15; i++) {
+        safeModules.push({ ...DEFAULT_MODULE });
+      }
+      
+      // Render core modules (0-2)
+      const coreGrid = document.getElementById('core-modules');
+      coreGrid.innerHTML = safeModules.slice(0, 3).map(module => renderModule(module, 'CORE')).join('');
+      
+      // Render major modules (3-8)
+      const majorGrid = document.getElementById('major-modules');
+      majorGrid.innerHTML = safeModules.slice(3, 9).map(module => renderModule(module, 'MAJOR')).join('');
+      
+      // Render minor modules (9-14)
+      const minorGrid = document.getElementById('minor-modules');
+      minorGrid.innerHTML = safeModules.slice(9, 15).map(module => renderModule(module, 'MINOR')).join('');
+    }
+    
+    // Render individual module
+    function renderModule(module, type) {
+      // Guard against undefined or null modules
+      if (!module) {
+        module = { title: '', description: '', disabled: false };
+      }
+      
+      const disabledClass = module.disabled ? 'disabled' : '';
+      
+      if (module.disabled) {
+        return `
+          <div class="module-card ${disabledClass}">
+            <div class="module-type">${type}</div>
+            <div class="module-empty">[DISABLED]</div>
+          </div>
+        `;
+      } else if (module.title) {
+        const descriptionHtml = module.description ? 
+          `<div class="module-description">${module.description}</div>` : '';
+        return `
+          <div class="module-card ${disabledClass}">
+            <div class="module-type">${type}</div>
+            <div class="module-title">${module.title}</div>
+            ${descriptionHtml}
+          </div>
+        `;
+      } else {
+        return `
+          <div class="module-card ${disabledClass}">
+            <div class="module-type">${type}</div>
+            <div class="module-empty">[EMPTY_SLOT]</div>
+          </div>
+        `;
+      }
+    }
+  </script>
 </body>
 </html>

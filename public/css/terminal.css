@@ -192,24 +192,32 @@ body.blue .job-emblem img {
 
 /* Color scheme filters for all emblems and currency icons */
 body.grey .job-emblem img,
-body.grey .faction-emblem img {
+body.grey .faction-emblem img,
+body.grey .job-list-emblem img,
+body.grey .job-details-emblem img {
   filter: invert(100%);
 }
 
 body.orange .job-emblem img,
 body.orange .faction-emblem img,
+body.orange .job-list-emblem img,
+body.orange .job-details-emblem img,
 body.orange .currency-icon {
   filter: invert(71%) sepia(85%) saturate(1500%) hue-rotate(350deg) brightness(100%);
 }
 
 body.green .job-emblem img,
 body.green .faction-emblem img,
+body.green .job-list-emblem img,
+body.green .job-details-emblem img,
 body.green .currency-icon {
   filter: invert(71%) sepia(85%) saturate(3000%) hue-rotate(80deg) brightness(100%);
 }
 
 body.blue .job-emblem img,
-body.blue .faction-emblem img {
+body.blue .faction-emblem img,
+body.blue .job-list-emblem img,
+body.blue .job-details-emblem img {
   filter: invert(71%) sepia(42%) saturate(1500%) hue-rotate(180deg) brightness(100%);
 }
 

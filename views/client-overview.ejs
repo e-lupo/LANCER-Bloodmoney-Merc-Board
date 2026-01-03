@@ -11,14 +11,24 @@
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
     <div class="terminal-header-left">
-      <h1>> <%= settings.portalHeading %> - CLIENT INTERFACE_</h1>
-      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - CLIENT INTERFACE_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
       <p>> SYSTEM_STATUS: ONLINE_</p>
       <a href="/" class="terminal-link">[LOGOUT]</a>
     </div>
     <div class="terminal-header-right">
-      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
-      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
   
@@ -27,16 +37,16 @@
       <div class="left-column">
         <div class="balance-section">
           <h2>> MANNA_BALANCE:</h2>
-          <div class="balance-display">
+          <div class="balance-display" id="balance-display">
             <%= manna.balance %>
             <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
           </div>
         </div>
         
-        <% if (recentTransactions.length > 0) { %>
-          <div class="transactions-section">
+        <div class="transactions-section" id="transactions-section">
+          <% if (recentTransactions.length > 0) { %>
             <h3>> RECENT_TRANSACTIONS_</h3>
-            <div class="transactions-list">
+            <div class="transactions-list" id="transactions-list">
               <% recentTransactions.forEach(transaction => { %>
                 <div class="transaction-item">
                   <span class="transaction-amount <%= transaction.amount >= 0 ? 'positive' : 'negative' %>">
@@ -48,14 +58,12 @@
               <% }); %>
             </div>
             <a href="/client/finances" class="view-more-button">[VIEW_MORE]</a>
-          </div>
-        <% } else { %>
-          <div class="transactions-section">
+          <% } else { %>
             <h3>> RECENT_TRANSACTIONS:</h3>
             <p>> NO_TRANSACTIONS_RECORDED_</p>
             <a href="/client/finances" class="view-more-button">[VIEW_FINANCES]</a>
-          </div>
-        <% } %>
+          <% } %>
+        </div>
       </div>
       
       <div class="right-column">
@@ -65,10 +73,58 @@
             <a href="/client/jobs" class="nav-button">> JOB_BOARD</a>
             <a href="/client/base" class="nav-button">> BASE_MANAGEMENT</a>
             <a href="/client/factions" class="nav-button">> FACTION_RELATIONS</a>
+            <a href="/client/pilots" class="nav-button">> PILOT_LIST</a>
           </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Handle manna update from SSE
+    function handleMannaUpdate(data) {
+      if (data && data.manna) {
+        const manna = data.manna;
+        
+        // Update balance display
+        const balanceDisplay = document.getElementById('balance-display');
+        if (balanceDisplay) {
+          balanceDisplay.innerHTML = `
+            ${manna.balance}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          `;
+        }
+        
+        // Update recent transactions (last 5)
+        const recentTransactions = manna.transactions.slice(-5).reverse();
+        const transactionsList = document.getElementById('transactions-list');
+        
+        if (recentTransactions.length > 0) {
+          if (transactionsList) {
+            transactionsList.innerHTML = recentTransactions.map(transaction => `
+              <div class="transaction-item">
+                <span class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                  ${transaction.amount >= 0 ? '+' : ''}${transaction.amount}
+                  <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                </span>
+                <span class="transaction-description">${transaction.description}</span>
+              </div>
+            `).join('');
+          }
+        } else {
+          const transactionsSection = document.getElementById('transactions-section');
+          if (transactionsSection) {
+            transactionsSection.innerHTML = `
+              <h3>> RECENT_TRANSACTIONS:</h3>
+              <p>> NO_TRANSACTIONS_RECORDED_</p>
+              <a href="/client/finances" class="view-more-button">[VIEW_FINANCES]</a>
+            `;
+          }
+        }
+      }
+    }
+  </script>
 </body>
 </html>

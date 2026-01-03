@@ -11,14 +11,24 @@
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
     <div class="terminal-header-left">
-      <h1>> <%= settings.portalHeading %> - FINANCES_</h1>
-      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - FINANCES_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
       <p>> FINANCIAL_STATUS: ACTIVE_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
-      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
-      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
 
@@ -26,7 +36,7 @@
     <div class="finances-container">
       <div class="balance-overview">
         <h2>> CURRENT_MANNA_BALANCE:</h2>
-        <div class="balance-display">
+        <div class="balance-display" id="balance-display">
           <%= manna.balance %>
           <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
         </div>
@@ -50,39 +60,108 @@
 
       <div class="transactions-history">
         <h2>> TRANSACTION_HISTORY:</h2>
-        <% if (manna.transactions.length > 0) { %>
-          <div class="transactions-table">
-            <% manna.transactions.slice().reverse().forEach(transaction => { %>
-              <div class="transaction-row">
-                <div class="transaction-date">
-                  <%= new Date(transaction.date).toLocaleString('en-GB', { 
-                    year: 'numeric', 
-                    month: '2-digit', 
-                    day: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  }) %>
+        <div id="transactions-container">
+          <% if (manna.transactions.length > 0) { %>
+            <div class="transactions-table" id="transactions-table">
+              <% manna.transactions.slice().reverse().forEach(transaction => { %>
+                <div class="transaction-row">
+                  <div class="transaction-date">
+                    <%= new Date(transaction.date).toLocaleString('en-GB', { 
+                      year: 'numeric', 
+                      month: '2-digit', 
+                      day: '2-digit', 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    }) %>
+                  </div>
+                  <div class="transaction-amount <%= transaction.amount >= 0 ? 'positive' : 'negative' %>">
+                    <%= transaction.amount >= 0 ? '+' : '' %><%= transaction.amount %>
+                    <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                  </div>
+                  <div class="transaction-description"><%= transaction.description %></div>
+                  <div class="transaction-balance">
+                    Balance: <%= transaction.balance %>
+                    <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                  </div>
                 </div>
-                <div class="transaction-amount <%= transaction.amount >= 0 ? 'positive' : 'negative' %>">
-                  <%= transaction.amount >= 0 ? '+' : '' %><%= transaction.amount %>
-                  <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
-                </div>
-                <div class="transaction-description"><%= transaction.description %></div>
-                <div class="transaction-balance">
-                  Balance: <%= transaction.balance %>
-                  <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
-                </div>
-              </div>
-            <% }); %>
-          </div>
-        <% } else { %>
-          <p>> NO_TRANSACTIONS_RECORDED_</p>
-        <% } %>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <p id="no-transactions">> NO_TRANSACTIONS_RECORDED_</p>
+          <% } %>
+        </div>
       </div>
     </div>
   </div>
 
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
   <script>
+    // Handle manna update from SSE
+    function handleMannaUpdate(data) {
+      if (data && data.manna) {
+        const manna = data.manna;
+        
+        // Update balance display
+        const balanceDisplay = document.getElementById('balance-display');
+        balanceDisplay.innerHTML = `
+          ${manna.balance}
+          <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+        `;
+        
+        // Update transactions
+        renderTransactions(manna.transactions);
+      }
+    }
+    
+    // Render transactions
+    function renderTransactions(transactions) {
+      const container = document.getElementById('transactions-container');
+      
+      if (!container) {
+        console.warn("renderTransactions: 'transactions-container' element not found.");
+        return;
+      }
+      
+      if (transactions.length === 0) {
+        container.innerHTML = '<p id="no-transactions">> NO_TRANSACTIONS_RECORDED_</p>';
+      } else {
+        const reversedTransactions = transactions.slice().reverse();
+        container.innerHTML = `
+          <div class="transactions-table" id="transactions-table">
+            ${reversedTransactions.map(transaction => {
+              const date = new Date(transaction.date);
+              const formattedDate = date.toLocaleString('en-GB', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+              const amountClass = transaction.amount >= 0 ? 'positive' : 'negative';
+              const amountPrefix = transaction.amount >= 0 ? '+' : '';
+              
+              return `
+                <div class="transaction-row">
+                  <div class="transaction-date">${formattedDate}</div>
+                  <div class="transaction-amount ${amountClass}">
+                    ${amountPrefix}${transaction.amount}
+                    <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                  </div>
+                  <div class="transaction-description">${transaction.description}</div>
+                  <div class="transaction-balance">
+                    Balance: ${transaction.balance}
+                    <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+    }
+    
+    // Original transaction form submission
     document.getElementById('transactionForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -105,10 +184,15 @@
           messageDiv.textContent = '> TRANSACTION_SUBMITTED_SUCCESSFULLY_';
           messageDiv.className = 'message success';
           
-          // Reload page after 1 second to show updated balance and transactions
+          // Clear form
+          document.getElementById('amount').value = '';
+          document.getElementById('description').value = '';
+          
+          // Clear message after 3 seconds
           setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+          }, 3000);
         } else {
           messageDiv.textContent = '> ERROR: TRANSACTION_FAILED_';
           messageDiv.className = 'message error';

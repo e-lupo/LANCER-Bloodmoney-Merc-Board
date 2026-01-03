@@ -1,0 +1,184 @@
+/**
+ * Shared handler functions for SSE updates across all client pages
+ */
+
+/**
+ * Handle settings update from SSE
+ * Updates portal heading, user group, UNT date, galactic position, color scheme, operation progress, and openTable
+ */
+function handleSettingsUpdate(data) {
+  if (!data || !data.settings) {
+    return;
+  }
+
+  const settings = data.settings;
+
+  // Helper to update element text only when a value is provided
+  function updateTextIfDefined(elementId, value) {
+    if (value !== undefined && value !== null && value !== '') {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.textContent = value;
+      }
+    }
+  }
+
+  // Update header text
+  updateTextIfDefined('portal-heading', settings.portalHeading);
+  updateTextIfDefined('user-group', settings.userGroup);
+  updateTextIfDefined('unt', settings.unt);
+  updateTextIfDefined('galactic-pos', settings.currentGalacticPos);
+
+  // Update color scheme
+  if (settings.colorScheme) {
+    document.body.className = settings.colorScheme;
+  }
+  
+  // Update operation progress bar
+  if (settings.operationProgress !== undefined) {
+    updateOperationProgress(settings.operationProgress);
+  }
+  
+  // Handle openTable setting - toggle global operation progress visibility
+  if (settings.openTable !== undefined) {
+    const operationProgressDiv = document.querySelector('.operation-progress');
+    if (operationProgressDiv) {
+      if (settings.openTable) {
+        operationProgressDiv.style.display = 'none';
+      } else {
+        operationProgressDiv.style.display = '';
+      }
+    }
+    
+    // Update currentSettings if available (for pilot page)
+    if (typeof currentSettings !== 'undefined') {
+      currentSettings = settings;
+      // Re-render pilots if on pilot page
+      if (typeof currentPilots !== 'undefined' && typeof renderPilots === 'function') {
+        renderPilots(currentPilots);
+      }
+    }
+  }
+}
+
+/**
+ * Update operation progress bar visual state
+ * @param {number} progress - Progress value (0-3)
+ */
+function updateOperationProgress(progress) {
+  const progressValue = parseInt(progress) || 0;
+  
+  // Update all three segments
+  for (let i = 1; i <= 3; i++) {
+    const segment = document.getElementById(`progress-segment-${i}`);
+    if (segment) {
+      if (i <= progressValue) {
+        segment.classList.add('filled');
+      } else {
+        segment.classList.remove('filled');
+      }
+    }
+  }
+}
+
+/**
+ * Open job details modal
+ * @param {string} jobId - The job ID to display
+ * @param {Array} jobs - Array of job objects
+ * @param {Array} factions - Array of faction objects
+ */
+function openJobDetails(jobId, jobs, factions) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  
+  const faction = factions.find(f => f.id === job.factionId);
+  
+  const jobDetailsModal = document.getElementById('job-details-modal');
+  const jobDetailsContainer = document.getElementById('job-details-container');
+  
+  const jobEmblemHtml = job.emblem ? `
+    <div class="job-details-emblem">
+      <img src="/emblems/${job.emblem}" alt="Job Emblem">
+    </div>
+  ` : `
+    <div class="job-details-emblem">
+      <div style="width: 60px; height: 60px; border: 2px dashed var(--border-color);"></div>
+    </div>
+  `;
+  
+  const rankStars = '★'.repeat(job.rank) + '☆'.repeat(3 - job.rank);
+  
+  jobDetailsContainer.innerHTML = `
+    <div class="job-details">
+      <div class="job-details-header">
+        <div class="job-details-title">
+          <h3>> ${job.name}</h3>
+          <div class="job-rank" style="font-size: 18px;">${rankStars}</div>
+        </div>
+        ${jobEmblemHtml}
+      </div>
+      
+      <div class="job-details-field">
+        <span class="field-label">FACTION:</span>
+        <span class="field-value">${faction ? faction.title : 'FACTION_NULL'}</span>
+      </div>
+      
+      <div class="job-details-field">
+        <span class="field-label">JOB_TYPE:</span>
+        <span class="field-value">${job.jobType}</span>
+      </div>
+      
+      <div class="job-details-field">
+        <span class="field-label">OBJECTIVE:</span>
+        <span class="field-value">${job.description}</span>
+      </div>
+      
+      <div class="job-details-field">
+        <span class="field-label">CLIENT_BRIEF:</span>
+        <span class="field-value">${job.clientBrief}</span>
+      </div>
+      
+      <div class="job-details-field">
+        <span class="field-label">PAYMENT:</span>
+        <span class="field-value">${job.currencyPay} <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon" style="width: 14px; height: 14px;"></span>
+      </div>
+      
+      ${job.additionalPay ? `
+      <div class="job-details-field">
+        <span class="field-label">ADDITIONAL_PAY:</span>
+        <span class="field-value">${job.additionalPay}</span>
+      </div>
+      ` : ''}
+      
+      <div class="job-details-field">
+        <span class="field-label">STATUS:</span>
+        <span class="field-value">${job.state.toUpperCase()}</span>
+      </div>
+    </div>
+  `;
+  
+  jobDetailsModal.classList.add('active');
+}
+
+/**
+ * Close modal by ID
+ * @param {string} modalId - The modal ID to close
+ */
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+/**
+ * Initialize modal close handlers (call once on page load)
+ * Closes modals when clicking on the overlay background
+ */
+function initializeModalHandlers() {
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+      e.target.classList.remove('active');
+    }
+  });
+}

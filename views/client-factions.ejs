@@ -10,28 +10,38 @@
 <body class="<%= colorScheme %>">
   <div class="terminal-header">
     <div class="terminal-header-left">
-      <h1>> <%= settings.portalHeading %> - FACTION RELATIONS_</h1>
-      <p>> USER_GROUP: <%= settings.userGroup %>_</p>
-      <p>> KNOWN_FACTIONS: <%= factions.length %>_</p>
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - FACTION RELATIONS_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> KNOWN_FACTIONS: <span id="factions-count"><%= factions.length %></span>_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
-      <p class="terminal-info">> UNT: <%= settings.unt %>U</p>
-      <p class="terminal-info">> CURRENT_GALACTIC_POS: <%= settings.currentGalacticPos %></p>
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
   
   <% if (factions.length === 0) { %>
-    <div class="empty-state">
+    <div class="empty-state" id="empty-state">
       <p>> NO_FACTION_DATA_AVAILABLE_</p>
     </div>
   <% } else { %>
-    <div class="factions-grid">
+    <div class="factions-grid" id="factions-grid">
       <% factions.forEach(faction => { 
         const standingLabels = ['DISTRUSTED', 'WARY', 'NEUTRAL', 'RESPECTED', 'TRUSTED'];
         const standingLabel = standingLabels[faction.standing] || 'UNKNOWN';
       %>
-        <div class="faction-card">
+        <div class="faction-card" data-faction-id="<%= faction.id %>">
           <% if (faction.emblem) { %>
             <div class="faction-emblem">
               <img src="/emblems/<%= faction.emblem %>" alt="Emblem">
@@ -56,9 +66,184 @@
             <span class="field-label">BRIEF:</span>
             <span class="field-value"><%= faction.brief %></span>
           </div>
+          
+          <button class="faction-button" onclick="openFactionJobHistory('<%= faction.id %>', '<%= faction.title %>')">
+            [VIEW_JOB_HISTORY]
+          </button>
         </div>
       <% }); %>
     </div>
   <% } %>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    const standingLabels = ['DISTRUSTED', 'WARY', 'NEUTRAL', 'RESPECTED', 'TRUSTED'];
+    
+    // Handle factions update from SSE
+    function handleFactionsUpdate(data) {
+      if (data && data.factions) {
+        renderFactions(data.factions);
+      }
+    }
+    
+    // Render factions grid
+    function renderFactions(factions) {
+      const factionsCount = document.getElementById('factions-count');
+      if (factionsCount) {
+        factionsCount.textContent = factions.length;
+      }
+      
+      const factionsGrid = document.getElementById('factions-grid');
+      const emptyState = document.getElementById('empty-state');
+      
+      if (factions.length === 0) {
+        if (factionsGrid) factionsGrid.style.display = 'none';
+        if (!emptyState) {
+          const newEmptyState = document.createElement('div');
+          newEmptyState.id = 'empty-state';
+          newEmptyState.className = 'empty-state';
+          newEmptyState.innerHTML = '<p>> NO_FACTION_DATA_AVAILABLE_</p>';
+          document.body.appendChild(newEmptyState);
+        } else {
+          emptyState.style.display = 'block';
+        }
+      } else {
+        if (emptyState) emptyState.style.display = 'none';
+        if (!factionsGrid) {
+          const newGrid = document.createElement('div');
+          newGrid.id = 'factions-grid';
+          newGrid.className = 'factions-grid';
+          document.body.appendChild(newGrid);
+        }
+        
+        const grid = document.getElementById('factions-grid');
+        grid.style.display = 'grid';
+        grid.innerHTML = factions.map(faction => {
+          const standingLabel = standingLabels[faction.standing] || 'UNKNOWN';
+          
+          let emblemHtml = '';
+          if (faction.emblem) {
+            emblemHtml = `
+              <div class="faction-emblem">
+                <img src="/emblems/${faction.emblem}" alt="Emblem">
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="faction-card" data-faction-id="${faction.id}">
+              ${emblemHtml}
+              <div class="faction-card-header">
+                <h2>> ${faction.title}</h2>
+                <div class="faction-standing">STANDING: <span class="standing-value standing-${faction.standing}">${standingLabel}</span></div>
+              </div>
+              
+              <div class="faction-field">
+                <span class="field-label">JOBS_COMPLETED:</span>
+                <span class="field-value">${faction.jobsCompleted || 0}</span>
+              </div>
+              
+              <div class="faction-field">
+                <span class="field-label">JOBS_FAILED:</span>
+                <span class="field-value">${faction.jobsFailed || 0}</span>
+              </div>
+              
+              <div class="faction-field">
+                <span class="field-label">BRIEF:</span>
+                <span class="field-value">${faction.brief}</span>
+              </div>
+              
+              <button class="faction-button" onclick="openFactionJobHistory('${faction.id}', '${faction.title}')">
+                [VIEW_JOB_HISTORY]
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+    
+    // Store current jobs and factions data
+    let currentJobs = [];
+    let currentFactions = [];
+    
+    // Fetch initial jobs and factions data
+    fetch('/api/jobs').then(r => r.json()).then(jobs => { currentJobs = jobs; });
+    fetch('/api/factions').then(r => r.json()).then(factions => { currentFactions = factions; });
+    
+    // Update jobs data from SSE
+    function handleJobsUpdate(data) {
+      if (data && data.jobs) {
+        currentJobs = data.jobs;
+      }
+    }
+    
+    // Open faction job history modal
+    function openFactionJobHistory(factionId, factionTitle) {
+      const factionJobs = currentJobs.filter(job => job.factionId === factionId && 
+        ['Active', 'Complete', 'Failed', 'Ignored'].includes(job.state));
+      
+      const jobListModal = document.getElementById('job-list-modal');
+      const jobListTitle = document.getElementById('job-list-title');
+      const jobListContainer = document.getElementById('job-list-container');
+      
+      jobListTitle.textContent = `${factionTitle} - JOB HISTORY`;
+      
+      if (factionJobs.length === 0) {
+        jobListContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">> NO_JOBS_FOUND_</p>';
+      } else {
+        jobListContainer.innerHTML = factionJobs.map(job => {
+          const emblemHtml = job.emblem ? `
+            <div class="job-list-emblem">
+              <img src="/emblems/${job.emblem}" alt="Emblem">
+            </div>
+          ` : '';
+          
+          return `
+            <div class="job-list-item" onclick="openJobDetails('${job.id}', currentJobs, currentFactions)">
+              <div class="job-list-item-left">
+                ${emblemHtml}
+                <div class="job-list-info">
+                  <div class="job-list-name">${job.name}</div>
+                </div>
+              </div>
+              <div class="job-list-status ${job.state.toLowerCase()}">${job.state.toUpperCase()}</div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      jobListModal.classList.add('active');
+    }
+    
+    // Initialize modal handlers on page load
+    initializeModalHandlers();
+  </script>
+  
+  <!-- Job List Modal -->
+  <div id="job-list-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="job-list-title">JOB HISTORY</h2>
+        <button class="modal-close" onclick="closeModal('job-list-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <div id="job-list-container" class="job-list"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Details Modal -->
+  <div id="job-details-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>JOB DETAILS</h2>
+        <button class="modal-close" onclick="closeModal('job-details-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <div id="job-details-container"></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
