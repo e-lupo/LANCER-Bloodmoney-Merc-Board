@@ -87,7 +87,7 @@ At the same folder level you ran `npm install`, now run `git pull`.
 
 **Pilot Roster**
 - See all your pilots and their details
-- Edit pilot equipment and notes
+- Edit pilot reserves
 - View which missions each pilot has worked on
 - See active and inactive pilots
 
