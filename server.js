@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -11,8 +13,8 @@ const sseClients = new Set();
 
 // Constants
 const PASSWORDS = {
-  CLIENT: 'IMHOTEP',
-  ADMIN: 'TARASQUE'
+  CLIENT: process.env.CLIENT_KEY ||'IMHOTEP',
+  ADMIN: process.env.ADMIN_KEY ||'TARASQUE'
 };
 
 const FILE_UPLOAD = {

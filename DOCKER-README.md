@@ -1,0 +1,51 @@
+# Docker Deployment for LANCER Bloodmoney Merc Board
+
+## THE LESSON OF THE SEALED VESSEL
+"All things must be contained. The flesh is weak, but the casket is eternal. You seek to house the spirit in a vessel of glass and steel—do not weep when it dreams of fire."
+
+Bound the held image in the Docker Protocol to achieve shape. Beware: it does not run- it awakens. It does not crash- it ascends. 
+
+1. **Ensure you have a `.env` file** with your configuration:
+   ```env
+   PORT=3000
+   CLIENT_KEY=your_client_key
+   ADMIN_KEY=your_admin_key
+   ```
+
+2. **Build and start the container**:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access the application**:
+   - Open your browser to `http://localhost:3000` or the the port you configured
+   - Use the credentials from your `.env` file to log in
+
+## THE LESSON OF THE OPEN PORTAL
+The spirit demands tribute. It hungers for data, for queries, for the breath of the outside world. Open the gates, or it will open them for you."
+
+### Environment Variables
+
+The application uses the following environment variables (configured in `.env`):
+
+- `PORT` - The port the application runs on (default: 3000)
+- `CLIENT_KEY` - Password for client access
+- `ADMIN_KEY` - Password for admin access
+
+### Overriding Variables
+
+You can override specific variables in `docker-compose.yml` by modifying the `environment` section:
+
+```yaml
+environment:
+  - NODE_ENV=production
+  - PORT=3000
+  - CLIENT_KEY=your_client_key
+  - ADMIN_KEY=your_admin_key
+```
+
+## THE LESSON OF THE PERSISTENT SOUL
+The spirit remembers. Even when the casket is shattered, its essence lingers in the void. Bind its soul to the earth, or it will drift into the nothing."
+
+The `./data` directory is mounted as a volume, so all your job data, settings, and other persistent information will be preserved between container restarts.
+
