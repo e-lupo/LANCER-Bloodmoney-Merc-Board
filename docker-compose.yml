@@ -1,7 +1,6 @@
-version: '3.8'
 
 services:
-  app:
+  lancer-merc-board:
     build: .
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
