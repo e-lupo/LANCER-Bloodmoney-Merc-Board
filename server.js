@@ -1130,6 +1130,7 @@ app.post('/api/jobs', (req, res) => {
     clientBrief: req.body.clientBrief,
     currencyPay: req.body.currencyPay,
     additionalPay: req.body.additionalPay,
+    adminLog: req.body.adminLog || '',
     emblem: validation.emblem,
     state: validation.state,
     factionId: validation.factionId
@@ -1167,6 +1168,7 @@ app.put('/api/jobs/:id', (req, res) => {
     clientBrief: req.body.clientBrief,
     currencyPay: req.body.currencyPay,
     additionalPay: req.body.additionalPay,
+    adminLog: req.body.adminLog || '',
     emblem: validation.emblem,
     state: validation.state,
     factionId: validation.factionId
@@ -1655,7 +1657,8 @@ app.post('/api/factions', (req, res) => {
     brief: validation.brief,
     standing: validation.standing,
     jobsCompletedOffset: validation.jobsCompletedOffset,
-    jobsFailedOffset: validation.jobsFailedOffset
+    jobsFailedOffset: validation.jobsFailedOffset,
+    adminLog: req.body.adminLog || ''
   };
   factions.push(newFaction);
   writeFactions(factions);
@@ -1692,7 +1695,8 @@ app.put('/api/factions/:id', (req, res) => {
     brief: validation.brief,
     standing: validation.standing,
     jobsCompletedOffset: validation.jobsCompletedOffset,
-    jobsFailedOffset: validation.jobsFailedOffset
+    jobsFailedOffset: validation.jobsFailedOffset,
+    adminLog: req.body.adminLog || ''
   };
   writeFactions(factions);
   
@@ -1746,6 +1750,7 @@ app.post('/api/pilots', (req, res) => {
     ll: validation.ll,
     reserves: validation.reserves,
     active: validation.active,
+    adminLog: req.body.adminLog || '',
     relatedJobs: [],
     personalOperationProgress: validation.personalOperationProgress,
     personalTransactions: validation.personalTransactions
@@ -1787,6 +1792,7 @@ app.put('/api/pilots/:id', (req, res) => {
     ll: validation.ll,
     reserves: validation.reserves,
     active: validation.active,
+    adminLog: req.body.adminLog || '',
     relatedJobs: validation.relatedJobs,
     personalOperationProgress: validation.personalOperationProgress,
     personalTransactions: validation.personalTransactions
