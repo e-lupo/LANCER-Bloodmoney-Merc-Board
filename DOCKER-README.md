@@ -21,6 +21,14 @@ Bound the held image in the Docker Protocol to achieve shape. Beware: it does no
 3. **Access the application**:
    - Open your browser to `http://localhost:3000` or the the port you configured
    - Use the credentials from your `.env` file to log in
+   - You can use Docker Desktop port-forwarding instead of ngrok or other command-line based solutions. 
+
+4. **Or use an existing image**:
+   for instance in a cloud server like Render or Google Cloud
+     ```bash
+     docker compose -f docker-compose.pull.yml up -d
+     ```
+   and access the image over your server´s provided url. 
 
 ## THE LESSON OF THE OPEN PORTAL
 The spirit demands tribute. It hungers for data, for queries, for the breath of the outside world. Open the gates, or it will open them for you."
