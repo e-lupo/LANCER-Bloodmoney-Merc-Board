@@ -28,7 +28,7 @@ Bound the held image in the Docker Protocol to achieve shape. Beware: it does no
      ```bash
      docker compose -f docker-compose.pull.yml up -d
      ```
-   and access the image over your server´s provided url. 
+   and access the image over your server´s provided url. You can then (usually) configure the env variables over the server´s UI, without needing to create a new image. 
 
 ## THE LESSON OF THE OPEN PORTAL
 The spirit demands tribute. It hungers for data, for queries, for the breath of the outside world. Open the gates, or it will open them for you."
