@@ -5,16 +5,17 @@
 
 Bound the held image in the Docker Protocol to achieve shape. Beware: it does not run- it awakens. It does not crash- it ascends. 
 
-1. **Ensure you have a `.env` file** with your configuration:
+1. **you can setup an `.env` file** with your configuration:
    ```env
    PORT=3000
    CLIENT_KEY=your_client_key
    ADMIN_KEY=your_admin_key
    ```
+   this is optional, you can override variables in the docker manifest too. 
 
 2. **Build and start the container**:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. **Access the application**:
@@ -39,7 +40,7 @@ You can override specific variables in `docker-compose.yml` by modifying the `en
 ```yaml
 environment:
   - NODE_ENV=production
-  - PORT=3000
+  - PORT=3000 or the port you want to use
   - CLIENT_KEY=your_client_key
   - ADMIN_KEY=your_admin_key
 ```

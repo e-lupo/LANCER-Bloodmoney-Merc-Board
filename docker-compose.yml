@@ -7,7 +7,8 @@ services:
       - "${PORT:-3000}:${PORT:-3000}"
     volumes:
       - ./data:/app/data
-    env_file:
-      - .env
     environment:
+      - PORT=${PORT:-3000}
+      - CLIENT_KEY=${CLIENT_KEY:-IMHOTEP}
+      - ADMIN_KEY=${ADMIN_KEY:-TARASQUE}
       - NODE_ENV=production
