@@ -1,6 +1,7 @@
 # LANCER Bloodmoney Merc Board
 
-A terminal-styled web application for managing and viewing LANCER Bloodmoney Merc postings. Features password-gated access with separate client and admin interfaces.
+A terminal-styled web application for managing LANCER RPG missions and your mercenary company. Features password-protected access with separate client and admin interfaces for managing jobs, base modules, factions, pilots, and currency (Manna).
+
 
 ## How to Run Locally
 0. **You will need Node Package Manager (NPM) and therefore Node.js to use this.** 
@@ -54,91 +55,43 @@ At the same folder level you ran `npm install`, now run `git pull`.
 ### ADMIN page
 <img width="1157" height="2000" alt="image" src="https://github.com/user-attachments/assets/4cb88eaa-9325-4873-a9e1-a3dea1a49ad4" />
 
+---
+
 ## Features
 
 ### Visual Style
 - **4 color themes** to choose from (Grey, Orange, Green, Blue)
 
 ### Access Levels
-- **Player Access** (password: IMHOTEP) - View information only
-- **Game Master Access** (password: TARASQUE) - Create and edit everything
+- **CLIENT** (password: IMHOTEP) – View and interact with company info
+- **ADMIN** (password: TARASQUE) – Full management and editing
 
 ### For Players (CLIENT Mode)
 
-**Main Dashboard**
-- See your company's current money (Manna)
-- View recent transactions
-- Navigate to different sections
-
-**Mission Board**
-- Browse available missions
-- See mission details: difficulty, type, objectives, payment
-- View client information and logos
-
-**Base Status**
-- View your base's facilities and modules
-- See what's operational and what's empty
-
-**Faction Relations**
-- Track relationships with different organizations
-- See who trusts you and who doesn't
-- View how many jobs you've completed for each faction
-- Check your reputation level with each group
-
-**Pilot Roster**
-- See all your pilots and their details
-- Edit pilot reserves
-- View which missions each pilot has worked on
-- See active and inactive pilots
-
-**Live Updates**
-- Everything updates automatically when changes are made
-- No need to refresh your browser
+- **Overview**: See your company's Manna balance, last 5 transactions, and operation progress
+- **Job Board**: Browse active missions, see details, payment, and client/faction info
+- **Base**: View all 15 base modules (core, major, minor), see which are enabled/disabled
+- **Factions**: Track relationships, see standings, completed/failed jobs, and emblems
+- **Pilots**: View all pilots, edit reserves, see job history, and pilot status
+- **Live Updates**: All info updates in real time—no refresh needed
 
 ### For Game Masters (ADMIN Mode)
 
-**Everything players can see, plus:**
+Everything CLIENTs can see, plus:
 
-**Manage Missions**
-- Create new missions
-- Edit or delete existing missions
-- Change mission status (pending, active, completed, failed)
-- Assign missions to factions
-- Upload mission logos
+- **Manage Jobs**: Create, edit, delete, and progress jobs; assign to factions; upload emblems
+- **Manage Manna**: Set balance, add transactions, view and edit full history
+- **Manage Base**: Edit all modules, enable/disable minor modules, write descriptions
+- **Manage Factions**: Add/edit/delete factions, set standings, upload emblems, track job stats
+- **Manage Pilots**: Add/edit/delete pilots, set status, assign jobs, manage reserves
+- **Settings**: Change portal title, date, color scheme, and galactic position
+- **Instant Updates**: All changes appear instantly for everyone
 
-**Manage Manna**
-- Add or remove funds
-- Record transactions
-- Edit transaction history per pilot
-
-**Manage Base**
-- Configure all base modules
-- Write descriptions for facilities
-- Enable or disable modules
-
-**Manage Factions**
-- Create and edit organizations
-- Set relationship levels
-- Upload faction logos
-- Track job performance
-
-**Manage Pilots**
-- Add new pilots
-- Edit pilot information
-- Assign pilots to missions
-- Mark pilots as active or inactive
-
-**Settings**
-- Change the portal title
-- Set the date
-- Change color scheme
-- Update location information
-
-All changes appear instantly for everyone viewing the app.
 
 ## Data Persistence
 
-Job data is stored in `data/jobs.json` and global settings are stored in `data/settings.json`. These files are automatically created on first run with default data. The files persist across restarts, ensuring your job postings and settings are saved.
+All data is stored in JSON files in the `data/` folder (not tracked by git). Files are auto-created on first run with sample content. All changes are persist across restarts.
+
 
 ## Project Structure
 
@@ -173,17 +126,24 @@ LANCER-Bloodmoney-Merc-Board/
     └── settings.json          # Global settings including operation progress
 ```
 
+
 ## Technologies Used
 
-- **Node.js**: Runtime environment
+- **Node.js**: Runtime
 - **Express**: Web framework
-- **EJS**: Templating engine
-- **Body-Parser**: Request body parsing middleware
-- **CSS3**: Terminal effects and styling
+- **express-session**: Session and authentication
+- **EJS**: Templating
+- **Multer**: File uploads
+- **Potrace**: Image to SVG conversion
+- **CSS3**: Terminal effects and color themes
+- **Server-Sent Events (SSE)**: Real-time updates
 
-## Development Notes
+## Notes
 
-- The application uses port 3000 by default (configurable via `PORT` environment variable)
+- App runs on port 3000 by default (set `PORT` to change)
+- Passwords and settings are in `data/settings.json`
+- All data is file-based (no database needed)
+
 
 # License
 
