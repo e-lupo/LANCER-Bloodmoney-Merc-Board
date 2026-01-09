@@ -4,6 +4,14 @@ A terminal-styled web application for managing LANCER RPG missions and your merc
 
 
 ## How to Run Locally
+### The Normal Way
+1. Go to releases on the right and download the latest `Lancer_Bloodmoney_Companion_X.X.X.zip`.
+
+2. Unzip into an empty folder.
+
+3. Run the executable for your OS (probably windows, which would be the `.exe`)
+
+### By Cloning the repository (technical-ish)
 0. **You will need Node Package Manager (NPM) and therefore Node.js to use this.** 
 
    For Windows at least, you'll want to install Node.js through the installer on their website here: https://nodejs.org/en/download
