@@ -1,0 +1,102 @@
+[
+  {
+    "minorFacilityName": "Field Saboteurs",
+    "minorFacilityDescription": "A small barracks that houses and trains a team of engineers, sappers, demolition experts, and folk who just like to break things.  1/job, Players can delay a reinforcement wave by 1 round.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Shooting Range",
+    "minorFacilityDescription": "An open-air range where pilots can practice.   1/full repair, Each player may reroll one ranged or melee attack.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName": "Salvage Corps",
+    "minorFacilityDescription":  "A barracks dedicated to a corps of salvage specialists.  Create a 6 segment clock.   Every NPC wrecked over the course of a Job fills this clock by one segment per Size of wreck. Once it's filled, one player chosen by the party gets either 1 bonus repair point or 2 limited system recharges.   Grunts don't count, but nice try.",
+    "minorFacilityPrice": 5000
+  },
+  {
+    "minorFacilityName": "\"Bingo Book\" Datacenter",
+    "minorFacilityDescription": "A database of wanted enemy combatants.   1/combat, players always know the HP and heat of a non-ultra NPC.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Power Recycler",
+    "minorFacilityDescription":  "A conduit that siphons off a small amount of power from the base's main reactor core.  Every time players return to base from a Job, roll 1D20. On a 20, one player of the party's choice gets a Core Battery.  Each time this roll fails, the next one gets a +1 bonus.   This bonus can stack until the next Full Repair, at which point it resets.",
+    "minorFacilityPrice": 5000
+  },
+  {
+    "minorFacilityName": "Marketing Team",
+    "minorFacilityDescription": "An office housing a team of marketing and image consultants. 1/full repair, players can make a skill check in an attempt to improve their reputation with one faction.  On success, that faction's Approval Rating goes up by one.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Special Ops",
+    "minorFacilityDescription": "A barracks for a team of auxiliary mercenaries under the party's direct orders. They can be sent out on missions to gather materials, intel, or reserves. After players select a Job they may describe the goal of the Special Op.   After they return to base, they roll 1D20. On a 10+, the mission succeeded and players get what they want. On a 5 or less, the Special Ops was wiped out and players cannot use them again until the next full repair.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName":  "Company NHP",
+    "minorFacilityDescription":  "Standard casket storage for an NHP recently hired by the company. 1/job, players get +2 accuracy to any tech related narrative skill check, assuming that the Company NHP is able to assist in the given context.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName":  "Stealth Measures",
+    "minorFacilityDescription": "Ranging anywhere from cloaking fields to papertrail wipes to simple camo tarps. The base is hidden and cannot be discovered by other factions unless its location is explicitly leaked.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName": "Legal Offices",
+    "minorFacilityDescription": "A team of lawyers specializing in diasporan and military law. Players get expert legal representation in all matters.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Base Security",
+    "minorFacilityDescription": "An increase in both the quality and quantity of turrets, security systems, and goons with rifles. Players get +1 Accuracy to all combat related narrative skill checks while in their base.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Ice Room",
+    "minorFacilityDescription":  "A small, nondescript room inhabited by a talented spy.   1/full rest, players can ask the GM two yes-or-no questions about any other faction.  These questions don't have to be about the same faction and don't have to be asked at the same time.   The GM must answer one question honestly and the other dishonestly.",
+    "minorFacilityPrice": 5000
+  },
+  {
+    "minorFacilityName": "Expanded Shop",
+    "minorFacilityDescription": "A much more robust office for the quartermaster.  The shop gains 2 Rank 1 items and 1 Rank 2 item per refresh.",
+    "minorFacilityPrice": 5000
+  },
+  {
+    "minorFacilityName": "Omnimarket",
+    "minorFacilityDescription": "A spherical server room with a single chair connected to an omnihook. Players can use the omnimarket to sell intel anonymously. However, every time they sell information regarding a certain faction, they must roll 1D20. On a 5 or less, their identities are uncovered and the Approval Rank of that faction drops to Distrusted -2.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName": "Bar",
+    "minorFacilityDescription": "A place for mercs to drink, eat, and mingle.  Every time players return to base from a Job, they unwind at the bar for a while. 1/session, all players get +1 accuracy to any narrative skill check.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Large Vehicle Storage",
+    "minorFacilityDescription": "A massive garage capable of housing vehicles of a less traditional sort. Players get access to a vehicle capable of transporting several squads of mechs and dropships, or anything else of equivalent mass.",
+    "minorFacilityPrice": 4000
+  },
+  {
+    "minorFacilityName": "Squire-Class Subaltern Station",
+    "minorFacilityDescription": "A team of subalterns programmed to tend to and repair mechs with dutiful expertise. When players return to base from a job, they can freely repair 1 destroyed weapon or system. Each player can only do this 1/full rest.",
+    "minorFacilityPrice": 5000
+  },
+  {
+    "minorFacilityName": "Simulation Pod",
+    "minorFacilityDescription": "A device that mimics a mech's cockpit, allowing mercenaries to train for a near-limitless number of combat scenarios. 1/job, each player gets +1 accuracy on any Hull, Agility, Systems, or Engineering check or save.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Accounting Department",
+    "minorFacilityDescription": "An office for a team of dedicated accountants. Each player earns 200m every time they return from a Job.",
+    "minorFacilityPrice": 3000
+  },
+  {
+    "minorFacilityName": "Expanded Renovations",
+    "minorFacilityDescription": "Add 1 minor facility slot to the original 4. This option can be purchased twice.",
+    "minorFacilityPrice": 5000
+  }
+]

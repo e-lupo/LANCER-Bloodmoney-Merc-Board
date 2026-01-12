@@ -4,7 +4,7 @@
   "title": "Pilot",
   "description": "A pilot in the mercenary company roster",
   "type": "object",
-  "required": ["id", "name", "callsign", "ll", "reserves", "active", "relatedJobs", "personalOperationProgress", "personalTransactions"],
+  "required": ["id", "name", "callsign", "ll", "notes", "active", "relatedJobs", "personalOperationProgress", "personalTransactions", "reserves"],
   "properties": {
     "id": {
       "type": "string",
@@ -28,9 +28,9 @@
       "maximum": 12,
       "multipleOf": 1
     },
-    "reserves": {
+    "notes": {
       "type": "string",
-      "description": "Reserves/notes (multiline text, can be empty)"
+      "description": "Notes (multiline text, can be empty)"
     },
     "active": {
       "type": "boolean",
@@ -58,6 +58,27 @@
         "type": "string",
         "format": "uuid"
       }
+    },
+    "reserves": {
+      "type": "array",
+      "description": "Array of reserve objects owned by this pilot with deployment status",
+      "items": {
+        "type": "object",
+        "required": ["reserveId", "deploymentStatus"],
+        "properties": {
+          "reserveId": {
+            "type": "string",
+            "description": "UUID of the reserve item",
+            "format": "uuid"
+          },
+          "deploymentStatus": {
+            "type": "string",
+            "description": "Current deployment status of the reserve",
+            "enum": ["In Reserve", "Deployed", "Expended"]
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false,
@@ -65,6 +86,9 @@
     "One-way relationship: pilots reference transactions, transactions do NOT reference pilots",
     "Many-to-many: any transaction can be referenced by multiple pilots",
     "Each pilot's balance is calculated by summing amounts of their associated transactions",
-    "Validation ensures all referenced transaction UUIDs exist in manna.transactions"
+    "Validation ensures all referenced transaction UUIDs exist in manna.transactions",
+    "reserves array contains objects with reserveId (UUID) and deploymentStatus (In Reserve/Deployed/Expended)",
+    "Validation ensures all referenced reserve UUIDs exist in reserves.json",
+    "deploymentStatus tracks the current state of each reserve item for UI display and management"
   ]
 }

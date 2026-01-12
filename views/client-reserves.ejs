@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Reserves</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
+  <link rel="stylesheet" href="/css/client.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - RESERVES_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> PILOTS_WITH_RESERVES: <span id="pilots-count"><%= pilots.length %></span>_</p>
+      <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <% if (pilots.length === 0) { %>
+    <div class="reserves-empty" id="reserves-empty">
+      <p>> NO_PILOTS_WITH_RESERVES_</p>
+    </div>
+  <% } else { %>
+    <!-- Global action buttons -->
+    <div class="global-actions-bar">
+      <button class="global-action-btn" id="global-transfer-btn" onclick="openTransferModal()" disabled>
+        [TRANSFER_RESERVE]
+      </button>
+      <button class="global-action-btn trash-btn" id="global-trash-btn" onclick="confirmTrashReserve()" disabled>
+        [TRASH_RESERVE]
+      </button>
+    </div>
+    
+    <div class="reserves-container" id="reserves-container">
+      <% 
+        // Sort pilots: active first, then inactive
+        const sortedPilots = [...pilots].sort((a, b) => {
+          if (a.active === b.active) return 0;
+          return a.active ? -1 : 1;
+        });
+        
+        sortedPilots.forEach(pilot => { 
+      %>
+        <div class="pilot-reserves-group <%= pilot.active ? 'active' : 'inactive' %>" data-pilot-id="<%= pilot.id %>">
+          <div class="pilot-label"><%= pilot.name %> (<%= pilot.callsign %>) LL<%= pilot.ll %> <%= pilot.active ? '[ACTIVE]' : '[INACTIVE]' %></div>
+          
+          <% if (pilot.reserveObjects && pilot.reserveObjects.length > 0) { %>
+            <% pilot.reserveObjects.forEach((reserveObj, index) => { %>
+              <div class="reserve-card selectable" 
+                   data-pilot-id="<%= pilot.id %>" 
+                   data-reserve-id="<%= reserveObj.reserveId %>"
+                   onclick="selectReserve(this, '<%= pilot.id %>', '<%= reserveObj.reserveId %>')">
+                <div class="reserve-card-header">
+                  <div class="reserve-rank" id="rank-<%= pilot.id %>-<%= reserveObj.reserveId %>">R<%= reserveObj.reserve.rank %></div>
+                  <div class="reserve-name"><%= reserveObj.reserve.name %></div>
+                </div>
+                <div class="reserve-description">
+                  <% 
+                    const description = reserveObj.reserve.description || 'NO_DESCRIPTION';
+                    const firstNewlineIndex = description.indexOf('\n');
+                    if (firstNewlineIndex !== -1) {
+                      const firstLine = description.substring(0, firstNewlineIndex);
+                      const restOfDescription = description.substring(firstNewlineIndex + 1);
+                  %>
+                    <span class="reserve-description-first-line"><%= firstLine %></span>
+                    <%= restOfDescription %>
+                  <% } else { %>
+                    <%= description %>
+                  <% } %>
+                </div>
+                <div class="reserve-status-row">
+                  <div class="reserve-status">
+                    STATUS: <span class="status-value status-<%= reserveObj.deploymentStatus.replace(/ /g, '-').toLowerCase() %>"><%= reserveObj.deploymentStatus.toUpperCase() %></span>
+                  </div>
+                  <button class="cycle-btn" 
+                          onclick="cycleDeploymentStatus(event, '<%= pilot.id %>', '<%= reserveObj.reserveId %>', '<%= reserveObj.deploymentStatus %>')">
+                    [CYCLE]
+                  </button>
+                </div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <div class="empty-message">NO_RESERVES_FOR_PILOT</div>
+          <% } %>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+  
+  <!-- Transfer Modal -->
+  <div class="modal-overlay" id="transfer-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>> TRANSFER_RESERVE_</h2>
+        <button class="modal-close" onclick="closeTransferModal()">[X]</button>
+      </div>
+      <div class="modal-body">
+        <p class="transfer-instruction">> SELECT_TARGET_PILOT:</p>
+        <div class="pilots-list" id="transfer-pilots-list">
+          <!-- Populated by JavaScript -->
+        </div>
+        <div class="modal-actions">
+          <button class="modal-button transfer-button" id="transfer-confirm-btn" onclick="confirmTransfer()" disabled>
+            [TRANSFER]
+          </button>
+          <button class="modal-button cancel-button" onclick="closeTransferModal()">
+            [CANCEL]
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Trash Confirmation Modal -->
+  <div class="modal-overlay" id="trash-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>> CONFIRM_TRASH_RESERVE_</h2>
+        <button class="modal-close" onclick="closeTrashModal()">[X]</button>
+      </div>
+      <div class="modal-body">
+        <p class="trash-warning">> WARNING: This will remove the reserve from <span id="trash-pilot-name"></span>. This action cannot be undone.</p>
+        <p class="trash-reserve-info" id="trash-reserve-info"></p>
+        <div class="modal-actions">
+          <button class="modal-button trash-confirm-button" onclick="executeTrash()">
+            [CONFIRM_TRASH]
+          </button>
+          <button class="modal-button cancel-button" onclick="closeTrashModal()">
+            [CANCEL]
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Store current state
+    let currentPilots = <%- JSON.stringify(pilots) %>;
+    let allPilots = <%- JSON.stringify(allPilots) %>;  // All pilots in system
+    let currentSettings = <%- JSON.stringify(settings) %>;
+    let allReserves = <%- JSON.stringify(allReserves) %>;
+    
+    // Transfer modal state
+    let transferSourcePilotId = null;
+    let transferReserveId = null;
+    let transferTargetPilotId = null;
+    
+    // Trash modal state
+    let trashPilotId = null;
+    let trashReserveId = null;
+    
+    // Currently selected reserve (global)
+    let selectedPilotId = null;
+    let selectedReserveId = null;
+    
+    /**
+     * Select a reserve card
+     */
+    function selectReserve(cardElement, pilotId, reserveId) {
+      // Deselect all cards globally
+      const allCards = document.querySelectorAll('.reserve-card');
+      allCards.forEach(card => {
+        card.classList.remove('selected');
+        // Reset all rank boxes
+        const rankBox = card.querySelector('.reserve-rank');
+        if (rankBox) {
+          rankBox.classList.remove('selected');
+        }
+      });
+      
+      // Check if clicking the same card to deselect
+      if (selectedPilotId === pilotId && selectedReserveId === reserveId) {
+        selectedPilotId = null;
+        selectedReserveId = null;
+        updateGlobalActionButtons();
+        return;
+      }
+      
+      // Select this card
+      selectedPilotId = pilotId;
+      selectedReserveId = reserveId;
+      cardElement.classList.add('selected');
+      
+      // Color invert only the rank box
+      const rankBox = document.getElementById(`rank-${pilotId}-${reserveId}`);
+      if (rankBox) {
+        rankBox.classList.add('selected');
+      }
+      
+      updateGlobalActionButtons();
+    }
+    
+    /**
+     * Update global action buttons based on selection
+     */
+    function updateGlobalActionButtons() {
+      const transferBtn = document.getElementById('global-transfer-btn');
+      const trashBtn = document.getElementById('global-trash-btn');
+      
+      if (selectedReserveId) {
+        transferBtn.disabled = false;
+        trashBtn.disabled = false;
+      } else {
+        transferBtn.disabled = true;
+        trashBtn.disabled = true;
+      }
+    }
+    
+    /**
+     * Cycle deployment status
+     */
+    function cycleDeploymentStatus(event, pilotId, reserveId, currentStatus) {
+      event.stopPropagation(); // Prevent card selection
+      
+      // Cycle: In Reserve -> Deployed -> Expended -> In Reserve
+      let newStatus;
+      if (currentStatus === 'In Reserve') {
+        newStatus = 'Deployed';
+      } else if (currentStatus === 'Deployed') {
+        newStatus = 'Expended';
+      } else {
+        newStatus = 'In Reserve';
+      }
+      
+      // Send API request
+      fetch(`/api/pilots/${pilotId}/reserves/${reserveId}/cycle`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deploymentStatus: newStatus })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success) {
+          alert('Error: ' + (data.message || 'Failed to cycle deployment status'));
+        }
+        // SSE will update the UI
+      })
+      .catch(error => {
+        console.error('Error cycling deployment status:', error);
+        alert('Error cycling deployment status');
+      });
+    }
+    
+    /**
+     * Open transfer modal
+     */
+    function openTransferModal() {
+      if (!selectedReserveId) {
+        alert('No reserve selected');
+        return;
+      }
+      
+      transferSourcePilotId = selectedPilotId;
+      transferReserveId = selectedReserveId;
+      transferTargetPilotId = null;
+      
+      // Populate pilots list (show ALL pilots in system)
+      const transferPilotsList = document.getElementById('transfer-pilots-list');
+      transferPilotsList.innerHTML = '';
+      
+      // Sort pilots: active first
+      const sortedPilots = [...allPilots].sort((a, b) => {
+        if (a.active === b.active) return 0;
+        return a.active ? -1 : 1;
+      });
+      
+      sortedPilots.forEach(pilot => {
+        const pilotRow = document.createElement('div');
+        pilotRow.className = `pilot-row ${!pilot.active ? 'inactive' : ''}`;
+        pilotRow.dataset.pilotId = pilot.id;
+        pilotRow.onclick = () => selectTransferTarget(pilot.id);
+        
+        const pilotInfo = document.createElement('div');
+        pilotInfo.className = 'pilot-info';
+        
+        const pilotNameSpan = document.createElement('span');
+        pilotNameSpan.className = 'pilot-name';
+        pilotNameSpan.textContent = pilot.name;
+        
+        const pilotCallsign = document.createElement('span');
+        pilotCallsign.className = 'pilot-callsign';
+        pilotCallsign.textContent = `(${pilot.callsign})`;
+        
+        pilotInfo.appendChild(pilotNameSpan);
+        pilotInfo.appendChild(pilotCallsign);
+        
+        pilotRow.appendChild(pilotInfo);
+        transferPilotsList.appendChild(pilotRow);
+      });
+      
+      // Update transfer button state
+      document.getElementById('transfer-confirm-btn').disabled = true;
+      
+      // Show modal
+      document.getElementById('transfer-modal').classList.add('active');
+    }
+    
+    /**
+     * Select transfer target pilot
+     */
+    function selectTransferTarget(pilotId) {
+      transferTargetPilotId = pilotId;
+      
+      // Update visual selection
+      const allRows = document.querySelectorAll('#transfer-pilots-list .pilot-row');
+      allRows.forEach(row => {
+        if (row.dataset.pilotId === pilotId) {
+          row.classList.add('selected');
+        } else {
+          row.classList.remove('selected');
+        }
+      });
+      
+      // Enable transfer button
+      document.getElementById('transfer-confirm-btn').disabled = false;
+    }
+    
+    /**
+     * Confirm transfer
+     */
+    function confirmTransfer() {
+      if (!transferSourcePilotId || !transferReserveId || !transferTargetPilotId) {
+        alert('Invalid transfer parameters');
+        return;
+      }
+      
+      fetch(`/api/pilots/${transferSourcePilotId}/reserves/${transferReserveId}/transfer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetPilotId: transferTargetPilotId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          closeTransferModal();
+          // SSE will update the UI
+        } else {
+          alert('Error: ' + (data.message || 'Failed to transfer reserve'));
+        }
+      })
+      .catch(error => {
+        console.error('Error transferring reserve:', error);
+        alert('Error transferring reserve');
+      });
+    }
+    
+    /**
+     * Close transfer modal
+     */
+    function closeTransferModal() {
+      document.getElementById('transfer-modal').classList.remove('active');
+      transferSourcePilotId = null;
+      transferReserveId = null;
+      transferTargetPilotId = null;
+    }
+    
+    /**
+     * Open trash confirmation modal
+     */
+    function confirmTrashReserve() {
+      if (!selectedReserveId) {
+        alert('No reserve selected');
+        return;
+      }
+      
+      trashPilotId = selectedPilotId;
+      trashReserveId = selectedReserveId;
+      
+      // Find reserve details
+      const pilot = currentPilots.find(p => p.id === selectedPilotId);
+      const reserveObj = pilot.reserveObjects.find(r => r.reserveId === selectedReserveId);
+      
+      // Update modal content
+      document.getElementById('trash-pilot-name').textContent = pilot.name;
+      document.getElementById('trash-reserve-info').textContent = 
+        `Reserve: ${reserveObj.reserve.name} (Rank ${reserveObj.reserve.rank}) - Status: ${reserveObj.deploymentStatus}`;
+      
+      // Show modal
+      document.getElementById('trash-modal').classList.add('active');
+    }
+    
+    /**
+     * Execute trash (remove reserve)
+     */
+    function executeTrash() {
+      if (!trashPilotId || !trashReserveId) {
+        alert('Invalid trash parameters');
+        return;
+      }
+      
+      fetch(`/api/pilots/${trashPilotId}/reserves/${trashReserveId}`, {
+        method: 'DELETE'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          closeTrashModal();
+          // SSE will update the UI
+        } else {
+          alert('Error: ' + (data.message || 'Failed to remove reserve'));
+        }
+      })
+      .catch(error => {
+        console.error('Error removing reserve:', error);
+        alert('Error removing reserve');
+      });
+    }
+    
+    /**
+     * Close trash modal
+     */
+    function closeTrashModal() {
+      document.getElementById('trash-modal').classList.remove('active');
+      trashPilotId = null;
+      trashReserveId = null;
+    }
+    
+    /**
+     * Handle pilots update from SSE
+     */
+    function handlePilotsUpdate(data) {
+      if (data && data.pilots) {
+        // Reload page to get updated reserve data
+        window.location.reload();
+      }
+    }
+  </script>
+</body>
+</html>

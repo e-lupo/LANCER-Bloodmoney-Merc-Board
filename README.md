@@ -155,4 +155,4 @@ LANCER-Bloodmoney-Merc-Board/
 
 # License
 
-I have no idea how licensing works, but I'm using default emblems from https://logobook.com/.
+I have no idea how licensing works, but I'm using default emblems from https://icon-sets.iconify.design/.

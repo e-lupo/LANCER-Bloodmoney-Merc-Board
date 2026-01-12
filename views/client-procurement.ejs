@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Procurement</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
+  <link rel="stylesheet" href="/css/client.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - SHOP_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> AVAILABLE_ITEMS: <span id="items-count"><%= stockReserves.length + resupplyItems.filter(item => item.enabled).length %></span>_</p>
+      <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+      <% if (!settings.openTable) { %>
+      <div class="operation-progress">
+        <div class="operation-progress-label">> OPERATION_PROGRESS:</div>
+        <div class="progress-bar-container">
+          <div class="progress-segment <%= settings.operationProgress >= 1 ? 'filled' : '' %>" id="progress-segment-1"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 2 ? 'filled' : '' %>" id="progress-segment-2"></div>
+          <div class="progress-segment <%= settings.operationProgress >= 3 ? 'filled' : '' %>" id="progress-segment-3"></div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <div class="procurement-container" id="procurement-container">
+    <!-- Resupply Items Section -->
+    <% if (resupplyItems.some(item => item.enabled)) { %>
+    <div class="resupply-section">
+      <h2>> RESUPPLY_ITEMS_</h2>
+      <div class="resupply-grid">
+        <% resupplyItems.filter(item => item.enabled).forEach(item => { %>
+          <div class="reserve-card resupply-card" data-resupply-id="<%= item.id %>" data-item-type="resupply">
+            <div class="reserve-card-header">
+              <div class="reserve-rank">R0</div>
+              <div class="reserve-name"><%= item.name %></div>
+            </div>
+            <div class="reserve-description">
+              <% if (item.id === 'limited-restock') { %>
+                One additional charge for a single Limited Weapon or System. This may not result in the exceeding of that Weapon or System's Limited cap.
+              <% } else if (item.id === 'repair') { %>
+                One additional Repair Point. This may not result in the exceeding of your chassis' maximum number of Repair Points.
+              <% } else if (item.id === 'core-battery') { %>
+                Recharge of a chassis' Core Power. This may not result in holding more than one charge of Core Power.
+              <% } %>
+            </div>
+            <div class="reserve-price">
+              <%= item.price %>
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+    
+    <!-- Reserve Stock Section -->
+    <div class="reserves-section">
+      <h2>> RESERVE_STOCK_</h2>
+      <% if (stockReserves.length === 0) { %>
+        <p class="empty-message">> NO_RESERVES_IN_STOCK_</p>
+      <% } else { %>
+        <div class="reserves-grid" id="reserves-grid">
+          <% stockReserves.forEach(reserve => { %>
+            <div class="reserve-card" data-reserve-id="<%= reserve.id %>" data-item-type="reserve">
+              <div class="reserve-card-header">
+                <div class="reserve-rank">R<%= reserve.rank %></div>
+                <div class="reserve-name"><%= reserve.name %></div>
+              </div>
+              <div class="reserve-description">
+                <% 
+                  const description = reserve.description || 'NO_DESCRIPTION';
+                  const firstNewlineIndex = description.indexOf('\n');
+                  if (firstNewlineIndex !== -1) {
+                    const firstLine = description.substring(0, firstNewlineIndex);
+                    const restOfDescription = description.substring(firstNewlineIndex + 1);
+                %>
+                  <span class="reserve-description-first-line"><%= firstLine %></span>
+                  <%= restOfDescription %>
+                <% } else { %>
+                  <%= description %>
+                <% } %>
+              </div>
+              <div class="reserve-price">
+                <%= reserve.price %>
+                <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  
+  <!-- Purchase Modal -->
+  <div class="modal-overlay" id="purchase-modal">
+    <div class="modal-content purchase-modal-content">
+      <div class="purchase-modal-layout">
+        <div class="purchase-modal-left">
+          <h3>> PURCHASE_INTERFACE_</h3>
+          
+          <!-- Expense To Section -->
+          <div class="purchase-section">
+            <h4>> EXPENSE_TO:</h4>
+            <div class="pilots-list" id="expense-pilots-list">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Transaction Per Pilot -->
+          <div class="purchase-section">
+            <h4>> TRANSACTION_PER_PILOT:</h4>
+            <div class="transaction-amount" id="transaction-amount">
+              <span id="amount-per-pilot">0</span>
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            </div>
+            <div class="warning-message" id="warning-message" style="display: none;"></div>
+          </div>
+          
+          <!-- Assign To Section -->
+          <div class="purchase-section" id="assign-to-section" style="display: none;">
+            <h4>> ASSIGN_TO:</h4>
+            <div class="assignee-pills" id="assignee-pills">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="modal-actions">
+            <button class="modal-button purchase-button" id="purchase-button" disabled>
+              [PURCHASE]
+            </button>
+            <button class="modal-button cancel-button" id="cancel-button">
+              [CANCEL]
+            </button>
+          </div>
+        </div>
+        
+        <div class="purchase-modal-right">
+          <div class="item-preview" id="item-preview">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/js/shared-handlers.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script>
+    // Store current state
+    let currentPilots = <%- JSON.stringify(pilots) %>;
+    let currentReserves = <%- JSON.stringify(allReserves) %>;
+    let currentStoreConfig = <%- JSON.stringify(storeConfig) %>;
+    let currentSettings = <%- JSON.stringify(settings) %>;
+    
+    // Purchase modal state
+    let selectedItemId = null;
+    let selectedItemType = null; // 'reserve' or 'resupply'
+    let selectedItemPrice = 0;
+    let selectedExpensePilots = new Set();
+    let selectedAssignee = null;
+    
+    /**
+     * HTML escape function to prevent XSS
+     */
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    /**
+     * Open purchase modal for an item
+     */
+    function openPurchaseModal(itemId, itemType) {
+      selectedItemId = itemId;
+      selectedItemType = itemType;
+      selectedExpensePilots.clear();
+      selectedAssignee = null;
+      
+      // Get item details
+      let item;
+      if (itemType === 'resupply') {
+        item = currentStoreConfig.resupplyItems.find(i => i.id === itemId);
+      } else {
+        item = currentReserves.find(r => r.id === itemId);
+      }
+      
+      if (!item) return;
+      
+      // Store item price for validation
+      selectedItemPrice = item.price;
+      
+      // Populate item preview
+      const itemPreview = document.getElementById('item-preview');
+      const previewCard = document.createElement('div');
+      previewCard.className = 'reserve-card preview-card';
+      
+      const cardHeader = document.createElement('div');
+      cardHeader.className = 'reserve-card-header';
+      
+      const rankDiv = document.createElement('div');
+      rankDiv.className = 'reserve-rank';
+      rankDiv.textContent = `R${itemType === 'resupply' ? '0' : item.rank}`;
+      
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'reserve-name';
+      nameDiv.textContent = item.name;
+      
+      cardHeader.appendChild(rankDiv);
+      cardHeader.appendChild(nameDiv);
+      
+      const descDiv = document.createElement('div');
+      descDiv.className = 'reserve-description';
+      const description = getItemDescription(item, itemType);
+      const firstNewlineIndex = description.indexOf('\n');
+      if (firstNewlineIndex !== -1) {
+        const firstLine = description.substring(0, firstNewlineIndex);
+        const restOfDescription = description.substring(firstNewlineIndex + 1);
+        const firstLineSpan = document.createElement('span');
+        firstLineSpan.className = 'reserve-description-first-line';
+        firstLineSpan.textContent = firstLine;
+        descDiv.appendChild(firstLineSpan);
+        descDiv.appendChild(document.createTextNode(restOfDescription));
+      } else {
+        descDiv.textContent = description;
+      }
+      
+      const priceDiv = document.createElement('div');
+      priceDiv.className = 'reserve-price';
+      const priceNumber = Number(item.price);
+      const safePriceText = Number.isFinite(priceNumber) ? String(priceNumber) : '';
+      priceDiv.textContent = safePriceText ? safePriceText + ' ' : '';
+      const currencyIcon = document.createElement('img');
+      currencyIcon.src = '/css/images/manna_symbol.svg';
+      currencyIcon.alt = 'Currency Icon';
+      currencyIcon.className = 'currency-icon';
+      priceDiv.appendChild(currencyIcon);
+      
+      previewCard.appendChild(cardHeader);
+      previewCard.appendChild(descDiv);
+      previewCard.appendChild(priceDiv);
+      
+      itemPreview.innerHTML = '';
+      itemPreview.appendChild(previewCard);
+      
+      // Populate pilots list
+      renderExpensePilotsList();
+      
+      // Always show assign-to section for both reserve and resupply items
+      const assignToSection = document.getElementById('assign-to-section');
+      assignToSection.style.display = 'block';
+      
+      // Render assignee pills (will show error message initially since no pilots selected)
+      renderAssigneePills();
+      
+      // Update UI
+      updatePurchaseUI();
+      
+      // Show modal
+      document.getElementById('purchase-modal').classList.add('active');
+    }
+    
+    /**
+     * Get item description
+     */
+    function getItemDescription(item, itemType) {
+      if (itemType === 'resupply') {
+        if (item.id === 'limited-restock') {
+          return 'One additional charge for a single Limited Weapon or System. This may not result in the exceeding of that Weapon or System\'s Limited cap.';
+        } else if (item.id === 'repair') {
+          return 'One additional Repair Point. This may not result in the exceeding of your chassis\' maximum number of Repair Points.';
+        } else if (item.id === 'core-battery') {
+          return 'Recharge of a chassis\' Core Power. This may not result in holding more than one charge of Core Power.';
+        }
+      }
+      return item.description || 'NO_DESCRIPTION';
+    }
+    
+    /**
+     * Render expense pilots list
+     */
+    function renderExpensePilotsList() {
+      const expensePilotsList = document.getElementById('expense-pilots-list');
+      
+      // Sort pilots: active first
+      const sortedPilots = [...currentPilots].sort((a, b) => {
+        if (a.active === b.active) return 0;
+        return a.active ? -1 : 1;
+      });
+      
+      expensePilotsList.innerHTML = '';
+      
+      sortedPilots.forEach(pilot => {
+        const isSelected = selectedExpensePilots.has(pilot.id);
+        
+        const pilotRow = document.createElement('div');
+        pilotRow.className = `pilot-row ${isSelected ? 'selected' : ''} ${!pilot.active ? 'inactive' : ''}`;
+        pilotRow.dataset.pilotId = pilot.id;
+        
+        const pilotInfo = document.createElement('div');
+        pilotInfo.className = 'pilot-info';
+        
+        const pilotName = document.createElement('span');
+        pilotName.className = 'pilot-name';
+        pilotName.textContent = pilot.name;
+        
+        const pilotCallsign = document.createElement('span');
+        pilotCallsign.className = 'pilot-callsign';
+        pilotCallsign.textContent = `(${pilot.callsign})`;
+        
+        pilotInfo.appendChild(pilotName);
+        pilotInfo.appendChild(pilotCallsign);
+        
+        const pilotBalance = document.createElement('div');
+        pilotBalance.className = 'pilot-balance';
+        pilotBalance.textContent = `${pilot.balance} `;
+        const currencyIcon = document.createElement('img');
+        currencyIcon.src = '/css/images/manna_symbol.svg';
+        currencyIcon.alt = 'Currency Icon';
+        currencyIcon.className = 'currency-icon';
+        pilotBalance.appendChild(currencyIcon);
+        
+        pilotRow.appendChild(pilotInfo);
+        pilotRow.appendChild(pilotBalance);
+        
+        expensePilotsList.appendChild(pilotRow);
+      });
+    }
+    
+    /**
+     * Toggle expense pilot selection
+     */
+    function toggleExpensePilot(pilotId) {
+      if (selectedExpensePilots.has(pilotId)) {
+        selectedExpensePilots.delete(pilotId);
+        // If this was the assignee, clear assignee
+        if (selectedAssignee === pilotId) {
+          selectedAssignee = null;
+        }
+      } else {
+        selectedExpensePilots.add(pilotId);
+        // Auto-select as assignee if it's the first one and item is a reserve
+        if (selectedItemType === 'reserve' && selectedExpensePilots.size === 1) {
+          selectedAssignee = pilotId;
+        }
+      }
+      
+      renderExpensePilotsList();
+      renderAssigneePills();
+      updatePurchaseUI();
+    }
+    
+    /**
+     * Render assignee pills
+     */
+    function renderAssigneePills() {
+      const assigneePills = document.getElementById('assignee-pills');
+      
+      const expensePilotsSet = new Set(selectedExpensePilots);
+      
+      // Calculate total expense amount to check if it covers the price
+      const numPilots = expensePilotsSet.size;
+      const amountPerPilot = numPilots > 0 ? Math.ceil(selectedItemPrice / numPilots) : 0;
+      
+      // Check if expense selection is valid (has pilots AND covers price with sufficient funds)
+      let hasValidExpense = false;
+      if (numPilots > 0) {
+        // Check if all selected expense pilots have sufficient funds
+        let allHaveFunds = true;
+        selectedExpensePilots.forEach(pilotId => {
+          const pilot = currentPilots.find(p => p.id === pilotId);
+          if (pilot && pilot.balance < amountPerPilot) {
+            allHaveFunds = false;
+          }
+        });
+        hasValidExpense = allHaveFunds;
+      }
+      
+      // Show error if no valid expense selection
+      if (!hasValidExpense) {
+        assigneePills.innerHTML = '<p class="empty-message" style="color: #ff4444;">> ERROR: EXPENSE REQUIRES ASSIGNMENT TO PILOTS WITH SUFFICIENT FUNDS.</p>';
+        return;
+      }
+      
+      // Show all pilots, sorted with expense pilots first
+      const pilotsToShow = [...currentPilots].sort((a, b) => {
+        const aInExpense = expensePilotsSet.has(a.id);
+        const bInExpense = expensePilotsSet.has(b.id);
+        
+        // Expense pilots come first
+        if (aInExpense && !bInExpense) return -1;
+        if (!aInExpense && bInExpense) return 1;
+        
+        // Within each group, sort by name
+        return a.name.localeCompare(b.name);
+      });
+      
+      assigneePills.innerHTML = '';
+      
+      pilotsToShow.forEach(pilot => {
+        const isAssignee = selectedAssignee === pilot.id;
+        
+        const pill = document.createElement('div');
+        pill.className = `assignee-pill ${isAssignee ? 'selected' : ''} ${!pilot.active ? 'inactive' : ''}`;
+        pill.dataset.pilotId = pilot.id;
+        pill.textContent = `${pilot.name} (${pilot.callsign})`;
+        
+        // All pilots are selectable now
+        
+        assigneePills.appendChild(pill);
+      });
+    }
+    
+    /**
+     * Select assignee
+     */
+    function selectAssignee(pilotId) {
+      selectedAssignee = pilotId;
+      renderAssigneePills();
+      updatePurchaseUI();
+    }
+    
+    /**
+     * Update purchase UI (amounts, warnings, button state)
+     */
+    function updatePurchaseUI() {
+      // Get item
+      let item;
+      if (selectedItemType === 'resupply') {
+        item = currentStoreConfig.resupplyItems.find(i => i.id === selectedItemId);
+      } else {
+        item = currentReserves.find(r => r.id === selectedItemId);
+      }
+      
+      if (!item) return;
+      
+      // Calculate amount per pilot
+      const numPilots = selectedExpensePilots.size;
+      const amountPerPilot = numPilots > 0 ? Math.ceil(item.price / numPilots) : 0;
+      
+      // Update display
+      document.getElementById('amount-per-pilot').textContent = amountPerPilot;
+      
+      // Check for insufficient funds
+      let hasInsufficientFunds = false;
+      const warningMessage = document.getElementById('warning-message');
+      
+      if (numPilots > 0) {
+        const insufficientPilots = [];
+        selectedExpensePilots.forEach(pilotId => {
+          const pilot = currentPilots.find(p => p.id === pilotId);
+          if (pilot && pilot.balance < amountPerPilot) {
+            insufficientPilots.push(pilot.name);
+            hasInsufficientFunds = true;
+          }
+        });
+        
+        if (hasInsufficientFunds) {
+          warningMessage.textContent = `>> WARNING: INSUFFICIENT_FUNDS for ${insufficientPilots.join(', ')}`;
+          warningMessage.style.display = 'block';
+        } else {
+          warningMessage.style.display = 'none';
+        }
+      } else {
+        warningMessage.style.display = 'none';
+      }
+      
+      // Enable/disable purchase button
+      const purchaseButton = document.getElementById('purchase-button');
+      // Now require assignee for both reserve and resupply items
+      const isValid = numPilots > 0 && 
+                     !hasInsufficientFunds && 
+                     selectedAssignee !== null;
+      
+      purchaseButton.disabled = !isValid;
+    }
+    
+    /**
+     * Complete purchase
+     */
+    async function completePurchase() {
+      if (!selectedItemId || !selectedItemType) return;
+      
+      const expensePilots = Array.from(selectedExpensePilots);
+      
+      try {
+        const response = await fetch('/api/procurement/purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId: selectedItemId,
+            itemType: selectedItemType,
+            expensePilots: expensePilots,
+            assignee: selectedAssignee
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Close modal
+          closeModal('purchase-modal');
+        } else {
+          // Show error
+          const warningMessage = document.getElementById('warning-message');
+          warningMessage.textContent = `>> ERROR: ${result.message}`;
+          warningMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Purchase error:', error);
+        const warningMessage = document.getElementById('warning-message');
+        warningMessage.textContent = `>> ERROR: Purchase failed`;
+        warningMessage.style.display = 'block';
+      }
+    }
+    
+    /**
+     * Handle SSE updates
+     */
+    function handlePilotsUpdate(data) {
+      if (data && data.pilots) {
+        currentPilots = data.pilots;
+        
+        // If purchase modal is open, refresh pilots list
+        if (document.getElementById('purchase-modal').classList.contains('active')) {
+          renderExpensePilotsList();
+          updatePurchaseUI();
+        }
+      }
+    }
+    
+    function handleStoreConfigUpdate(data) {
+      if (data && data.storeConfig) {
+        currentStoreConfig = data.storeConfig;
+        
+        const purchaseModal = document.getElementById('purchase-modal');
+        // If the purchase modal is open, update the purchase UI in place to avoid interrupting the user.
+        if (purchaseModal && purchaseModal.classList.contains('active')) {
+          updatePurchaseUI();
+        } else {
+          // Otherwise, reload page to refresh the full stock display.
+          window.location.reload();
+        }
+      }
+    }
+    
+    function handleReservesUpdate(data) {
+      if (data && data.reserves) {
+        currentReserves = data.reserves;
+      }
+    }
+    
+    /**
+     * Initialize event delegation for card clicks
+     */
+    function initializeEventDelegation() {
+      const procurementContainer = document.getElementById('procurement-container');
+      
+      procurementContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.reserve-card');
+        if (!card) return;
+        
+        const reserveId = card.dataset.reserveId;
+        const resupplyId = card.dataset.resupplyId;
+        const itemType = card.dataset.itemType;
+        
+        if (itemType === 'reserve' && reserveId) {
+          openPurchaseModal(reserveId, 'reserve');
+        } else if (itemType === 'resupply' && resupplyId) {
+          openPurchaseModal(resupplyId, 'resupply');
+        }
+      });
+    }
+    
+    /**
+     * Initialize keyboard accessibility
+     */
+    function initializeKeyboardAccessibility() {
+      const purchaseModal = document.getElementById('purchase-modal');
+      
+      document.addEventListener('keydown', (e) => {
+        // Close modal on Escape key
+        if (e.key === 'Escape' && purchaseModal.classList.contains('active')) {
+          closeModal('purchase-modal');
+        }
+      });
+      
+      // Focus trap within modal when active
+      purchaseModal.addEventListener('keydown', (e) => {
+        if (!purchaseModal.classList.contains('active')) return;
+        
+        if (e.key === 'Tab') {
+          const focusableElements = purchaseModal.querySelectorAll(
+            'button:not([disabled]), .pilot-row, .assignee-pill'
+          );
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+          
+          if (e.shiftKey) {
+            // Shift + Tab
+            if (document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            // Tab
+            if (document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      });
+      
+      // Event delegation for modal buttons
+      document.getElementById('purchase-button').addEventListener('click', completePurchase);
+      document.getElementById('cancel-button').addEventListener('click', () => closeModal('purchase-modal'));
+      
+      // Event delegation for pilot rows
+      const expensePilotsList = document.getElementById('expense-pilots-list');
+      expensePilotsList.addEventListener('click', (e) => {
+        const pilotRow = e.target.closest('.pilot-row');
+        if (!pilotRow) return;
+        const pilotId = pilotRow.dataset.pilotId;
+        if (pilotId) toggleExpensePilot(pilotId);
+      });
+      
+      // Event delegation for assignee pills
+      const assigneePills = document.getElementById('assignee-pills');
+      assigneePills.addEventListener('click', (e) => {
+        const pill = e.target.closest('.assignee-pill');
+        if (!pill) return;
+        const pilotId = pill.dataset.pilotId;
+        if (pilotId) selectAssignee(pilotId);
+      });
+    }
+    
+    // Initialize event handlers
+    initializeEventDelegation();
+    initializeKeyboardAccessibility();
+    initializeModalHandlers();
+  </script>
+</body>
+</html>

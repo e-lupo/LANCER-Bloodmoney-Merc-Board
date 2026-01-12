@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lancer-job-board.local/schemas/minor-facility-slot.schema.json",
+  "title": "MinorFacilitySlot",
+  "description": "A slot for a minor facility in the mercenary company base",
+  "type": "object",
+  "required": ["slotNumber", "facilityName", "facilityDescription", "enabled"],
+  "properties": {
+    "slotNumber": {
+      "type": "number",
+      "description": "Slot number (1-6). Used type 'number' with 'multipleOf': 1 for integers (JSON Schema Draft 7 limitation).",
+      "minimum": 1,
+      "maximum": 6,
+      "multipleOf": 1
+    },
+    "facilityName": {
+      "type": "string",
+      "description": "Name of the minor facility (can be empty string if slot is empty)"
+    },
+    "facilityDescription": {
+      "type": "string",
+      "description": "Description of the minor facility (can be empty string)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the slot is enabled (last 2 slots disabled by default)"
+    }
+  },
+  "additionalProperties": false
+}

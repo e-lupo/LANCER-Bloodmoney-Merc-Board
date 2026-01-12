@@ -15,6 +15,7 @@ This directory contains JSON Schema definitions for all data structures used in 
    - Defines the structure for pilot records
    - Includes license level (LL), active status, and related jobs
    - References transactions via `personalTransactions` array
+   - References reserves via `reserves` array (objects with `reserveId` UUID and `deploymentStatus` enum)
 
 3. **faction.schema.json** - Faction schema
    - Defines the structure for faction records
@@ -29,16 +30,46 @@ This directory contains JSON Schema definitions for all data structures used in 
    - Container for the transactions array
    - References transaction.schema.json for array items
 
-6. **base-module.schema.json** - Base module schema
+6. **base-module.schema.json** - DEPRECATED - Legacy base module schema
    - Defines individual base module structure (Core/Major/Minor)
+   - Replaced by facility schemas
 
-7. **base.schema.json** - Base configuration container schema
+7. **base.schema.json** - DEPRECATED - Legacy base configuration container schema
    - Container for the 15 base modules (3 Core, 6 Major, 6 Minor)
    - References base-module.schema.json for array items
+   - Replaced by facility schemas
 
-8. **settings.schema.json** - Global settings schema
-   - Defines application-wide configuration
-   - Includes portal heading, date, color scheme, and operation progress
+8. **base-core-major-facility.schema.json** - Core/Major facility schema
+   - Defines the structure for Core and Major facilities
+   - Includes facility name, description, price, purchase status, and upgrades array
+   - Each upgrade has name, description, price, max purchases, and current purchase count
+
+9. **base-core-major-facilities.schema.json** - Core/Major facilities container schema
+   - Container for 9 facilities (3 Core + 6 Major)
+   - References base-core-major-facility.schema.json for array items
+
+10. **minor-facility-slot.schema.json** - Minor facility slot schema
+    - Defines the structure for a minor facility slot
+    - Includes slot number (1-6), facility name, description, and enabled status
+    - Slots can be enabled/disabled (last 2 disabled by default)
+
+11. **minor-facilities-slots.schema.json** - Minor facilities slots container schema
+    - Container for 6 minor facility slots
+    - References minor-facility-slot.schema.json for array items
+
+12. **settings.schema.json** - Global settings schema
+    - Defines application-wide configuration
+    - Includes portal heading, date, color scheme, and operation progress
+
+13. **reserve.schema.json** - Reserve item schema
+    - Defines the structure for reserve items (equipment/supplies)
+    - Includes rank (1-3), name, price, description, and isCustom flag
+    - Legacy items from reserves.json marked as isCustom: false
+
+14. **store-config.schema.json** - Store configuration schema
+    - Defines the store configuration including current stock and resupply settings
+    - currentStock: array of Reserve UUIDs available for purchase
+    - resupplySettings: controls automatic store refresh behavior
 
 ## Schema Validation
 
@@ -176,6 +207,8 @@ The schemas are interconnected in the following ways:
 - **Jobs → Factions**: Job's `factionId` references a Faction's `id`
 - **Pilots → Jobs**: Pilot's `relatedJobs` array contains Job `id` values
 - **Pilots → Transactions**: Pilot's `personalTransactions` array contains Transaction `id` values
+- **Pilots → Reserves**: Pilot's `reserves` array contains objects with `reserveId` (Reserve `id`) and `deploymentStatus` enum
+- **Store Config → Reserves**: Store Config's `currentStock` array contains Reserve `id` values
 
 Note: These UUID-based relationships are validated in code (see `helpers.js`) but not enforced by JSON Schema's `$ref` mechanism due to the cross-file nature of the references.
 

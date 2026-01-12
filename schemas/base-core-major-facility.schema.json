@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lancer-job-board.local/schemas/base-core-major-facility.schema.json",
+  "title": "BaseCoreMajorFacility",
+  "description": "A Core or Major facility in the mercenary company base",
+  "type": "object",
+  "required": ["type", "facilityName", "facilityDescription", "facilityPrice", "isPurchased", "upgrades"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Facility type (Core or Major)",
+      "enum": ["Core", "Major"]
+    },
+    "facilityName": {
+      "type": "string",
+      "description": "Name of the facility (required, non-empty string)"
+    },
+    "facilityDescription": {
+      "type": "string",
+      "description": "Description of the facility (can be empty string)"
+    },
+    "facilityPrice": {
+      "type": "number",
+      "description": "Price to purchase the facility (non-negative integer, 0 for Core facilities). Used type 'number' with 'multipleOf': 1 for integers (JSON Schema Draft 7 limitation).",
+      "minimum": 0,
+      "multipleOf": 1
+    },
+    "isPurchased": {
+      "type": "boolean",
+      "description": "Whether the facility has been purchased (Core facilities default to true)"
+    },
+    "upgrades": {
+      "type": "array",
+      "description": "Array of facility upgrade objects",
+      "items": {
+        "type": "object",
+        "required": ["upgradeName", "upgradeDescription", "upgradePrice", "maxPurchases", "upgradeCount"],
+        "properties": {
+          "upgradeName": {
+            "type": "string",
+            "description": "Name of the upgrade (required, non-empty string)"
+          },
+          "upgradeDescription": {
+            "type": "string",
+            "description": "Description of the upgrade (can be empty string)"
+          },
+          "upgradePrice": {
+            "type": "number",
+            "description": "Price to purchase one instance of the upgrade (non-negative integer). Used type 'number' with 'multipleOf': 1 for integers (JSON Schema Draft 7 limitation).",
+            "minimum": 0,
+            "multipleOf": 1
+          },
+          "maxPurchases": {
+            "type": "number",
+            "description": "Maximum number of times this upgrade can be purchased (positive integer, typically 1 or 2). Used type 'number' with 'multipleOf': 1 for integers (JSON Schema Draft 7 limitation).",
+            "minimum": 1,
+            "multipleOf": 1
+          },
+          "upgradeCount": {
+            "type": "number",
+            "description": "Current number of times this upgrade has been purchased (non-negative integer, max is maxPurchases). Used type 'number' with 'multipleOf': 1 for integers (JSON Schema Draft 7 limitation).",
+            "minimum": 0,
+            "multipleOf": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

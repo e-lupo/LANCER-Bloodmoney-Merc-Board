@@ -3,10 +3,65 @@
  */
 
 /**
+ * HTML escape function to prevent XSS attacks
+ * Used across all client views for consistent escaping
+ * @param {string} text - The text to escape
+ * @returns {string} HTML-escaped text
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Apply facility cost modifier to a base price
+ * 
+ * IMPORTANT: This function is duplicated in helpers.js (server-side).
+ * Any changes to the calculation logic MUST be synchronized in both locations:
+ * - Client-side: /public/js/shared-handlers.js (this file)
+ * - Server-side: /helpers.js
+ * 
+ * The duplication is necessary because:
+ * - Server needs this for actual purchase price calculations
+ * - Client needs this for display purposes only
+ * - No build system exists to share code between Node.js and browser environments
+ * 
+ * Modifier is a percentage (-100 to +300)
+ * Final result is rounded to the nearest 50
+ * 
+ * Examples:
+ *   - Base price 1000, modifier -30 => 700
+ *   - Base price 1000, modifier +40 => 1400
+ *   - Base price 1234, modifier 0 => 1250 (rounded)
+ * 
+ * @param {number} basePrice - The base price before modifier
+ * @param {number} modifier - Percentage modifier (-100 to +300)
+ * @returns {number} Modified price rounded to nearest 50
+ */
+function applyFacilityCostModifier(basePrice, modifier) {
+  const price = Number(basePrice);
+  if (Number.isNaN(price) || price < 0) {
+    return 0;
+  }
+  
+  const mod = Number(modifier);
+  if (Number.isNaN(mod)) {
+    return Math.round(price / 50) * 50;
+  }
+  
+  const clampedModifier = Math.max(-100, Math.min(300, mod));
+  const modifiedPrice = price * (1 + clampedModifier / 100);
+  return Math.round(modifiedPrice / 50) * 50;
+}
+
+/**
  * Handle settings update from SSE
  * Updates portal heading, user group, UNT date, galactic position, color scheme, operation progress, and openTable
+ * 
+ * Note: This is exposed as window.handleSettingsUpdate_Shared for pages that need custom handling
  */
-function handleSettingsUpdate(data) {
+function handleSettingsUpdate_Shared(data) {
   if (!data || !data.settings) {
     return;
   }
@@ -60,6 +115,27 @@ function handleSettingsUpdate(data) {
     }
   }
 }
+
+/**
+ * Unified settings update handler
+ * Always runs shared behavior, then an optional per-page hook.
+ *
+ * Pages that need custom behavior should assign:
+ *   window.handleSettingsUpdateHook = function (data) { ... };
+ */
+function handleSettingsUpdate(data) {
+  // Run shared behavior first
+  handleSettingsUpdate_Shared(data);
+
+  // Then run optional page-specific hook, if defined
+  if (typeof window.handleSettingsUpdateHook === 'function') {
+    window.handleSettingsUpdateHook(data);
+  }
+}
+
+// Expose as window properties for easier access and extension
+window.handleSettingsUpdate_Shared = handleSettingsUpdate_Shared;
+window.handleSettingsUpdate = handleSettingsUpdate;
 
 /**
  * Update operation progress bar visual state

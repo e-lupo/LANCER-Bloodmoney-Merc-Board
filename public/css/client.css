@@ -71,7 +71,7 @@
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--border-color);
-  background-color: var(--hover-bg);
+  background-color: transparent;
 }
 
 .transaction-main {
@@ -226,23 +226,28 @@
   transition: all 0.3s ease;
 }
 
-.module-card:not(.disabled):hover {
+/* Slightly darker background for purchased/assigned cards (Core, purchased Major, assigned Minor) */
+.module-card:not(.disabled):not(.unpurchased):not(.empty) {
+  background: rgba(30, 30, 30, 0.4);
+}
+
+.module-card:not(.disabled):not(.unpurchased):not(.empty):hover {
   background-color: var(--hover-bg);
   box-shadow: 0 0 20px var(--border-color);
 }
 
 .module-card.disabled {
-  opacity: 0.3;
   border-style: dashed;
   cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .module-type {
   font-size: 12px;
   font-weight: bold;
   color: var(--label-color);
-  margin-bottom: 10px;
   text-shadow: 0 0 5px var(--label-color);
+  margin-bottom: 10px;
 }
 
 .module-title {
@@ -465,7 +470,7 @@
   gap: 15px;
   padding: 15px;
   border: 2px solid var(--border-color);
-  background-color: var(--hover-bg);
+  background-color: transparent;
   align-items: center;
 }
 
@@ -534,9 +539,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0;
+  border: none;
+  background-color: transparent;
 }
 
 .pilot-progress-label {
@@ -896,18 +901,21 @@
 
 .balance-history-link {
   background: none;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: var(--text-color);
   font-family: 'Courier New', monospace;
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  padding: 0;
-  transition: text-shadow 0.3s ease;
+  padding: 4px 8px;
+  transition: all 0.3s ease;
 }
 
 .balance-history-link:hover {
-  text-shadow: 0 0 10px var(--text-color);
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border-color: var(--border-color);
+  box-shadow: 0 0 10px var(--border-color);
 }
 
 .pilot-status {
@@ -937,14 +945,16 @@
   padding-top: 15px;
 }
 
-/* Reserves textarea in modal */
-.reserves-form {
+/* Notes textarea in modal (formerly reserves) */
+.reserves-form,
+.notes-form {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.reserves-form textarea {
+.reserves-form textarea,
+.notes-form textarea {
   width: 100%;
   min-height: 150px;
   padding: 12px;
@@ -956,12 +966,14 @@
   resize: vertical;
 }
 
-.reserves-form textarea:focus {
+.reserves-form textarea:focus,
+.notes-form textarea:focus {
   outline: none;
   box-shadow: 0 0 10px var(--border-color);
 }
 
-.reserves-form button {
+.reserves-form button,
+.notes-form button {
   padding: 12px 20px;
   background-color: var(--button-bg);
   color: var(--button-text);
@@ -973,7 +985,8 @@
   transition: all 0.3s ease;
 }
 
-.reserves-form button:hover {
+.reserves-form button:hover,
+.notes-form button:hover {
   box-shadow: 0 0 20px var(--border-color);
 }
 
@@ -997,7 +1010,7 @@
   flex-direction: column;
   padding: 15px;
   border: 2px solid var(--border-color);
-  background-color: var(--hover-bg);
+  background-color: transparent;
 }
 
 .transaction-item-horizontal {
@@ -1007,7 +1020,7 @@
   align-items: center;
   padding: 12px 15px;
   border: 2px solid var(--border-color);
-  background-color: var(--hover-bg);
+  background-color: transparent;
 }
 
 .transaction-header {
@@ -1102,4 +1115,871 @@
   .job-list-status {
     align-self: flex-start;
   }
+}
+
+/* Procurement Page Styles */
+.procurement-container {
+  max-width: 1400px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.resupply-section,
+.reserves-section {
+  margin-bottom: 40px;
+}
+
+.resupply-section h2,
+.reserves-section h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px var(--text-color);
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.resupply-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.reserves-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.reserve-card {
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  background-color: var(--card-bg);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.reserve-card:hover {
+  background-color: var(--hover-bg);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+.reserve-card.resupply-card {
+  border-color: var(--glow-color);
+}
+
+.reserve-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.reserve-rank {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border: 2px solid var(--border-color);
+  background-color: var(--hover-bg);
+  flex-shrink: 0;
+}
+
+.reserve-name {
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 5px var(--text-color);
+  flex-grow: 1;
+}
+
+.reserve-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--label-color);
+  min-height: 60px;
+  white-space: pre-line;
+}
+
+.reserve-description-first-line {
+  color: var(--text-color);
+  text-shadow: 0 0 3px var(--text-color);
+}
+
+.reserve-price {
+  font-size: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reserve-price .currency-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.empty-message {
+  font-size: 16px;
+  color: var(--label-color);
+  text-align: center;
+  padding: 40px;
+  border: 2px dashed var(--border-color);
+}
+
+/* Purchase Modal Styles */
+.purchase-modal-content {
+  max-width: 1000px;
+  width: 90%;
+}
+
+.purchase-modal-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 30px;
+}
+
+.purchase-modal-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.purchase-modal-right {
+  border-left: 2px solid var(--border-color);
+  padding-left: 30px;
+}
+
+.purchase-section {
+  margin-bottom: 20px;
+}
+
+.purchase-section h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px var(--text-color);
+}
+
+.pilots-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+}
+
+.pilot-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pilot-row:last-child {
+  border-bottom: none;
+}
+
+.pilot-row:hover {
+  background-color: var(--hover-bg);
+}
+
+.pilot-row.selected {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border-left: 4px solid var(--glow-color);
+}
+
+.pilot-row.selected .pilot-callsign {
+  color: var(--button-text);
+  opacity: 0.7;
+}
+
+.pilot-row.selected .currency-icon {
+  filter: invert(0%);
+}
+
+.pilot-row.inactive {
+  opacity: 0.5;
+}
+
+.pilot-info {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.pilot-name {
+  font-weight: bold;
+}
+
+.pilot-callsign {
+  font-size: 14px;
+  color: var(--label-color);
+}
+
+.pilot-balance {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+}
+
+.pilot-balance .currency-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.purchase-section .transaction-amount {
+  font-size: 32px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  text-shadow: 0 0 10px var(--text-color);
+}
+
+.purchase-section .transaction-amount .currency-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.warning-message {
+  color: #ff4444;
+  padding: 10px;
+  border: 2px solid #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.assignee-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  min-height: 60px;
+}
+
+.assignee-pill {
+  padding: 8px 15px;
+  border: 2px solid var(--border-color);
+  background-color: var(--hover-bg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.assignee-pill:hover {
+  background-color: var(--card-bg);
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+.assignee-pill.selected {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border-color: var(--glow-color);
+  box-shadow: 0 0 15px var(--glow-color);
+}
+
+.item-preview {
+  position: sticky;
+  top: 20px;
+}
+
+.preview-card {
+  cursor: default;
+  pointer-events: none;
+}
+
+.preview-card:hover {
+  transform: none;
+}
+
+/* Modal Action Buttons */
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.modal-button {
+  flex: 1;
+  padding: 15px 20px;
+  border: 2px solid var(--border-color);
+  background-color: var(--hover-bg);
+  color: var(--text-color);
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.modal-button:hover:not(:disabled) {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  box-shadow: 0 0 20px var(--border-color);
+}
+
+.modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.modal-button.purchase-button {
+  border-color: var(--glow-color);
+}
+
+.modal-button.cancel-button {
+  border-color: var(--border-color);
+}
+
+/* Responsive Procurement */
+@media (max-width: 1200px) {
+  .resupply-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .purchase-modal-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .purchase-modal-right {
+    border-left: none;
+    border-top: 2px solid var(--border-color);
+    padding-left: 0;
+    padding-top: 30px;
+  }
+  
+  .item-preview {
+    position: static;
+  }
+  
+  .resupply-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .reserves-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .reserves-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Global action buttons at the top */
+.global-actions-bar {
+  max-width: 1400px;
+  margin: 20px auto 0;
+  padding: 0 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.global-action-btn {
+  padding: 10px 15px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.global-action-btn:hover:not(:disabled) {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  box-shadow: 0 0 20px var(--border-color);
+}
+
+.global-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.global-action-btn.trash-btn {
+  border-color: var(--error-color);
+}
+
+.global-action-btn.trash-btn:hover:not(:disabled) {
+  background-color: var(--error-color);
+  color: var(--bg-color);
+  box-shadow: 0 0 20px var(--error-color);
+}
+
+/* Reserves Page Styles */
+.reserves-container {
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.reserves-empty {
+  text-align: center;
+  margin-top: 100px;
+  font-size: 24px;
+  text-shadow: 0 0 10px var(--text-color);
+}
+
+.pilot-reserves-group {
+  border: 1px solid var(--border-color);
+  padding: 5px;
+  background-color: var(--card-bg);
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-start;
+  padding-top: 25px;
+}
+
+.pilot-reserves-group.inactive {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.pilot-label {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--label-color);
+}
+
+/* Reserve card specific to reserves page */
+.reserve-card.selectable {
+  position: relative;
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  padding: 20px;
+  background-color: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.reserve-card.selectable:hover {
+  background-color: var(--hover-bg);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+/* Only color invert the rank when card is selected */
+.reserve-card.selectable.selected .reserve-rank {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+}
+
+.reserve-rank {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border: 2px solid var(--border-color);
+  background-color: var(--hover-bg);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.reserve-rank.selected {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+}
+
+.reserve-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reserve-status {
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 170px;
+  text-align: left;
+}
+
+/* Deployment status colors - only applied to the status value, not the label */
+.status-value.status-expended {
+  color: var(--error-color);
+}
+
+.status-value.status-deployed {
+  text-shadow: 0 0 8px var(--text-color), 0 0 15px var(--text-color), 0 0 20px var(--text-color);
+}
+
+/* status-in-reserve keeps default styling */
+
+.cycle-btn {
+  padding: 5px 10px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cycle-btn:hover {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  box-shadow: 0 0 15px var(--border-color);
+}
+
+/* Transfer modal styles */
+.transfer-instruction {
+  font-size: 16px;
+  margin-bottom: 15px;
+  text-shadow: 0 0 5px var(--text-color);
+}
+
+.modal-button.transfer-button {
+  border-color: var(--glow-color);
+}
+
+/* Trash modal styles */
+.trash-warning {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: var(--error-color);
+  text-shadow: 0 0 5px var(--error-color);
+  font-weight: bold;
+}
+
+.trash-reserve-info {
+  font-size: 14px;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 2px solid var(--border-color);
+  background-color: var(--hover-bg);
+}
+
+.modal-button.trash-confirm-button {
+  border-color: var(--error-color);
+}
+
+.modal-button.trash-confirm-button:hover {
+  box-shadow: 0 0 20px var(--error-color);
+}
+
+/* Responsive reserves page */
+@media (max-width: 900px) {
+  .global-actions-bar {
+    flex-direction: column;
+  }
+  
+  .global-action-btn {
+    width: 100%;
+  }
+  
+  .pilot-reserves-group {
+    width: 100%;
+  }
+  
+  .reserve-card.selectable {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .reserves-container {
+    gap: 15px;
+  }
+  
+  .pilot-reserves-group {
+    gap: 10px;
+  }
+}
+
+/* Facility Purchase Styles */
+.facility-card.unpurchased {
+  opacity: 0.7;
+  border: 2px solid #666666;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.facility-card:not(.disabled):not(.empty) {
+  opacity: 0.85;
+}
+
+.facility-card.empty {
+  border: 2px solid #666666;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.facility-price {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.facility-price .price-label {
+  font-weight: bold;
+}
+
+.facility-price button {
+  margin-left: auto;
+}
+
+.facility-upgrades {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--text-color);
+}
+
+.upgrades-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.upgrade-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--text-color);
+}
+
+.upgrade-item.maxed {
+  /* Keep white border and text for maxed items */
+  border: 1px solid var(--text-color);
+  opacity: 1;
+}
+
+.upgrade-item.no-purchases {
+  /* Dashed border for upgrades with 0 purchases with increased spacing */
+  border: none;
+  background-image: 
+    linear-gradient(to right, var(--text-color) 50%, transparent 50%),
+    linear-gradient(to right, var(--text-color) 50%, transparent 50%),
+    linear-gradient(to bottom, var(--text-color) 50%, transparent 50%),
+    linear-gradient(to bottom, var(--text-color) 50%, transparent 50%);
+  background-position: top, bottom, left, right;
+  background-size: 12px 1px, 12px 1px, 1px 12px, 1px 12px;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+}
+
+.upgrade-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-color); /* Ensure white text */
+  opacity: 1; /* Full opacity for readability */
+}
+
+.upgrade-description {
+  font-size: 11px;
+  color: var(--text-color); /* Ensure white text */
+  opacity: 0.8; /* Slightly dimmed for hierarchy */
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.upgrade-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.upgrade-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-color); /* Ensure white text */
+}
+
+.upgrade-price button {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.upgrade-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.upgrade-actions button,
+.upgrade-actions .maxed-label {
+  font-size: 11px;
+}
+
+.maxed-label,
+.locked-label {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.facility-actions {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--text-color);
+  display: flex;
+  gap: 8px;
+}
+
+.facility-actions button {
+  flex: 1;
+}
+
+.purchase-facility-btn,
+.purchase-upgrade-btn,
+.assign-minor-facility-btn,
+.demolish-facility-btn {
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 2px solid var(--text-color);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.enable-slot-btn {
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 2px solid var(--text-color);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.purchase-facility-btn:hover,
+.purchase-upgrade-btn:hover,
+.enable-slot-btn:hover,
+.assign-minor-facility-btn:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
+}
+
+.demolish-facility-btn {
+  background: var(--bg-color);
+  color: var(--text-color); /* Changed from red to white */
+  border-color: var(--text-color); /* Changed from red to white */
+  border-width: 2px;
+}
+
+.demolish-facility-btn:hover {
+  background: #ff4444;
+  color: #ffffff; /* Ensure text stays white on red background */
+}
+
+/* Minor Facility Options List */
+.minor-facilities-list {
+  max-height: 500px;
+  overflow-y: auto;
+  margin: 20px 0;
+}
+
+.minor-facility-option {
+  padding: 15px;
+  margin-bottom: 10px;
+  border: 1px solid var(--text-color);
+  background: rgba(0, 0, 0, 1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.minor-facility-option:hover {
+  background: rgba(128, 128, 128, 0.3);
+  border-color: var(--text-color);
+}
+
+.minor-facility-option .option-name {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.minor-facility-option .option-description {
+  font-size: 12px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.minor-facility-option .option-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* Upgrade Preview Card */
+.upgrade-preview-card {
+  padding: 20px;
+  border: 2px solid var(--text-color);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.upgrade-preview-card .upgrade-facility-name {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 5px;
+}
+
+.upgrade-preview-card .upgrade-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.upgrade-preview-card .upgrade-description {
+  font-size: 13px;
+  margin-bottom: 15px;
+  opacity: 0.9;
+}
+
+.upgrade-preview-card .upgrade-count {
+  font-size: 12px;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+
+.upgrade-preview-card .facility-price {
+  border-top: 1px solid var(--text-color);
+  padding-top: 10px;
+  margin-top: 10px;
 }

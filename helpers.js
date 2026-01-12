@@ -299,6 +299,206 @@ function validateTransactionIds(transactionIds, manna) {
 }
 
 /**
+ * Validate deployment status value
+ * @param {string} status - Deployment status to validate
+ * @returns {Object} { valid: boolean, value?: string, message?: string }
+ */
+function validateDeploymentStatus(status) {
+  const validStatuses = ['In Reserve', 'Deployed', 'Expended'];
+  
+  if (!status || typeof status !== 'string') {
+    return { valid: false, message: 'Deployment status is required and must be a string' };
+  }
+  
+  if (!validStatuses.includes(status)) {
+    return { 
+      valid: false, 
+      message: `Invalid deployment status: "${status}". Must be one of: ${validStatuses.join(', ')}` 
+    };
+  }
+  
+  return { valid: true, value: status };
+}
+
+/**
+ * Validate a single reserve object (with reserveId and deploymentStatus)
+ * @param {Object} reserveObj - Reserve object to validate
+ * @param {Array} reserves - Array of reserve objects from reserves.json
+ * @returns {Object} { valid: boolean, value?: Object, message?: string }
+ */
+function validateReserveObject(reserveObj, reserves) {
+  // Check if object has required structure
+  if (!reserveObj || typeof reserveObj !== 'object') {
+    return { valid: false, message: 'Reserve entry must be an object' };
+  }
+  
+  // Check for required reserveId field
+  if (!reserveObj.reserveId || typeof reserveObj.reserveId !== 'string') {
+    return { valid: false, message: 'Reserve object must have a reserveId (UUID string)' };
+  }
+  
+  // Validate reserveId exists in reserves data
+  if (reserves && Array.isArray(reserves)) {
+    const existingReserveIds = new Set(reserves.map(r => r.id));
+    if (!existingReserveIds.has(reserveObj.reserveId)) {
+      return {
+        valid: false,
+        message: `Invalid reserve UUID: ${reserveObj.reserveId}. Reserve does not exist.`
+      };
+    }
+  }
+  
+  // Validate deploymentStatus
+  const statusValidation = validateDeploymentStatus(reserveObj.deploymentStatus);
+  if (!statusValidation.valid) {
+    return statusValidation;
+  }
+  
+  return {
+    valid: true,
+    value: {
+      reserveId: reserveObj.reserveId,
+      deploymentStatus: statusValidation.value
+    }
+  };
+}
+
+/**
+ * Validate array of pilot reserve objects (handles both legacy UUID arrays and new object arrays)
+ * @param {Array} pilotReserves - Array of reserve UUIDs (legacy) or reserve objects (new)
+ * @param {Array} reserves - Array of reserve objects from reserves.json
+ * @returns {Object} { valid: boolean, value?: Array, message?: string }
+ */
+function validatePilotReserves(pilotReserves, reserves) {
+  // Empty array is valid
+  if (!pilotReserves || pilotReserves.length === 0) {
+    return { valid: true, value: [] };
+  }
+  
+  // Must be an array
+  if (!Array.isArray(pilotReserves)) {
+    return { valid: false, message: 'Pilot reserves must be an array' };
+  }
+  
+  // Check if reserves data exists
+  if (!reserves || !Array.isArray(reserves)) {
+    // Allow if reserves data not available yet (during initialization)
+    return { valid: true, value: pilotReserves };
+  }
+  
+  // Detect if this is legacy format (array of UUIDs) or new format (array of objects)
+  const firstItem = pilotReserves[0];
+  const isLegacyFormat = typeof firstItem === 'string';
+  
+  if (isLegacyFormat) {
+    // Legacy format: array of UUIDs - validate and convert to new format
+    const validation = validateReserveIds(pilotReserves, reserves);
+    if (!validation.valid) {
+      return validation;
+    }
+    
+    // Convert to new format with default "In Reserve" status
+    const convertedReserves = pilotReserves.map(reserveId => ({
+      reserveId: reserveId,
+      deploymentStatus: 'In Reserve'
+    }));
+    
+    return { valid: true, value: convertedReserves };
+  } else {
+    // New format: array of objects - validate each object
+    const validatedReserves = [];
+    
+    for (let i = 0; i < pilotReserves.length; i++) {
+      const validation = validateReserveObject(pilotReserves[i], reserves);
+      if (!validation.valid) {
+        return { 
+          valid: false, 
+          message: `Reserve at index ${i}: ${validation.message}` 
+        };
+      }
+      validatedReserves.push(validation.value);
+    }
+    
+    return { valid: true, value: validatedReserves };
+  }
+}
+
+/**
+ * Validate reserve UUIDs exist in reserves data
+ * @param {Array} reserveIds - Array of reserve UUIDs to validate
+ * @param {Array} reserves - Array of reserve objects
+ * @returns {Object} { valid: boolean, message?: string }
+ */
+function validateReserveIds(reserveIds, reserves) {
+  // Empty array is valid
+  if (!reserveIds || reserveIds.length === 0) {
+    return { valid: true };
+  }
+  
+  // Check if reserves data exists
+  if (!reserves || !Array.isArray(reserves)) {
+    return { valid: true }; // Allow if reserves data not available yet
+  }
+  
+  // Get all reserve IDs from reserves data
+  const existingReserveIds = new Set(reserves.map(r => r.id));
+  
+  // Find any invalid reserve IDs
+  const invalidIds = reserveIds.filter(id => !existingReserveIds.has(id));
+  
+  if (invalidIds.length > 0) {
+    return {
+      valid: false,
+      message: `Invalid reserve UUID(s): ${invalidIds.join(', ')}. Reserve(s) do not exist.`
+    };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Validate reserve data
+ * @param {Object} reserveData - Reserve data object to validate
+ * @returns {Object} { valid: boolean, rank?, name?, price?, description?, isCustom?, message? }
+ */
+function validateReserveData(reserveData) {
+  // Validate rank (1-3)
+  const rankValidation = validateInteger(reserveData.rank, 'Rank', 1, 3);
+  if (!rankValidation.valid) {
+    return rankValidation;
+  }
+  
+  // Validate name (required, non-empty)
+  const nameValidation = validateRequiredString(reserveData.name, 'Name');
+  if (!nameValidation.valid) {
+    return nameValidation;
+  }
+  
+  // Validate price (non-negative integer)
+  const priceValidation = validateInteger(reserveData.price, 'Price', 0);
+  if (!priceValidation.valid) {
+    return priceValidation;
+  }
+  
+  // Validate description (allow empty string)
+  const description = (typeof reserveData.description === 'string') 
+    ? reserveData.description 
+    : '';
+  
+  // Validate isCustom (boolean)
+  const isCustom = Boolean(reserveData.isCustom);
+  
+  return {
+    valid: true,
+    rank: rankValidation.value,
+    name: nameValidation.value,
+    price: priceValidation.value,
+    description: description,
+    isCustom: isCustom
+  };
+}
+
+/**
  * Calculate faction job counts from job data
  * @param {string} factionId - Faction ID
  * @param {Array} jobs - Array of all jobs
@@ -480,6 +680,228 @@ function calculateCumulativeBalances(enrichedTransactions) {
   });
 }
 
+/**
+ * Enrich pilots with full reserve objects
+ * @param {Array} pilots - Array of pilot objects
+ * @param {Array} reserves - Array of reserve objects from reserves.json
+ * @returns {Array} Pilots with reserveObjects array containing full reserve data
+ */
+function enrichPilotsWithReserves(pilots, reserves) {
+  return pilots.map(pilot => {
+    const reserveObjects = (pilot.reserves || []).map(reserveObj => {
+      const reserve = reserves.find(r => r.id === reserveObj.reserveId);
+      return {
+        ...reserveObj,
+        reserve: reserve || { rank: 0, name: 'UNKNOWN', description: 'Reserve not found' }
+      };
+    });
+    
+    return {
+      ...pilot,
+      reserveObjects
+    };
+  });
+}
+
+/**
+ * Validate facility upgrade data
+ * @param {Object} upgradeData - Upgrade data object to validate
+ * @returns {Object} { valid: boolean, upgradeName?, upgradeDescription?, upgradePrice?, maxPurchases?, upgradeCount?, message? }
+ */
+function validateFacilityUpgrade(upgradeData) {
+  // Validate upgrade name (required, non-empty)
+  const nameValidation = validateRequiredString(upgradeData.upgradeName, 'Upgrade Name');
+  if (!nameValidation.valid) {
+    return nameValidation;
+  }
+  
+  // Validate upgrade description (allow empty string)
+  const upgradeDescription = (typeof upgradeData.upgradeDescription === 'string') 
+    ? upgradeData.upgradeDescription 
+    : '';
+  
+  // Validate upgrade price (non-negative integer)
+  const priceValidation = validateInteger(upgradeData.upgradePrice, 'Upgrade Price', 0);
+  if (!priceValidation.valid) {
+    return priceValidation;
+  }
+  
+  // Validate max purchases (positive integer)
+  const maxPurchasesValidation = validateInteger(upgradeData.maxPurchases, 'Max Purchases', 1);
+  if (!maxPurchasesValidation.valid) {
+    return maxPurchasesValidation;
+  }
+  
+  // Validate upgrade count (non-negative integer, cannot exceed maxPurchases)
+  const upgradeCountValidation = validateInteger(upgradeData.upgradeCount, 'Upgrade Count', 0);
+  if (!upgradeCountValidation.valid) {
+    return upgradeCountValidation;
+  }
+  
+  if (upgradeCountValidation.value > maxPurchasesValidation.value) {
+    return {
+      valid: false,
+      message: `Upgrade count (${upgradeCountValidation.value}) cannot exceed max purchases (${maxPurchasesValidation.value})`
+    };
+  }
+  
+  return {
+    valid: true,
+    upgradeName: nameValidation.value,
+    upgradeDescription: upgradeDescription,
+    upgradePrice: priceValidation.value,
+    maxPurchases: maxPurchasesValidation.value,
+    upgradeCount: upgradeCountValidation.value
+  };
+}
+
+/**
+ * Validate Core/Major facility data
+ * @param {Object} facilityData - Facility data object to validate
+ * @returns {Object} { valid: boolean, type?, facilityName?, facilityDescription?, facilityPrice?, isPurchased?, upgrades?, message? }
+ */
+function validateCoreMajorFacility(facilityData) {
+  // Validate type (Core or Major)
+  if (!facilityData.type || !['Core', 'Major'].includes(facilityData.type)) {
+    return { valid: false, message: 'Facility type must be "Core" or "Major"' };
+  }
+  
+  // Validate facility name (required, non-empty)
+  const nameValidation = validateRequiredString(facilityData.facilityName, 'Facility Name');
+  if (!nameValidation.valid) {
+    return nameValidation;
+  }
+  
+  // Validate facility description (allow empty string)
+  const facilityDescription = (typeof facilityData.facilityDescription === 'string') 
+    ? facilityData.facilityDescription 
+    : '';
+  
+  // Validate facility price (non-negative integer)
+  const priceValidation = validateInteger(facilityData.facilityPrice, 'Facility Price', 0);
+  if (!priceValidation.valid) {
+    return priceValidation;
+  }
+  
+  // Validate isPurchased (boolean)
+  const isPurchased = Boolean(facilityData.isPurchased);
+  
+  // Validate upgrades array
+  if (!Array.isArray(facilityData.upgrades)) {
+    return { valid: false, message: 'Upgrades must be an array' };
+  }
+  
+  const validatedUpgrades = [];
+  for (let i = 0; i < facilityData.upgrades.length; i++) {
+    const upgradeValidation = validateFacilityUpgrade(facilityData.upgrades[i]);
+    if (!upgradeValidation.valid) {
+      return {
+        valid: false,
+        message: `Upgrade at index ${i}: ${upgradeValidation.message}`
+      };
+    }
+    validatedUpgrades.push({
+      upgradeName: upgradeValidation.upgradeName,
+      upgradeDescription: upgradeValidation.upgradeDescription,
+      upgradePrice: upgradeValidation.upgradePrice,
+      maxPurchases: upgradeValidation.maxPurchases,
+      upgradeCount: upgradeValidation.upgradeCount
+    });
+  }
+  
+  return {
+    valid: true,
+    type: facilityData.type,
+    facilityName: nameValidation.value,
+    facilityDescription: facilityDescription,
+    facilityPrice: priceValidation.value,
+    isPurchased: isPurchased,
+    upgrades: validatedUpgrades
+  };
+}
+
+/**
+ * Validate minor facility slot data
+ * @param {Object} slotData - Slot data object to validate
+ * @returns {Object} { valid: boolean, slotNumber?, facilityName?, facilityDescription?, enabled?, message? }
+ */
+function validateMinorFacilitySlot(slotData) {
+  // Validate slot number (1-6)
+  const slotValidation = validateInteger(slotData.slotNumber, 'Slot Number', 1, 6);
+  if (!slotValidation.valid) {
+    return slotValidation;
+  }
+  
+  // Validate facility name (can be empty string)
+  const facilityName = (typeof slotData.facilityName === 'string') 
+    ? slotData.facilityName 
+    : '';
+  
+  // Validate facility description (can be empty string)
+  const facilityDescription = (typeof slotData.facilityDescription === 'string') 
+    ? slotData.facilityDescription 
+    : '';
+  
+  // Validate enabled (boolean)
+  const enabled = Boolean(slotData.enabled);
+  
+  return {
+    valid: true,
+    slotNumber: slotValidation.value,
+    facilityName: facilityName,
+    facilityDescription: facilityDescription,
+    enabled: enabled
+  };
+}
+
+/**
+ * Apply facility cost modifier to a base price
+ * 
+ * IMPORTANT: This function is duplicated in shared-handlers.js (client-side).
+ * Any changes to the calculation logic MUST be synchronized in both locations:
+ * - Server-side: /helpers.js (this file)
+ * - Client-side: /public/js/shared-handlers.js
+ * 
+ * The duplication is necessary because:
+ * - Server needs this for actual purchase price calculations
+ * - Client needs this for display purposes only
+ * - No build system exists to share code between Node.js and browser environments
+ * 
+ * Modifier is a percentage (-100 to +300)
+ * Final result is rounded to the nearest 50
+ * 
+ * Examples:
+ *   - Base price 1000, modifier -30 => 700
+ *   - Base price 1000, modifier +40 => 1400
+ *   - Base price 1234, modifier 0 => 1250 (rounded)
+ * 
+ * @param {number} basePrice - The base price before modifier
+ * @param {number} modifier - Percentage modifier (-100 to +300)
+ * @returns {number} Modified price rounded to nearest 50
+ */
+function applyFacilityCostModifier(basePrice, modifier) {
+  // Ensure basePrice is a number
+  const price = Number(basePrice);
+  if (Number.isNaN(price) || price < 0) {
+    return 0;
+  }
+  
+  // Ensure modifier is within valid range
+  const mod = Number(modifier);
+  if (Number.isNaN(mod)) {
+    return Math.round(price / 50) * 50;
+  }
+  
+  // Clamp modifier to valid range
+  const clampedModifier = Math.max(-100, Math.min(300, mod));
+  
+  // Apply percentage modifier
+  const modifiedPrice = price * (1 + clampedModifier / 100);
+  
+  // Round to nearest 50
+  return Math.round(modifiedPrice / 50) * 50;
+}
+
 module.exports = {
   // Constants
   STANDING_LABELS,
@@ -504,12 +926,22 @@ module.exports = {
   validateJobState,
   validateFactionId,
   validateTransactionIds,
+  validateReserveIds,
+  validateDeploymentStatus,
+  validateReserveObject,
+  validatePilotReserves,
+  validateReserveData,
   calculateFactionJobCounts,
   enrichFactionWithJobCounts,
   calculatePilotBalance,
   getActivePilotBalances,
   getDeduplicatedTransactionHistory,
   calculateCumulativeBalances,
+  enrichPilotsWithReserves,
+  validateFacilityUpgrade,
+  validateCoreMajorFacility,
+  validateMinorFacilitySlot,
+  applyFacilityCostModifier,
   successResponse,
   errorResponse
 };

@@ -40,14 +40,6 @@ function initSSE() {
     }
   });
   
-  // Handle base updates
-  eventSource.addEventListener('base', (e) => {
-    const data = JSON.parse(e.data);
-    if (typeof handleBaseUpdate === 'function') {
-      handleBaseUpdate(data);
-    }
-  });
-  
   // Handle faction updates
   eventSource.addEventListener('factions', (e) => {
     const data = JSON.parse(e.data);
@@ -69,6 +61,38 @@ function initSSE() {
     const data = JSON.parse(e.data);
     if (typeof handlePilotsUpdate === 'function') {
       handlePilotsUpdate(data);
+    }
+  });
+  
+  // Handle store-config updates
+  eventSource.addEventListener('store-config', (e) => {
+    const data = JSON.parse(e.data);
+    if (typeof handleStoreConfigUpdate === 'function') {
+      handleStoreConfigUpdate(data);
+    }
+  });
+  
+  // Handle reserves updates
+  eventSource.addEventListener('reserves', (e) => {
+    const data = JSON.parse(e.data);
+    if (typeof handleReservesUpdate === 'function') {
+      handleReservesUpdate(data);
+    }
+  });
+  
+  // Handle facilities-core-major updates
+  eventSource.addEventListener('facilities-core-major', (e) => {
+    const data = JSON.parse(e.data);
+    if (typeof handleFacilitiesCoreMajorUpdate === 'function') {
+      handleFacilitiesCoreMajorUpdate(data);
+    }
+  });
+  
+  // Handle facilities-minor-slots updates
+  eventSource.addEventListener('facilities-minor-slots', (e) => {
+    const data = JSON.parse(e.data);
+    if (typeof handleFacilitiesMinorSlotsUpdate === 'function') {
+      handleFacilitiesMinorSlotsUpdate(data);
     }
   });
   

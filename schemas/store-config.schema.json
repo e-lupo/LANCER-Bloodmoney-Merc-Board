@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lancer-job-board.local/schemas/store-config.schema.json",
+  "title": "Store Configuration",
+  "description": "Configuration for the reserve store including resupply settings and current stock",
+  "type": "object",
+  "required": ["currentStock", "resupplySettings", "resupplyItems"],
+  "properties": {
+    "currentStock": {
+      "type": "array",
+      "description": "Array of Reserve UUIDs currently available for purchase in the store",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "resupplyItems": {
+      "type": "array",
+      "description": "Static resupply items with fixed pricing and enabled status",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "price", "enabled"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the resupply item"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resupply item"
+          },
+          "price": {
+            "type": "number",
+            "description": "Price of the resupply item in Manna",
+            "minimum": 0,
+            "multipleOf": 1
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the resupply item is currently available"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "resupplySettings": {
+      "type": "object",
+      "description": "Settings for automatic store resupply",
+      "required": ["enabled", "rankDistribution"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether automatic resupply is enabled"
+        },
+        "rankDistribution": {
+          "type": "object",
+          "description": "Distribution of reserve ranks in resupply (how many of each rank)",
+          "required": ["rank1Count", "rank2Count", "rank3Count"],
+          "properties": {
+            "rank1Count": {
+              "type": "number",
+              "description": "Number of Rank 1 reserves to include in resupply",
+              "minimum": 0,
+              "multipleOf": 1
+            },
+            "rank2Count": {
+              "type": "number",
+              "description": "Number of Rank 2 reserves to include in resupply",
+              "minimum": 0,
+              "multipleOf": 1
+            },
+            "rank3Count": {
+              "type": "number",
+              "description": "Number of Rank 3 reserves to include in resupply",
+              "minimum": 0,
+              "multipleOf": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "notes": [
+    "currentStock contains UUIDs of reserves that pilots can currently purchase",
+    "resupplySettings controls how the store refreshes its inventory",
+    "Resupply can be triggered manually by admin or automatically based on settings"
+  ]
+}

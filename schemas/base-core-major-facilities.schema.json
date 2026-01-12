@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lancer-job-board.local/schemas/base-core-major-facilities.schema.json",
+  "title": "BaseCoreMajorFacilities",
+  "description": "Container for Core and Major facilities (3 Core + 6 Major = 9 total)",
+  "type": "array",
+  "items": {
+    "$ref": "https://lancer-job-board.local/schemas/base-core-major-facility.schema.json"
+  },
+  "minItems": 9,
+  "maxItems": 9
+}

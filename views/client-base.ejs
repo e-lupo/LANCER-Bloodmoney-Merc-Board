@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LANCER Job Board - Base</title>
   <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
   <link rel="stylesheet" href="/css/client.css">
 </head>
 <body class="<%= colorScheme %>">
@@ -12,7 +13,7 @@
     <div class="terminal-header-left">
       <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - BASE MANAGEMENT_</h1>
       <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
-      <p>> MODULE_STATUS: OPERATIONAL_</p>
+      <p>> FACILITY_STATUS: OPERATIONAL_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
@@ -32,62 +33,193 @@
   </div>
   
   <div class="base-container">
+    <!-- Core Facilities Section -->
     <div class="modules-section">
-      <h2>> CORE_MODULES:</h2>
-      <div class="modules-grid core" id="core-modules">
-        <% for (let i = 0; i < 3; i++) { %>
-          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
-            <div class="module-type">CORE</div>
-            <% if (base.modules[i].title) { %>
-              <div class="module-title"><%= base.modules[i].title %></div>
-              <% if (base.modules[i].description) { %>
-                <div class="module-description"><%= base.modules[i].description %></div>
-              <% } %>
-            <% } else { %>
-              <div class="module-empty">[EMPTY_SLOT]</div>
-            <% } %>
-          </div>
-        <% } %>
+      <h2>> CORE_FACILITIES:</h2>
+      <div class="modules-grid core" id="core-facilities">
+        <!-- Rendered by JavaScript -->
       </div>
     </div>
     
+    <!-- Major Facilities Section -->
     <div class="modules-section">
-      <h2>> MAJOR_MODULES:</h2>
-      <div class="modules-grid major" id="major-modules">
-        <% for (let i = 3; i < 9; i++) { %>
-          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
-            <div class="module-type">MAJOR</div>
-            <% if (base.modules[i].title) { %>
-              <div class="module-title"><%= base.modules[i].title %></div>
-              <% if (base.modules[i].description) { %>
-                <div class="module-description"><%= base.modules[i].description %></div>
-              <% } %>
-            <% } else { %>
-              <div class="module-empty">[EMPTY_SLOT]</div>
-            <% } %>
-          </div>
-        <% } %>
+      <h2>> MAJOR_FACILITIES:</h2>
+      <div class="modules-grid major" id="major-facilities">
+        <!-- Rendered by JavaScript -->
       </div>
     </div>
     
+    <!-- Minor Facilities Section -->
     <div class="modules-section">
-      <h2>> MINOR_MODULES:</h2>
-      <div class="modules-grid minor" id="minor-modules">
-        <% for (let i = 9; i < 15; i++) { %>
-          <div class="module-card <%= base.modules[i].disabled ? 'disabled' : '' %>">
-            <div class="module-type">MINOR</div>
-            <% if (base.modules[i].disabled) { %>
-              <div class="module-empty">[DISABLED]</div>
-            <% } else if (base.modules[i].title) { %>
-              <div class="module-title"><%= base.modules[i].title %></div>
-              <% if (base.modules[i].description) { %>
-                <div class="module-description"><%= base.modules[i].description %></div>
-              <% } %>
-            <% } else { %>
-              <div class="module-empty">[EMPTY_SLOT]</div>
-            <% } %>
+      <h2>> MINOR_FACILITIES:</h2>
+      <div class="modules-grid minor" id="minor-facilities">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Purchase Facility Modal -->
+  <div class="modal-overlay" id="purchase-facility-modal">
+    <div class="modal-content purchase-modal-content">
+      <div class="purchase-modal-layout">
+        <div class="purchase-modal-left">
+          <h3>> PURCHASE_FACILITY_</h3>
+          
+          <!-- Expense To Section -->
+          <div class="purchase-section">
+            <h4>> EXPENSE_TO:</h4>
+            <div class="pilots-list" id="facility-expense-pilots-list">
+              <!-- Populated by JavaScript -->
+            </div>
           </div>
-        <% } %>
+          
+          <!-- Transaction Per Pilot -->
+          <div class="purchase-section">
+            <h4>> TRANSACTION_PER_PILOT:</h4>
+            <div class="transaction-amount" id="facility-transaction-amount">
+              <span id="facility-amount-per-pilot">0</span>
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            </div>
+            <div class="warning-message" id="facility-warning-message" style="display: none;"></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="modal-actions">
+            <button class="modal-button purchase-button" id="facility-purchase-button" disabled>
+              [PURCHASE]
+            </button>
+            <button class="modal-button cancel-button" id="facility-cancel-button">
+              [CANCEL]
+            </button>
+          </div>
+        </div>
+        
+        <div class="purchase-modal-right">
+          <div class="item-preview" id="facility-preview">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Purchase Upgrade Modal -->
+  <div class="modal-overlay" id="purchase-upgrade-modal">
+    <div class="modal-content purchase-modal-content">
+      <div class="purchase-modal-layout">
+        <div class="purchase-modal-left">
+          <h3>> PURCHASE_UPGRADE_</h3>
+          
+          <!-- Expense To Section -->
+          <div class="purchase-section">
+            <h4>> EXPENSE_TO:</h4>
+            <div class="pilots-list" id="upgrade-expense-pilots-list">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Transaction Per Pilot -->
+          <div class="purchase-section">
+            <h4>> TRANSACTION_PER_PILOT:</h4>
+            <div class="transaction-amount" id="upgrade-transaction-amount">
+              <span id="upgrade-amount-per-pilot">0</span>
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            </div>
+            <div class="warning-message" id="upgrade-warning-message" style="display: none;"></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="modal-actions">
+            <button class="modal-button purchase-button" id="upgrade-purchase-button" disabled>
+              [PURCHASE]
+            </button>
+            <button class="modal-button cancel-button" id="upgrade-cancel-button">
+              [CANCEL]
+            </button>
+          </div>
+        </div>
+        
+        <div class="purchase-modal-right">
+          <div class="item-preview" id="upgrade-preview">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Assign Minor Facility Modal -->
+  <div class="modal-overlay" id="assign-minor-facility-modal">
+    <div class="modal-content purchase-modal-content">
+      <h3>> SELECT_MINOR_FACILITY_</h3>
+      <div class="minor-facilities-list" id="minor-facilities-options">
+        <!-- Populated by JavaScript -->
+      </div>
+      <div class="modal-actions">
+        <button class="modal-button cancel-button" id="assign-cancel-button">
+          [CANCEL]
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Purchase Minor Facility Modal (after selection) -->
+  <div class="modal-overlay" id="purchase-minor-facility-modal">
+    <div class="modal-content purchase-modal-content">
+      <div class="purchase-modal-layout">
+        <div class="purchase-modal-left">
+          <h3>> PURCHASE_MINOR_FACILITY_</h3>
+          
+          <!-- Expense To Section -->
+          <div class="purchase-section">
+            <h4>> EXPENSE_TO:</h4>
+            <div class="pilots-list" id="minor-expense-pilots-list">
+              <!-- Populated by JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Transaction Per Pilot -->
+          <div class="purchase-section">
+            <h4>> TRANSACTION_PER_PILOT:</h4>
+            <div class="transaction-amount" id="minor-transaction-amount">
+              <span id="minor-amount-per-pilot">0</span>
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            </div>
+            <div class="warning-message" id="minor-warning-message" style="display: none;"></div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="modal-actions">
+            <button class="modal-button purchase-button" id="minor-purchase-button" disabled>
+              [PURCHASE]
+            </button>
+            <button class="modal-button cancel-button" id="minor-cancel-button">
+              [CANCEL]
+            </button>
+          </div>
+        </div>
+        
+        <div class="purchase-modal-right">
+          <div class="item-preview" id="minor-preview">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Demolish Confirmation Modal -->
+  <div class="modal-overlay" id="demolish-modal">
+    <div class="modal-content">
+      <h3>> CONFIRM_DEMOLISH_</h3>
+      <p id="demolish-message">Are you sure you want to demolish this facility?</p>
+      <div class="modal-actions">
+        <button class="modal-button delete-button" id="demolish-confirm-button">
+          [CONFIRM]
+        </button>
+        <button class="modal-button cancel-button" id="demolish-cancel-button">
+          [CANCEL]
+        </button>
       </div>
     </div>
   </div>
@@ -95,70 +227,775 @@
   <script src="/js/shared-handlers.js"></script>
   <script src="/js/sse-client.js"></script>
   <script>
-    // Handle base update from SSE
-    function handleBaseUpdate(data) {
-      if (data && data.base && data.base.modules) {
-        renderBaseModules(data.base.modules);
+    // Store current state
+    let currentCoreMajorFacilities = <%- JSON.stringify(coreMajorFacilities) %>;
+    let currentMinorFacilitiesSlots = <%- JSON.stringify(minorFacilitiesSlots) %>;
+    let currentPilots = <%- JSON.stringify(pilots) %>;
+    let currentMinorOptions = <%- JSON.stringify(minorOptions) %>;
+    let currentSettings = <%- JSON.stringify(settings) %>;
+    
+    // Purchase modal state
+    let selectedFacilityIndex = null;
+    let selectedUpgradeIndex = null;
+    let selectedSlotNumber = null;
+    let selectedMinorFacility = null;
+    let selectedExpensePilots = new Set();
+    
+    /**
+     * NOTE: escapeHtml is defined in /public/js/shared-handlers.js
+     * All client views should use the shared implementation to ensure consistent escaping.
+     */
+    // escapeHtml is loaded from shared-handlers.js
+    
+    /**
+     * Apply facility cost modifier to a base price
+     * NOTE: This function is defined in /public/js/shared-handlers.js
+     * See that file for implementation details and synchronization notes with server-side helpers.js
+     */
+    // applyFacilityCostModifier is loaded from shared-handlers.js
+    
+    /**
+     * Get the current facility cost modifier from settings
+     */
+    function getFacilityCostModifier() {
+      return currentSettings.facilityCostModifier || 0;
+    }
+    
+    /**
+     * Handle facilities-core-major SSE update
+     */
+    function handleFacilitiesCoreMajorUpdate(data) {
+      if (data && data.facilities) {
+        currentCoreMajorFacilities = data.facilities;
+        renderCoreMajorFacilities();
       }
     }
     
-    // Render base modules
-    function renderBaseModules(modules) {
-      // Ensure we have a safe, fixed-length (15) modules array
-      const safeModules = Array.isArray(modules) ? modules.slice(0, 15) : [];
-      const DEFAULT_MODULE = { title: '', description: '', disabled: false };
-      for (let i = safeModules.length; i < 15; i++) {
-        safeModules.push({ ...DEFAULT_MODULE });
+    /**
+     * Handle facilities-minor-slots SSE update
+     */
+    function handleFacilitiesMinorSlotsUpdate(data) {
+      if (data && data.minorFacilities && data.minorFacilities.slots) {
+        currentMinorFacilitiesSlots = data.minorFacilities;
+        renderMinorFacilities();
       }
-      
-      // Render core modules (0-2)
-      const coreGrid = document.getElementById('core-modules');
-      coreGrid.innerHTML = safeModules.slice(0, 3).map(module => renderModule(module, 'CORE')).join('');
-      
-      // Render major modules (3-8)
-      const majorGrid = document.getElementById('major-modules');
-      majorGrid.innerHTML = safeModules.slice(3, 9).map(module => renderModule(module, 'MAJOR')).join('');
-      
-      // Render minor modules (9-14)
-      const minorGrid = document.getElementById('minor-modules');
-      minorGrid.innerHTML = safeModules.slice(9, 15).map(module => renderModule(module, 'MINOR')).join('');
     }
     
-    // Render individual module
-    function renderModule(module, type) {
-      // Guard against undefined or null modules
-      if (!module) {
-        module = { title: '', description: '', disabled: false };
+    /**
+     * Handle pilots SSE update
+     */
+    function handlePilotsUpdate(data) {
+      if (data && data.pilots) {
+        currentPilots = data.pilots;
+        
+        // Re-render pilot lists in all active purchase modals
+        const activeModals = ['facility', 'upgrade', 'minor'];
+        activeModals.forEach(modalType => {
+          const modalId = modalType === 'facility' ? 'purchase-facility-modal' :
+                          modalType === 'upgrade' ? 'purchase-upgrade-modal' : 'purchase-minor-facility-modal';
+          const modal = document.getElementById(modalId);
+          
+          if (modal && modal.classList.contains('active')) {
+            renderExpensePilotsList(modalType);
+            updatePurchaseUI(modalType);
+          }
+        });
       }
+    }
+    
+    /**
+     * Handle settings SSE update (for facility cost modifier changes)
+     * This is called by handleSettingsUpdate in shared-handlers.js, but we need
+     * to refresh prices when the modifier changes
+     */
+    function handleFacilityCostModifierChange(newSettings) {
+      if (newSettings && newSettings.facilityCostModifier !== undefined) {
+        // Update current settings
+        currentSettings = newSettings;
+        
+        // ALWAYS re-render when settings update, as the modifier might have changed
+        // even if our current in-memory value is the same (e.g. if page was already showing the updated price)
+        renderCoreMajorFacilities();
+        renderMinorFacilities();
+        
+        // Update any open purchase modals
+        const activeModals = ['facility', 'upgrade', 'minor'];
+        activeModals.forEach(modalType => {
+          const modalId = modalType === 'facility' ? 'purchase-facility-modal' :
+                          modalType === 'upgrade' ? 'purchase-upgrade-modal' : 'purchase-minor-facility-modal';
+          const modal = document.getElementById(modalId);
+          
+          if (modal && modal.classList.contains('active')) {
+            updatePurchaseUI(modalType);
+          }
+        });
+      }
+    }
+    
+    /**
+     * Set up custom settings update hook for facility cost modifier changes
+     * This hook is called after the shared settings handler runs
+     */
+    window.handleSettingsUpdateHook = function(data) {
+      // Handle facility cost modifier changes specific to base page
+      if (data && data.settings) {
+        handleFacilityCostModifierChange(data.settings);
+      }
+    };
+    
+    /**
+     * Render Core/Major facilities
+     */
+    function renderCoreMajorFacilities() {
+      // Render core facilities (0-2)
+      const coreGrid = document.getElementById('core-facilities');
+      coreGrid.innerHTML = currentCoreMajorFacilities.slice(0, 3).map((facility, i) => 
+        renderCoreMajorFacility(facility, i, 'CORE')
+      ).join('');
       
-      const disabledClass = module.disabled ? 'disabled' : '';
+      // Render major facilities (3-8)
+      const majorGrid = document.getElementById('major-facilities');
+      majorGrid.innerHTML = currentCoreMajorFacilities.slice(3, 9).map((facility, i) => 
+        renderCoreMajorFacility(facility, i + 3, 'MAJOR')
+      ).join('');
       
-      if (module.disabled) {
-        return `
-          <div class="module-card ${disabledClass}">
-            <div class="module-type">${type}</div>
-            <div class="module-empty">[DISABLED]</div>
+      // Re-attach event listeners
+      attachFacilityEventListeners();
+    }
+    
+    /**
+     * Render individual Core/Major facility
+     */
+    function renderCoreMajorFacility(facility, index, type) {
+      const unpurchasedClass = !facility.isPurchased ? 'unpurchased' : '';
+      const inactiveLabel = (type === 'MAJOR' && !facility.isPurchased) ? ' - INACTIVE' : '';
+      const modifier = getFacilityCostModifier();
+      let upgradesHtml = '';
+      
+      if (facility.upgrades && facility.upgrades.length > 0 && facility.isPurchased) {
+        upgradesHtml = `
+          <div class="facility-upgrades">
+            <div class="upgrades-label">> UPGRADES:</div>
+            ${facility.upgrades.map((upgrade, upgradeIdx) => {
+              const isMaxed = upgrade.upgradeCount >= upgrade.maxPurchases;
+              const canPurchase = facility.isPurchased && !isMaxed;
+              const countLabel = (upgrade.maxPurchases > 1 && upgrade.upgradeCount > 0) ? ` (${upgrade.upgradeCount}/${upgrade.maxPurchases})` : '';
+              const modifiedPrice = applyFacilityCostModifier(upgrade.upgradePrice, modifier);
+              const noPurchases = upgrade.upgradeCount === 0;
+              return `
+                <div class="upgrade-item ${isMaxed ? 'maxed' : ''} ${noPurchases ? 'no-purchases' : ''}">
+                  <div class="upgrade-name">${escapeHtml(upgrade.upgradeName)}${countLabel}</div>
+                  <div class="upgrade-description">${escapeHtml(upgrade.upgradeDescription)}</div>
+                  <div class="upgrade-footer">
+                    ${!isMaxed ? `<div class="upgrade-price">
+                      ${modifiedPrice}
+                      <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+                    </div>` : ''}
+                    <div class="upgrade-actions">
+                      ${canPurchase ? 
+                        `<button class="purchase-upgrade-btn" data-facility-index="${index}" data-upgrade-index="${upgradeIdx}">[PURCHASE]</button>` :
+                        isMaxed ? '<span class="maxed-label">[FULLY_UPGRADED]</span>' : ''
+                      }
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         `;
-      } else if (module.title) {
-        const descriptionHtml = module.description ? 
-          `<div class="module-description">${module.description}</div>` : '';
+      }
+      
+      let priceHtml = '';
+      if (!facility.isPurchased && facility.facilityPrice > 0) {
+        const modifiedPrice = applyFacilityCostModifier(facility.facilityPrice, modifier);
+        priceHtml = `
+          <div class="facility-price">
+            <span class="price-label">PRICE: </span>
+            ${modifiedPrice}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+            <button class="purchase-facility-btn" data-facility-index="${index}">[PURCHASE]</button>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="module-card facility-card ${unpurchasedClass}">
+          <div class="module-type">${type}${inactiveLabel}</div>
+          <div class="module-title">${escapeHtml(facility.facilityName)}</div>
+          <div class="module-description">${escapeHtml(facility.facilityDescription)}</div>
+          ${priceHtml}
+          ${upgradesHtml}
+        </div>
+      `;
+    }
+    
+    /**
+     * Render Minor facilities
+     */
+    function renderMinorFacilities() {
+      const minorGrid = document.getElementById('minor-facilities');
+      minorGrid.innerHTML = currentMinorFacilitiesSlots.slots.map((slot, idx) => 
+        renderMinorFacility(slot)
+      ).join('');
+      
+      // Re-attach event listeners
+      attachFacilityEventListeners();
+    }
+    
+    /**
+     * Render individual Minor facility slot
+     */
+    function renderMinorFacility(slot) {
+      const disabledClass = !slot.enabled ? 'disabled' : (slot.facilityName ? '' : 'empty');
+      const modifier = getFacilityCostModifier();
+      
+      if (!slot.enabled) {
+        const modifiedPrice = applyFacilityCostModifier(5000, modifier);
         return `
-          <div class="module-card ${disabledClass}">
-            <div class="module-type">${type}</div>
-            <div class="module-title">${module.title}</div>
-            ${descriptionHtml}
+          <div class="module-card facility-card ${disabledClass}">
+            <div class="module-type">MINOR ${slot.slotNumber}</div>
+            <div class="module-empty">[SLOT_DISABLED]</div>
+            <div class="facility-price">
+              <span class="price-label">UNLOCK: </span>
+              ${modifiedPrice}
+              <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+              <button class="enable-slot-btn" data-slot-number="${slot.slotNumber}">[UNLOCK]</button>
+            </div>
+          </div>
+        `;
+      } else if (slot.facilityName) {
+        return `
+          <div class="module-card facility-card ${disabledClass}">
+            <div class="module-type">MINOR ${slot.slotNumber}</div>
+            <div class="module-title">${escapeHtml(slot.facilityName)}</div>
+            <div class="module-description">${escapeHtml(slot.facilityDescription)}</div>
+            <div class="facility-actions">
+              <button class="demolish-facility-btn" data-slot-number="${slot.slotNumber}">[DEMOLISH]</button>
+            </div>
           </div>
         `;
       } else {
         return `
-          <div class="module-card ${disabledClass}">
-            <div class="module-type">${type}</div>
+          <div class="module-card facility-card ${disabledClass}">
+            <div class="module-type">MINOR ${slot.slotNumber}</div>
             <div class="module-empty">[EMPTY_SLOT]</div>
+            <div class="facility-actions">
+              <button class="assign-minor-facility-btn" data-slot-number="${slot.slotNumber}">[CONSTRUCT_FACILITY]</button>
+            </div>
           </div>
         `;
       }
     }
+    
+    /**
+     * Attach event listeners to facility buttons
+     */
+    function attachFacilityEventListeners() {
+      // Purchase facility buttons
+      document.querySelectorAll('.purchase-facility-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const facilityIndex = parseInt(e.target.dataset.facilityIndex);
+          openPurchaseFacilityModal(facilityIndex);
+        });
+      });
+      
+      // Purchase upgrade buttons
+      document.querySelectorAll('.purchase-upgrade-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const facilityIndex = parseInt(e.target.dataset.facilityIndex);
+          const upgradeIndex = parseInt(e.target.dataset.upgradeIndex);
+          openPurchaseUpgradeModal(facilityIndex, upgradeIndex);
+        });
+      });
+      
+      // Enable slot buttons
+      document.querySelectorAll('.enable-slot-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const slotNumber = parseInt(e.target.dataset.slotNumber);
+          openEnableSlotModal(slotNumber);
+        });
+      });
+      
+      // Assign minor facility buttons
+      document.querySelectorAll('.assign-minor-facility-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const slotNumber = parseInt(e.target.dataset.slotNumber);
+          openAssignMinorFacilityModal(slotNumber);
+        });
+      });
+      
+      // Demolish facility buttons
+      document.querySelectorAll('.demolish-facility-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const slotNumber = parseInt(e.target.dataset.slotNumber);
+          openDemolishModal(slotNumber);
+        });
+      });
+    }
+    
+    /**
+     * Open generic purchase modal with preview and pilot selection
+     */
+    function openPurchaseModal(modalType, previewHtml) {
+      // Note: resetPurchaseState() is called by each caller BEFORE setting their specific indices
+      // to avoid clearing the indices that were just set
+      
+      const previewId = modalType === 'facility' ? 'facility-preview' :
+                        modalType === 'upgrade' ? 'upgrade-preview' : 'minor-preview';
+      const modalId = modalType === 'facility' ? 'purchase-facility-modal' :
+                      modalType === 'upgrade' ? 'purchase-upgrade-modal' : 'purchase-minor-facility-modal';
+      
+      document.getElementById(previewId).innerHTML = previewHtml;
+      renderExpensePilotsList(modalType);
+      document.getElementById(modalId).classList.add('active');
+    }
+    
+    /**
+     * Open purchase facility modal
+     */
+    function openPurchaseFacilityModal(facilityIndex) {
+      resetPurchaseState();
+      selectedFacilityIndex = facilityIndex;
+      const facility = currentCoreMajorFacilities[facilityIndex];
+      if (!facility || facility.isPurchased) return;
+      
+      const modifier = getFacilityCostModifier();
+      const modifiedPrice = applyFacilityCostModifier(facility.facilityPrice, modifier);
+      
+      const previewHtml = `
+        <div class="module-card facility-card">
+          <div class="module-type">${facility.type.toUpperCase()}</div>
+          <div class="module-title">${escapeHtml(facility.facilityName)}</div>
+          <div class="module-description">${escapeHtml(facility.facilityDescription)}</div>
+          <div class="facility-price">
+            <span class="price-label">PRICE: </span>
+            ${modifiedPrice}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </div>
+        </div>
+      `;
+      
+      openPurchaseModal('facility', previewHtml);
+    }
+    
+    /**
+     * Open purchase upgrade modal
+     */
+    function openPurchaseUpgradeModal(facilityIndex, upgradeIndex) {
+      resetPurchaseState();
+      selectedFacilityIndex = facilityIndex;
+      selectedUpgradeIndex = upgradeIndex;
+      
+      const facility = currentCoreMajorFacilities[facilityIndex];
+      const upgrade = facility.upgrades[upgradeIndex];
+      if (!facility || !facility.isPurchased || !upgrade) return;
+      
+      const modifier = getFacilityCostModifier();
+      const modifiedPrice = applyFacilityCostModifier(upgrade.upgradePrice, modifier);
+      
+      const countLabel = (upgrade.maxPurchases > 1 && upgrade.upgradeCount > 0) ? 
+        `<div class="upgrade-count">CURRENT: ${upgrade.upgradeCount}/${upgrade.maxPurchases}</div>` : '';
+      
+      const previewHtml = `
+        <div class="upgrade-preview-card">
+          <div class="upgrade-facility-name">${escapeHtml(facility.facilityName)}</div>
+          <div class="upgrade-name">${escapeHtml(upgrade.upgradeName)}</div>
+          <div class="upgrade-description">${escapeHtml(upgrade.upgradeDescription)}</div>
+          ${countLabel}
+          <div class="facility-price">
+            <span class="price-label">PRICE: </span>
+            ${modifiedPrice}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </div>
+        </div>
+      `;
+      
+      openPurchaseModal('upgrade', previewHtml);
+    }
+    
+    /**
+     * Open enable slot modal (purchase unlock)
+     */
+    function openEnableSlotModal(slotNumber) {
+      resetPurchaseState();
+      selectedSlotNumber = slotNumber;
+      
+      const modifier = getFacilityCostModifier();
+      const modifiedPrice = applyFacilityCostModifier(5000, modifier);
+      
+      const previewHtml = `
+        <div class="module-card facility-card">
+          <div class="module-type">MINOR SLOT ${slotNumber}</div>
+          <div class="module-title">Expanded Renovations</div>
+          <div class="module-description">Unlock an additional minor facility slot for your base.</div>
+          <div class="facility-price">
+            <span class="price-label">PRICE: </span>
+            ${modifiedPrice}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </div>
+        </div>
+      `;
+      
+      openPurchaseModal('facility', previewHtml);
+    }
+    
+    /**
+     * Open assign minor facility modal (selection)
+     */
+    function openAssignMinorFacilityModal(slotNumber) {
+      resetPurchaseState();
+      selectedSlotNumber = slotNumber;
+      
+      // Get already assigned facility names
+      const assignedFacilities = currentMinorFacilitiesSlots.slots
+        .filter(slot => slot.facilityName)
+        .map(slot => slot.facilityName);
+      
+      // Filter available options
+      const availableOptions = currentMinorOptions.filter(option => 
+        !assignedFacilities.includes(option.minorFacilityName)
+      );
+      
+      // Populate options list
+      const optionsList = document.getElementById('minor-facilities-options');
+      const modifier = getFacilityCostModifier();
+      
+      if (availableOptions.length === 0) {
+        optionsList.innerHTML = '<p class="empty-message">> NO_AVAILABLE_FACILITIES_</p>';
+      } else {
+        optionsList.innerHTML = availableOptions.map(option => {
+          const modifiedPrice = applyFacilityCostModifier(option.minorFacilityPrice, modifier);
+          return `
+            <div class="minor-facility-option" data-facility-name="${escapeHtml(option.minorFacilityName)}">
+              <div class="option-name">${escapeHtml(option.minorFacilityName)}</div>
+              <div class="option-description">${escapeHtml(option.minorFacilityDescription)}</div>
+              <div class="option-price">
+                ${modifiedPrice}
+                <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        // Attach click handlers to the entire option div
+        optionsList.querySelectorAll('.minor-facility-option').forEach(optionDiv => {
+          optionDiv.addEventListener('click', (e) => {
+            const facilityName = optionDiv.dataset.facilityName;
+            const option = availableOptions.find(o => o.minorFacilityName === facilityName);
+            if (option) {
+              selectedMinorFacility = option;
+              // Keep selection modal open in background, open purchase modal on top
+              openPurchaseMinorFacilityModal();
+            }
+          });
+        });
+      }
+      
+      // Show modal
+      document.getElementById('assign-minor-facility-modal').classList.add('active');
+    }
+    
+    /**
+     * Open purchase minor facility modal (after selection)
+     */
+    function openPurchaseMinorFacilityModal() {
+      if (!selectedMinorFacility) return;
+      
+      // Note: resetPurchaseState() is NOT called here because we need to preserve
+      // both selectedSlotNumber (from openAssignMinorFacilityModal) and selectedMinorFacility
+      // which were set just before this function is called
+      
+      const modifier = getFacilityCostModifier();
+      const modifiedPrice = applyFacilityCostModifier(selectedMinorFacility.minorFacilityPrice, modifier);
+      
+      const previewHtml = `
+        <div class="module-card facility-card">
+          <div class="module-type">MINOR</div>
+          <div class="module-title">${escapeHtml(selectedMinorFacility.minorFacilityName)}</div>
+          <div class="module-description">${escapeHtml(selectedMinorFacility.minorFacilityDescription)}</div>
+          <div class="facility-price">
+            <span class="price-label">PRICE: </span>
+            ${modifiedPrice}
+            <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
+          </div>
+        </div>
+      `;
+      
+      openPurchaseModal('minor', previewHtml);
+    }
+    
+    /**
+     * Open demolish confirmation modal
+     */
+    function openDemolishModal(slotNumber) {
+      selectedSlotNumber = slotNumber;
+      
+      const slot = currentMinorFacilitiesSlots.slots.find(s => s.slotNumber === slotNumber);
+      if (!slot || !slot.facilityName) return;
+      
+      const message = document.getElementById('demolish-message');
+      message.textContent = `Are you sure you want to demolish "${slot.facilityName}"? This action is free but cannot be undone.`;
+      
+      // Show modal
+      document.getElementById('demolish-modal').classList.add('active');
+    }
+    
+    /**
+     * Create pilot row element (helper function)
+     */
+    function createPilotRow(pilot, isSelected, onClickCallback) {
+      const pilotRow = document.createElement('div');
+      pilotRow.className = `pilot-row ${isSelected ? 'selected' : ''} ${!pilot.active ? 'inactive' : ''}`;
+      pilotRow.dataset.pilotId = pilot.id;
+      
+      const pilotInfo = document.createElement('div');
+      pilotInfo.className = 'pilot-info';
+      
+      const pilotName = document.createElement('span');
+      pilotName.className = 'pilot-name';
+      pilotName.textContent = `LL${pilot.ll} ${pilot.name}`;
+      
+      const pilotCallsign = document.createElement('span');
+      pilotCallsign.className = 'pilot-callsign';
+      pilotCallsign.textContent = `(${pilot.callsign})`;
+      
+      pilotInfo.appendChild(pilotName);
+      pilotInfo.appendChild(pilotCallsign);
+      
+      const pilotBalance = document.createElement('div');
+      pilotBalance.className = 'pilot-balance';
+      const balance = pilot.balance !== undefined ? pilot.balance : 0;
+      pilotBalance.textContent = `${balance} `;
+      const currencyIcon = document.createElement('img');
+      currencyIcon.src = '/css/images/manna_symbol.svg';
+      currencyIcon.alt = 'Currency Icon';
+      currencyIcon.className = 'currency-icon';
+      pilotBalance.appendChild(currencyIcon);
+      
+      pilotRow.appendChild(pilotInfo);
+      pilotRow.appendChild(pilotBalance);
+      pilotRow.addEventListener('click', onClickCallback);
+      
+      return pilotRow;
+    }
+    
+    /**
+     * Render expense pilots list for a specific modal
+     */
+    function renderExpensePilotsList(modalType) {
+      const listId = `${modalType}-expense-pilots-list`;
+      const expensePilotsList = document.getElementById(listId);
+      
+      // Sort pilots: active first
+      const sortedPilots = [...currentPilots].sort((a, b) => a.active === b.active ? 0 : (a.active ? -1 : 1));
+      
+      expensePilotsList.innerHTML = '';
+      
+      sortedPilots.forEach(pilot => {
+        const isSelected = selectedExpensePilots.has(pilot.id);
+        const pilotRow = createPilotRow(pilot, isSelected, () => {
+          if (selectedExpensePilots.has(pilot.id)) {
+            selectedExpensePilots.delete(pilot.id);
+          } else {
+            selectedExpensePilots.add(pilot.id);
+          }
+          renderExpensePilotsList(modalType);
+        });
+        expensePilotsList.appendChild(pilotRow);
+      });
+      
+      // Update UI
+      updatePurchaseUI(modalType);
+    }
+    
+    /**
+     * Get current purchase price based on modal type (with modifier applied)
+     */
+    function getCurrentPurchasePrice(modalType) {
+      const modifier = getFacilityCostModifier();
+      let basePrice = 0;
+      
+      if (modalType === 'facility') {
+        if (selectedSlotNumber !== null) {
+          basePrice = 5000; // Slot unlock price
+        } else if (selectedFacilityIndex !== null) {
+          const facility = currentCoreMajorFacilities[selectedFacilityIndex];
+          basePrice = facility ? facility.facilityPrice : 0;
+        }
+      } else if (modalType === 'upgrade') {
+        const facility = currentCoreMajorFacilities[selectedFacilityIndex];
+        const upgrade = facility ? facility.upgrades[selectedUpgradeIndex] : null;
+        basePrice = upgrade ? upgrade.upgradePrice : 0;
+      } else if (modalType === 'minor') {
+        basePrice = selectedMinorFacility ? selectedMinorFacility.minorFacilityPrice : 0;
+      }
+      
+      return applyFacilityCostModifier(basePrice, modifier);
+    }
+    
+    /**
+     * Update purchase UI (transaction amount, warnings, button state)
+     */
+    function updatePurchaseUI(modalType) {
+      const amountSpan = document.getElementById(`${modalType}-amount-per-pilot`);
+      const warningDiv = document.getElementById(`${modalType}-warning-message`);
+      const purchaseBtn = document.getElementById(`${modalType}-purchase-button`);
+      
+      const price = getCurrentPurchasePrice(modalType);
+      const pilotCount = selectedExpensePilots.size;
+      const costPerPilot = pilotCount > 0 ? Math.ceil(price / pilotCount) : 0;
+      
+      amountSpan.textContent = costPerPilot;
+      
+      // Validate pilot balances
+      const insufficientPilots = [];
+      if (pilotCount > 0) {
+        selectedExpensePilots.forEach(pilotId => {
+          const pilot = currentPilots.find(p => p.id === pilotId);
+          if (pilot && pilot.balance < costPerPilot) {
+            insufficientPilots.push(pilot.name);
+          }
+        });
+      }
+      
+      // Update warning and button state
+      if (insufficientPilots.length > 0) {
+        warningDiv.textContent = `Insufficient funds for: ${insufficientPilots.join(', ')}`;
+        warningDiv.style.display = 'block';
+        purchaseBtn.disabled = true;
+      } else if (pilotCount === 0) {
+        warningDiv.textContent = 'Please select at least one pilot';
+        warningDiv.style.display = 'block';
+        purchaseBtn.disabled = true;
+      } else {
+        warningDiv.style.display = 'none';
+        purchaseBtn.disabled = false;
+      }
+    }
+    
+    /**
+     * Reset purchase state
+     */
+    function resetPurchaseState() {
+      selectedFacilityIndex = null;
+      selectedUpgradeIndex = null;
+      selectedSlotNumber = null;
+      selectedMinorFacility = null;
+      selectedExpensePilots.clear();
+    }
+    
+    /**
+     * Execute purchase (facility, upgrade, or minor)
+     */
+    async function executePurchase(modalType) {
+      let endpoint = '';
+      let body = {};
+      
+      if (modalType === 'facility') {
+        if (selectedSlotNumber !== null) {
+          endpoint = `/api/facilities/minor-slots/${selectedSlotNumber}/enable`;
+          body = { expensePilots: Array.from(selectedExpensePilots) };
+        } else {
+          endpoint = `/api/facilities/core-major/${selectedFacilityIndex}/purchase`;
+          body = { expensePilots: Array.from(selectedExpensePilots) };
+        }
+      } else if (modalType === 'upgrade') {
+        endpoint = `/api/facilities/core-major/${selectedFacilityIndex}/upgrades/${selectedUpgradeIndex}/purchase`;
+        body = { expensePilots: Array.from(selectedExpensePilots) };
+      } else if (modalType === 'minor') {
+        endpoint = `/api/facilities/minor-slots/${selectedSlotNumber}/assign`;
+        body = {
+          facilityName: selectedMinorFacility.minorFacilityName,
+          facilityDescription: selectedMinorFacility.minorFacilityDescription,
+          expensePilots: Array.from(selectedExpensePilots)
+        };
+      }
+      
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          alert(`Purchase failed: ${data.message || 'Unknown error'}`);
+          return;
+        }
+        
+        closeAllModals();
+        resetPurchaseState();
+        
+      } catch (error) {
+        console.error('Purchase error:', error);
+        alert('Purchase failed: Network error');
+      }
+    }
+    
+    /**
+     * Execute demolish
+     */
+    async function executeDemolish() {
+      try {
+        const response = await fetch(`/api/facilities/minor-slots/${selectedSlotNumber}/demolish`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          alert(`Demolish failed: ${data.message || 'Unknown error'}`);
+          return;
+        }
+        
+        closeAllModals();
+        selectedSlotNumber = null;
+        
+      } catch (error) {
+        console.error('Demolish error:', error);
+        alert('Demolish failed: Network error');
+      }
+    }
+    
+    /**
+     * Close all modals
+     */
+    function closeAllModals() {
+      document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.classList.remove('active');
+      });
+    }
+    
+    // Modal button event listeners
+    document.getElementById('facility-cancel-button').addEventListener('click', closeAllModals);
+    document.getElementById('upgrade-cancel-button').addEventListener('click', closeAllModals);
+    document.getElementById('minor-cancel-button').addEventListener('click', () => {
+      // Close purchase modal, return to selection modal (which is still active underneath)
+      document.getElementById('purchase-minor-facility-modal').classList.remove('active');
+    });
+    document.getElementById('assign-cancel-button').addEventListener('click', closeAllModals);
+    document.getElementById('demolish-cancel-button').addEventListener('click', closeAllModals);
+    
+    document.getElementById('facility-purchase-button').addEventListener('click', () => executePurchase('facility'));
+    document.getElementById('upgrade-purchase-button').addEventListener('click', () => executePurchase('upgrade'));
+    document.getElementById('minor-purchase-button').addEventListener('click', () => executePurchase('minor'));
+    document.getElementById('demolish-confirm-button').addEventListener('click', executeDemolish);
+    
+    // Close modal when clicking overlay
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeAllModals();
+        }
+      });
+    });
+    
+    // Initial render
+    renderCoreMajorFacilities();
+    renderMinorFacilities();
+    attachFacilityEventListeners();
   </script>
 </body>
 </html>

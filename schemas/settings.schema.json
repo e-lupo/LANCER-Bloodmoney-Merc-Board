@@ -63,6 +63,13 @@
       "type": "string",
       "description": "Password for ADMIN mode access (alphanumeric only, case-sensitive)",
       "pattern": "^[A-Za-z0-9]*$"
+    },
+    "facilityCostModifier": {
+      "type": "number",
+      "description": "Facility cost modifier percentage (-100 to +300). Adjusts all facility and upgrade prices. Final prices rounded to nearest 50.",
+      "minimum": -100,
+      "maximum": 300,
+      "default": 0
     }
   },
   "additionalProperties": false

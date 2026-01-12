@@ -1,10 +1,10 @@
 {
-  "name": "lancer-Bloodmoney-Merc-board",
+  "name": "lancer-bloodmoney-merc-board",
   "version": "1.0.0",
-  "description": "A terminal-styled job board for LANCER Bloodmoney Merc with admin and client interfaces",
+  "description": "A terminal-styled job board for LANCER RPG with admin and client interfaces",
   "main": "server.js",
   "bin": {
-    "lancer-Bloodmoney-Merc-board": "server.js"
+    "lancer-bloodmoney-merc-board": "server.js"
   },
   "scripts": {
     "start": "node server.js",
@@ -25,11 +25,15 @@
     "multer": "^2.0.2",
     "potrace": "^2.1.8"
   },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
   "pkg": {
     "assets": [
       "views/**/*",
       "public/**/*",
-      "schemas/**/*"
+      "schemas/**/*",
+      "default_data/**/*"
     ],
     "outputPath": "dist",
     "targets": [

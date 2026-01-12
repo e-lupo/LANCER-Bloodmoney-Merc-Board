@@ -14,6 +14,33 @@ const BASE_PATH = IS_PKG ? path.dirname(process.execPath) : __dirname;
 // SSE client management
 const sseClients = new Set();
 
+// Simple mutex implementation for preventing race conditions in file operations
+class FileMutex {
+  constructor() {
+    this.locks = new Map();
+  }
+  
+  async acquire(key) {
+    const timeoutMs = 5000; // Maximum time to wait for a lock before failing
+    const start = Date.now();
+
+    while (this.locks.get(key)) {
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error(`Timeout while waiting to acquire file lock for key: ${key}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    this.locks.set(key, true);
+  }
+  
+  release(key) {
+    this.locks.delete(key);
+  }
+}
+
+const fileMutex = new FileMutex();
+
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -43,12 +70,19 @@ const FILE_UPLOAD = {
   ALLOWED_TYPES: new Set(['image/png', 'image/jpeg', 'image/bmp'])
 };
 
-const BASE_MODULES = {
+const FACILITY_COUNTS = {
   CORE_COUNT: 3,
   MAJOR_COUNT: 6,
-  MINOR_COUNT: 6,
-  TOTAL_COUNT: 15
+  MINOR_SLOTS_COUNT: 6,
+  TOTAL_CORE_MAJOR_COUNT: 9
 };
+
+// Load default reserves data
+const DEFAULT_RESERVES = JSON.parse(fs.readFileSync(path.join(__dirname, 'default_data', 'default_reserves.json'), 'utf8'));
+
+// Load default facility data
+const DEFAULT_CORE_MAJOR_FACILITIES = JSON.parse(fs.readFileSync(path.join(__dirname, 'default_data', 'default_base_core_major_facilities.json'), 'utf8'));
+const DEFAULT_MINOR_FACILITIES = JSON.parse(fs.readFileSync(path.join(__dirname, 'default_data', 'default_base_minor_facilities.json'), 'utf8'));
 
 // Authentication middleware
 function requireAuth(role) {
@@ -107,9 +141,12 @@ const LOGO_ART_DIR = path.join(BASE_PATH, 'logo_art');
 const DATA_FILE = path.join(DATA_DIR, 'jobs.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const MANNA_FILE = path.join(DATA_DIR, 'manna.json');
-const BASE_FILE = path.join(DATA_DIR, 'base.json');
+const CORE_MAJOR_FACILITIES_FILE = path.join(DATA_DIR, 'base_core_major_facilities.json');
+const MINOR_FACILITIES_SLOTS_FILE = path.join(DATA_DIR, 'minor_facilities_slots.json');
 const FACTIONS_FILE = path.join(DATA_DIR, 'factions.json');
 const PILOTS_FILE = path.join(DATA_DIR, 'pilots.json');
+const RESERVES_FILE = path.join(DATA_DIR, 'reserves.json');
+const STORE_CONFIG_FILE = path.join(DATA_DIR, 'store-config.json');
 
 // Ensure data and logo_art directories exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -149,7 +186,7 @@ function initializeData() {
         clientBrief: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
         currencyPay: '150m',
         additionalPay: 'Duis aute irure dolor in reprehenderit',
-        emblem: 'birds.svg',
+        emblem: 'token--world.svg',
         state: 'Active',
         factionId: factionIds[0] || '' // Conglomerate Finibus
       },
@@ -162,7 +199,7 @@ function initializeData() {
         clientBrief: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
         currencyPay: '75m',
         additionalPay: 'Totam rem aperiam',
-        emblem: 'sun.svg',
+        emblem: 'token--eth.svg',
         state: 'Active',
         factionId: factionIds[1] || '' // Shimano Industries
       },
@@ -175,7 +212,7 @@ function initializeData() {
         clientBrief: 'Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
         currencyPay: '250m',
         additionalPay: 'Sed quia non numquam eius modi tempora',
-        emblem: 'triangle.svg',
+        emblem: 'token--planets.svg',
         state: 'Pending',
         factionId: factionIds[2] || '' // Collective Malorum
       },
@@ -188,7 +225,7 @@ function initializeData() {
         clientBrief: 'Corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.',
         currencyPay: '180m',
         additionalPay: '',
-        emblem: 'cosmetics.svg',
+        emblem: 'token--lovely.svg',
         state: 'Complete',
         factionId: factionIds[3] || '' // Phoenix Syndicate
       },
@@ -201,7 +238,7 @@ function initializeData() {
         clientBrief: 'Placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.',
         currencyPay: '95m',
         additionalPay: 'Equipment bonus',
-        emblem: 'rings.svg',
+        emblem: 'token--dot.svg',
         state: 'Failed',
         factionId: factionIds[4] || '' // Void Runners
       },
@@ -214,7 +251,7 @@ function initializeData() {
         clientBrief: 'Repudiandae sint et molestiae non recusandae itaque earum rerum hic tenetur a sapiente delectus.',
         currencyPay: '300m',
         additionalPay: 'Priority extraction available',
-        emblem: 'engineering.svg',
+        emblem: 'token--cgo.svg',
         state: 'Ignored',
         factionId: factionIds[0] || '' // Conglomerate Finibus
       }
@@ -404,9 +441,10 @@ function calculateBalancesFromPilots() {
  * Helper function to validate pilot data
  * @param {Object} pilotData - Raw pilot data from the request body
  * @param {Object} manna - Current manna data (balance and transactions) used for validating pilot-related transactions
+ * @param {Array} reserves - Optional reserves data for reserve validation
  * @returns {Object} Validation result with sanitized pilot fields when valid, or an error message when invalid
  */
-function validatePilotData(pilotData, manna) {
+function validatePilotData(pilotData, manna, reserves = null) {
   // Validate name
   const nameValidation = helpers.validateRequiredString(pilotData.name, 'Pilot name');
   if (!nameValidation.valid) {
@@ -468,16 +506,35 @@ function validatePilotData(pilotData, manna) {
     }
   }
   
+  // Validate reserves array if provided
+  let validatedReserves = [];
+  if (pilotData.reserves) {
+    try {
+      const reservesArray = Array.isArray(pilotData.reserves) ? pilotData.reserves : JSON.parse(pilotData.reserves);
+      
+      // Validate reserves using the new helper function (handles both legacy and new formats)
+      const reserveValidation = helpers.validatePilotReserves(reservesArray, reserves);
+      if (!reserveValidation.valid) {
+        return { valid: false, message: reserveValidation.message };
+      }
+      
+      validatedReserves = reserveValidation.value;
+    } catch (e) {
+      return { valid: false, message: 'Invalid reserves format' };
+    }
+  }
+  
   return {
     valid: true,
     name: nameValidation.value,
     callsign: callsignValidation.value,
     ll: llValidation.value,
-    reserves: (pilotData.reserves || '').trim(),
+    notes: (pilotData.notes || '').trim(),
     active: pilotData.active === 'true' || pilotData.active === true,
     relatedJobs: relatedJobs,
     personalOperationProgress: progressValidation.value,
-    personalTransactions: personalTransactions
+    personalTransactions: personalTransactions,
+    reserves: validatedReserves
   };
 }
 
@@ -491,7 +548,8 @@ const DEFAULT_SETTINGS = {
   operationProgress: 0,
   openTable: false,
   clientPassword: 'IMHOTEP',
-  adminPassword: 'TARASQUE'
+  adminPassword: 'TARASQUE',
+  facilityCostModifier: 0
 };
 
 // Read settings from file
@@ -596,49 +654,86 @@ function migrateTransactionsIfNeeded() {
   }
 }
 
-// Initialize Base modules
-function initializeBase() {
-  if (!fs.existsSync(BASE_FILE)) {
-    const defaultBase = {
-      modules: [
-        // 3 Core modules - at least one partially filled
-        { type: 'Core', title: 'Lorem Ipsum', description: 'Dolor sit amet consectetur adipiscing elit', disabled: false },
-        { type: 'Core', title: '', description: '', disabled: false },
-        { type: 'Core', title: '', description: '', disabled: false },
-        // 6 Major modules - at least one partially filled
-        { type: 'Major', title: 'Sed Do Eiusmod', description: 'Tempor incididunt ut labore et dolore magna', disabled: false },
-        { type: 'Major', title: '', description: '', disabled: false },
-        { type: 'Major', title: '', description: '', disabled: false },
-        { type: 'Major', title: '', description: '', disabled: false },
-        { type: 'Major', title: '', description: '', disabled: false },
-        { type: 'Major', title: '', description: '', disabled: false },
-        // 6 Minor modules (last 2 disabled by default) - at least one partially filled
-        { type: 'Minor', title: 'Ut Enim Minim', description: 'Quis nostrud exercitation ullamco laboris', disabled: false },
-        { type: 'Minor', title: '', description: '', disabled: false },
-        { type: 'Minor', title: '', description: '', disabled: false },
-        { type: 'Minor', title: '', description: '', disabled: false },
-        { type: 'Minor', title: '', description: '', disabled: true },
-        { type: 'Minor', title: '', description: '', disabled: true }
-      ]
-    };
-    fs.writeFileSync(BASE_FILE, JSON.stringify(defaultBase, null, 2));
+// Initialize Core/Major Facilities
+function initializeCoreMajorFacilities() {
+  if (!fs.existsSync(CORE_MAJOR_FACILITIES_FILE)) {
+    // Use default data from default_data directory
+    fs.writeFileSync(CORE_MAJOR_FACILITIES_FILE, JSON.stringify(DEFAULT_CORE_MAJOR_FACILITIES, null, 2));
   }
 }
 
-// Read Base data
-function readBase() {
+// Read Core/Major Facilities data
+function readCoreMajorFacilities() {
   try {
-    const data = fs.readFileSync(BASE_FILE, 'utf8');
+    const data = fs.readFileSync(CORE_MAJOR_FACILITIES_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    initializeBase();
-    return readBase();
+    initializeCoreMajorFacilities();
+    return readCoreMajorFacilities();
   }
 }
 
-// Write Base data
-function writeBase(base) {
-  fs.writeFileSync(BASE_FILE, JSON.stringify(base, null, 2));
+// Write Core/Major Facilities data
+function writeCoreMajorFacilities(facilities) {
+  fs.writeFileSync(CORE_MAJOR_FACILITIES_FILE, JSON.stringify(facilities, null, 2));
+}
+
+// Initialize Minor Facilities Slots
+function initializeMinorFacilitiesSlots() {
+  if (!fs.existsSync(MINOR_FACILITIES_SLOTS_FILE)) {
+    // Create 6 slots, with last 2 disabled by default
+    const defaultSlots = {
+      slots: [
+        { slotNumber: 1, facilityName: '', facilityDescription: '', enabled: true },
+        { slotNumber: 2, facilityName: '', facilityDescription: '', enabled: true },
+        { slotNumber: 3, facilityName: '', facilityDescription: '', enabled: true },
+        { slotNumber: 4, facilityName: '', facilityDescription: '', enabled: true },
+        { slotNumber: 5, facilityName: '', facilityDescription: '', enabled: false },
+        { slotNumber: 6, facilityName: '', facilityDescription: '', enabled: false }
+      ]
+    };
+    fs.writeFileSync(MINOR_FACILITIES_SLOTS_FILE, JSON.stringify(defaultSlots, null, 2));
+  }
+}
+
+// Read Minor Facilities Slots data
+function readMinorFacilitiesSlots() {
+  try {
+    const data = fs.readFileSync(MINOR_FACILITIES_SLOTS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    initializeMinorFacilitiesSlots();
+    return readMinorFacilitiesSlots();
+  }
+}
+
+// Write Minor Facilities Slots data
+function writeMinorFacilitiesSlots(minorFacilities) {
+  fs.writeFileSync(MINOR_FACILITIES_SLOTS_FILE, JSON.stringify(minorFacilities, null, 2));
+}
+
+// Migration function: Base modules to Facilities (one-time, clean break)
+function migrateBaseToFacilities() {
+  const MIGRATION_FLAG_FILE = path.join(DATA_DIR, '.base_to_facilities_migration_complete');
+  const LEGACY_BASE_FILE = path.join(DATA_DIR, 'base.json');
+  
+  // Check if migration already completed
+  if (fs.existsSync(MIGRATION_FLAG_FILE)) {
+    return; // Migration already done
+  }
+  
+  // Check if old base.json exists
+  if (fs.existsSync(LEGACY_BASE_FILE)) {
+    console.log('Migrating from old base.json to new facility system...');
+    
+    // Clean break: Delete old base.json without transferring data
+    // New facilities will be initialized from default data
+    fs.unlinkSync(LEGACY_BASE_FILE);
+    console.log('Old base.json deleted');
+  }
+  
+  // Mark migration as complete
+  fs.writeFileSync(MIGRATION_FLAG_FILE, new Date().toISOString());
 }
 
 // Initialize Factions
@@ -648,7 +743,7 @@ function initializeFactions() {
       {
         id: helpers.generateId(),
         title: 'Conglomerate Finibus',
-        emblem: 'construction.svg',
+        emblem: 'token--mantle.svg',
         brief: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         standing: 2,
         jobsCompletedOffset: 3,
@@ -657,7 +752,7 @@ function initializeFactions() {
       {
         id: helpers.generateId(),
         title: 'Shimano Industries',
-        emblem: 'cosmetics.svg',
+        emblem: 'token--lovely.svg',
         brief: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
         standing: 3,
         jobsCompletedOffset: 5,
@@ -666,7 +761,7 @@ function initializeFactions() {
       {
         id: helpers.generateId(),
         title: 'Collective Malorum',
-        emblem: 'engineering.svg',
+        emblem: 'token--cgo.svg',
         brief: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
         standing: 1,
         jobsCompletedOffset: 1,
@@ -675,7 +770,7 @@ function initializeFactions() {
       {
         id: helpers.generateId(),
         title: 'Phoenix Syndicate',
-        emblem: 'birds.svg',
+        emblem: 'token--world.svg',
         brief: 'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
         standing: 4,
         jobsCompletedOffset: 8,
@@ -684,7 +779,7 @@ function initializeFactions() {
       {
         id: helpers.generateId(),
         title: 'Void Runners',
-        emblem: 'rings.svg',
+        emblem: 'token--dot.svg',
         brief: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
         standing: 0,
         jobsCompletedOffset: 0,
@@ -764,55 +859,84 @@ function initializePilots() {
         name: 'Lorem Ipsum',
         callsign: 'Dolor',
         ll: 3,
-        reserves: 'Lorem ipsum dolor sit amet\nConsectetur adipiscing elit',
+        notes: 'Lorem ipsum dolor sit amet\nConsectetur adipiscing elit',
         active: true,
         relatedJobs: activeJobIds.slice(0, 3), // First 3 non-Pending jobs
         personalOperationProgress: 2,
-        personalTransactions: [transactionIds[0], transactionIds[2], transactionIds[4]] // Transactions 0, 2, 4
+        personalTransactions: [transactionIds[0], transactionIds[2], transactionIds[4]], // Transactions 0, 2, 4
+        reserves: [
+          // Mix of deployment statuses
+          { reserveId: '24d0834e-82cc-4236-a70c-868e1bd8c714', deploymentStatus: 'In Reserve' }, // SNAP HOOKS (Rank 1)
+          { reserveId: 'f3ec4d0c-1004-4866-856b-7be954f01162', deploymentStatus: 'Deployed' }, // MOLECULAR WHETSTONE (Rank 1)
+          { reserveId: 'bee345fb-b12c-4e47-ac1d-768e227a1aa0', deploymentStatus: 'In Reserve' } // SLINGSHOT PORTAL (Rank 2)
+        ]
       },
       {
         id: helpers.generateId(),
         name: 'Sit Amet',
         callsign: 'Consectetur',
         ll: 5,
-        reserves: 'Sed do eiusmod tempor\nIncididunt ut labore',
+        notes: 'Sed do eiusmod tempor\nIncididunt ut labore',
         active: true,
         relatedJobs: activeJobIds.slice(1, 4), // Jobs 1-3 (non-Pending)
         personalOperationProgress: 0,
-        personalTransactions: [transactionIds[0], transactionIds[1], transactionIds[3], transactionIds[5]] // Multiple transactions
+        personalTransactions: [transactionIds[0], transactionIds[1], transactionIds[3], transactionIds[5]], // Multiple transactions
+        reserves: [
+          // Multiple deployed and expended items
+          { reserveId: 'af2fe676-7485-42c2-9dbf-9e6241efa35e', deploymentStatus: 'Deployed' }, // KINETIC PULSE COIL (Rank 1)
+          { reserveId: '4c0e4340-b55e-49f3-b4ff-c6232072b391', deploymentStatus: 'Expended' }, // ICARUS MULTISTAGE BOOSTER (Rank 1)
+          { reserveId: 'fc9bc430-6132-4639-9bed-2efde7e4ee70', deploymentStatus: 'In Reserve' }, // PURVIEW-GRADE DUCT TAPE (Rank 2)
+          { reserveId: 'c63db599-fb7a-447f-8293-1dc3bc2a9439', deploymentStatus: 'Deployed' } // COOLANT RIG (Rank 2)
+        ]
       },
       {
         id: helpers.generateId(),
         name: 'Magna Aliqua',
         callsign: 'Tempor',
         ll: 2,
-        reserves: 'Ut enim ad minim veniam\nQuis nostrud exercitation',
+        notes: 'Ut enim ad minim veniam\nQuis nostrud exercitation',
         active: false,
         relatedJobs: activeJobIds.slice(0, 2), // First 2 non-Pending jobs
         personalOperationProgress: 0,
-        personalTransactions: [transactionIds[2], transactionIds[3]] // Some transactions
+        personalTransactions: [transactionIds[2], transactionIds[3]], // Some transactions
+        reserves: [
+          // All expended for inactive pilot
+          { reserveId: '577cacbe-fc7f-4dd4-80e4-8fe8c1f0bf45', deploymentStatus: 'Expended' }, // REDUNDANT CLADDING (Rank 1)
+          { reserveId: 'd38e97ff-93ac-4ab9-9e5b-c09dc367e7f7', deploymentStatus: 'Expended' } // CONCUSSIVE BRACER (Rank 1)
+        ]
       },
       {
         id: helpers.generateId(),
         name: 'Veniam Quis',
         callsign: 'Nostrud',
         ll: 7,
-        reserves: 'Duis aute irure dolor\nReprehenderit in voluptate',
+        notes: 'Duis aute irure dolor\nReprehenderit in voluptate',
         active: true,
         relatedJobs: activeJobIds.slice(2, 5), // Jobs 2-4 (non-Pending)
         personalOperationProgress: 1,
-        personalTransactions: [transactionIds[1], transactionIds[4]] // Some transactions
+        personalTransactions: [transactionIds[1], transactionIds[4]], // Some transactions
+        reserves: [
+          // Mostly in reserve
+          { reserveId: 'c02c8c7e-911a-4a93-92aa-77e4957e47aa', deploymentStatus: 'In Reserve' }, // CUIRASS SHIELD GENERATOR (Rank 1)
+          { reserveId: '45aa66a4-6851-442d-bf8b-3f18f44a172e', deploymentStatus: 'In Reserve' }, // SPARE AMMO (Rank 1)
+          { reserveId: '9d457f59-2edd-4c13-9651-b637204df109', deploymentStatus: 'In Reserve' } // INSIGHT-CLASS COMP/CON (Rank 2)
+        ]
       },
       {
         id: helpers.generateId(),
         name: 'Ullamco Laboris',
         callsign: 'Nisi',
         ll: 4,
-        reserves: 'Excepteur sint occaecat\nCupidatat non proident',
+        notes: 'Excepteur sint occaecat\nCupidatat non proident',
         active: true,
         relatedJobs: activeJobIds.slice(0, 2), // First 2 non-Pending jobs
         personalOperationProgress: 3,
-        personalTransactions: [transactionIds[2], transactionIds[5]] // Some transactions
+        personalTransactions: [transactionIds[2], transactionIds[5]], // Some transactions
+        reserves: [
+          // All deployed
+          { reserveId: 'e07cfe77-20f4-47d5-a31e-4278afbaa0f2', deploymentStatus: 'Deployed' }, // SAND DISPENSER (Rank 1)
+          { reserveId: '09d52f79-a881-4296-9792-4ced3f0cd2cc', deploymentStatus: 'Deployed' } // ADAPTIVE ROUNDS (Rank 1)
+        ]
       }
     ];
     fs.writeFileSync(PILOTS_FILE, JSON.stringify(defaultPilots, null, 2));
@@ -834,7 +958,7 @@ function writePilots(pilots) {
   fs.writeFileSync(PILOTS_FILE, JSON.stringify(pilots, null, 2));
 }
 
-// Migrate old pilots to add personalOperationProgress and personalTransactions fields (one-time operation)
+// Migrate old pilots to add personalOperationProgress, personalTransactions, and reserves fields (one-time operation)
 function migratePilotsIfNeeded() {
   const pilots = readPilots();
   let needsMigration = false;
@@ -842,23 +966,147 @@ function migratePilotsIfNeeded() {
   const migratedPilots = pilots.map(pilot => {
     const progressMissing = !pilot.hasOwnProperty('personalOperationProgress');
     const transactionsMissing = !pilot.hasOwnProperty('personalTransactions');
+    const hasReserves = pilot.hasOwnProperty('reserves');
+    const reservesIsString = hasReserves && typeof pilot.reserves === 'string';
+    const reservesIsArray = hasReserves && Array.isArray(pilot.reserves);
+    const reservesMissing = !hasReserves;
     
-    if (progressMissing || transactionsMissing) {
+    // Check if reserves need migration to object format
+    let reservesNeedMigration = false;
+    if (reservesIsArray && pilot.reserves.length > 0) {
+      // Check if first item is a string UUID (legacy format) or an object (new format)
+      const firstItem = pilot.reserves[0];
+      reservesNeedMigration = typeof firstItem === 'string';
+    }
+    
+    if (progressMissing || transactionsMissing || reservesMissing || reservesIsString || reservesNeedMigration) {
       needsMigration = true;
-      return {
+      
+      // Build migrated pilot object
+      const migratedPilot = {
         ...pilot,
         personalOperationProgress: pilot.personalOperationProgress ?? 0,
         personalTransactions: pilot.personalTransactions ?? []
       };
+      
+      // Handle legacy string reserves field
+      if (reservesIsString) {
+        // If notes field doesn't exist, migrate the string reserves to notes
+        if (!pilot.hasOwnProperty('notes')) {
+          migratedPilot.notes = pilot.reserves || '';
+        }
+        // Always replace string reserves with empty array
+        migratedPilot.reserves = [];
+      } else if (reservesIsArray) {
+        if (reservesNeedMigration) {
+          // Convert legacy UUID array to new object array format
+          migratedPilot.reserves = pilot.reserves.map(reserveId => ({
+            reserveId: reserveId,
+            deploymentStatus: 'In Reserve'
+          }));
+        } else {
+          // Already in new format, keep as is
+          migratedPilot.reserves = pilot.reserves;
+        }
+      } else {
+        // Missing reserves field, initialize as empty array
+        migratedPilot.reserves = [];
+      }
+      
+      return migratedPilot;
     }
     return pilot;
   });
   
   if (needsMigration) {
     writePilots(migratedPilots);
-    console.log('Pilots migrated to include personalOperationProgress and personalTransactions fields');
+    console.log('Pilots migrated: personalOperationProgress, personalTransactions, reserves fields added/updated, legacy formats migrated');
   }
 }
+
+// Read Reserves
+function readReserves() {
+  try {
+    const data = fs.readFileSync(RESERVES_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+// Write Reserves
+function writeReserves(reserves) {
+  fs.writeFileSync(RESERVES_FILE, JSON.stringify(reserves, null, 2));
+}
+
+// Initialize reserves with default data
+function initializeReserves() {
+  if (!fs.existsSync(RESERVES_FILE)) {
+    writeReserves(DEFAULT_RESERVES);
+  }
+}
+
+// Write Store Config
+function writeStoreConfig(storeConfig) {
+  fs.writeFileSync(STORE_CONFIG_FILE, JSON.stringify(storeConfig, null, 2));
+}
+
+// Read Store Config
+function readStoreConfig() {
+  try {
+    const data = fs.readFileSync(STORE_CONFIG_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return null;
+  }
+}
+
+// Initialize store config
+function initializeStoreConfig() {
+  if (!fs.existsSync(STORE_CONFIG_FILE)) {
+    const defaultStoreConfig = {
+      currentStock: [
+        // Pre-populated with 5 reserves from default_reserves.json
+        'c56a0d97-1527-49e8-a7d5-9115df3d5706', // OVERPOWERED COILS (Rank 1)
+        '6ec6dd1b-91b2-41ce-9144-7cab48708caa', // REACTIVE SHUNT (Rank 1)
+        'b2046bf1-a3b2-406b-8a01-ce7c6fd6e9a9', // FUEL RESERVES (Rank 1)
+        '43e883f9-d78e-41e3-98f5-4a2de26ce332', // RADIANT TARGET ACTUATOR (Rank 2)
+        '9a779369-1548-4f23-96ab-8189d361fcb4'  // COUNTERWEIGHT POMMEL (Rank 2)
+      ],
+      resupplyItems: [
+        { id: 'limited-restock', name: 'Limited restock', price: 2000, enabled: true },
+        { id: 'repair', name: 'Repair', price: 4000, enabled: true },
+        { id: 'core-battery', name: 'Core Battery', price: 8000, enabled: true }
+      ],
+      resupplySettings: {
+        enabled: false,
+        rankDistribution: {
+          rank1Count: 5,
+          rank2Count: 3,
+          rank3Count: 1
+        }
+      }
+    };
+    writeStoreConfig(defaultStoreConfig);
+  }
+}
+
+// Migrate store config to add resupply items if needed
+function migrateStoreConfigIfNeeded() {
+  const storeConfig = readStoreConfig();
+  if (!storeConfig) return;
+  
+  if (!storeConfig.resupplyItems) {
+    storeConfig.resupplyItems = [
+      { id: 'limited-restock', name: 'Limited restock', price: 2000, enabled: true },
+      { id: 'repair', name: 'Repair', price: 4000, enabled: true },
+      { id: 'core-battery', name: 'Core Battery', price: 8000, enabled: true }
+    ];
+    writeStoreConfig(storeConfig);
+    console.log('Store config migrated: added resupply items');
+  }
+}
+
 
 // File storage (Upload Emblem)
 const multer = require('multer');
@@ -947,13 +1195,21 @@ app.post('/upload', (req, res) => {
 });
 
 // Initialize data on startup
-// Order matters: factions before jobs, jobs and manna before pilots
+// Order matters: factions before jobs, jobs and manna before pilots, reserves before store-config
 initializeSettings();
 initializeFactions();
-initializeBase();
 initializeManna();
 initializeData();
+initializeReserves();
+initializeStoreConfig();
 initializePilots();
+
+// Migrate base modules to facilities (clean break migration)
+migrateBaseToFacilities();
+
+// Initialize new facility system
+initializeCoreMajorFacilities();
+initializeMinorFacilitiesSlots();
 
 // Migrate existing jobs to add new fields
 migrateJobsIfNeeded();
@@ -964,8 +1220,11 @@ migrateFactionsIfNeeded();
 // Migrate existing transactions to add UUIDs
 migrateTransactionsIfNeeded();
 
-// Migrate existing pilots to add personalOperationProgress and personalTransactions fields
+// Migrate existing pilots to add personalOperationProgress, personalTransactions, and reserves fields
 migratePilotsIfNeeded();
+
+// Migrate existing store config to add resupply items
+migrateStoreConfigIfNeeded();
 
 // SSE broadcast function
 function broadcastSSE(eventType, data) {
@@ -1118,8 +1377,22 @@ app.get('/client/jobs', requireClientAuth, (req, res) => {
 
 app.get('/client/base', requireClientAuth, (req, res) => {
   const settings = readSettings();
-  const base = readBase();
-  res.render('client-base', { settings, colorScheme: settings.colorScheme, base });
+  const coreMajorFacilities = readCoreMajorFacilities();
+  const minorFacilitiesSlots = readMinorFacilitiesSlots();
+  const pilots = readPilots();
+  const manna = readManna();
+  
+  // Enrich pilots with balance information
+  const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+  
+  res.render('client-base', { 
+    settings, 
+    colorScheme: settings.colorScheme, 
+    coreMajorFacilities,
+    minorFacilitiesSlots,
+    pilots: enrichedPilots,
+    minorOptions: DEFAULT_MINOR_FACILITIES
+  });
 });
 
 app.get('/client/factions', requireClientAuth, (req, res) => {
@@ -1141,13 +1414,74 @@ app.get('/client/pilots', requireClientAuth, (req, res) => {
   res.render('client-pilots', { settings, colorScheme: settings.colorScheme, pilots: enrichedPilots, manna });
 });
 
+app.get('/client/procurement', requireClientAuth, (req, res) => {
+  const settings = readSettings();
+  const pilots = readPilots();
+  const manna = readManna();
+  const reserves = readReserves();
+  const storeConfig = readStoreConfig();
+  
+  // Validate storeConfig exists
+  if (!storeConfig) {
+    return res.status(500).send('Error: Store configuration not found');
+  }
+  
+  // Enrich pilots with balance information
+  const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+  
+  // Get reserves from current stock
+  const stockReserves = (storeConfig.currentStock || [])
+    .map(id => reserves.find(r => r.id === id))
+    .filter(r => r !== undefined)
+    .sort((a, b) => {
+      // Sort by rank ascending, then by name A-Z
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return a.name.localeCompare(b.name);
+    });
+  
+  res.render('client-procurement', { 
+    settings, 
+    colorScheme: settings.colorScheme, 
+    pilots: enrichedPilots,
+    allReserves: reserves,
+    stockReserves,
+    storeConfig,
+    resupplyItems: storeConfig.resupplyItems || []
+  });
+});
+
+app.get('/client/reserves', requireClientAuth, (req, res) => {
+  const settings = readSettings();
+  const pilots = readPilots();
+  const manna = readManna();
+  const reserves = readReserves();
+  
+  // Filter pilots to only those with reserves
+  const pilotsWithReserves = pilots.filter(p => p.reserves && p.reserves.length > 0);
+  
+  // Enrich pilots with balance and reserve objects
+  let enrichedPilots = enrichPilotsWithBalance(pilotsWithReserves, manna);
+  enrichedPilots = helpers.enrichPilotsWithReserves(enrichedPilots, reserves);
+  
+  res.render('client-reserves', { 
+    settings, 
+    colorScheme: settings.colorScheme, 
+    pilots: enrichedPilots,
+    allPilots: pilots,  // Pass all pilots for transfer modal
+    allReserves: reserves
+  });
+});
+
 app.get('/admin', requireAdminAuth, (req, res) => {
   const jobs = readJobs();
   const settings = readSettings();
   const manna = readManna();
-  const base = readBase();
+  const coreMajorFacilities = readCoreMajorFacilities();
+  const minorFacilitiesSlots = readMinorFacilitiesSlots();
   const factions = readFactions();
   const pilots = readPilots();
+  const reserves = readReserves();
+  const storeConfig = readStoreConfig();
   const emblemFiles = fs.readdirSync(LOGO_ART_DIR)
     .filter(file => file.endsWith('.svg'))
     .sort();
@@ -1176,9 +1510,13 @@ app.get('/admin', requireAdminAuth, (req, res) => {
     settings, 
     manna, 
     balances,
-    base, 
+    coreMajorFacilities,
+    minorFacilitiesSlots,
+    minorFacilityOptions: DEFAULT_MINOR_FACILITIES,
     factions: enrichedFactions, 
     pilots: enrichedPilots,
+    reserves,
+    storeConfig,
     emblems: emblemFiles, 
     formatEmblemTitle: helpers.formatEmblemTitle,
     jobStates: helpers.JOB_STATES,
@@ -1369,6 +1707,15 @@ app.put('/api/settings', requireAdminAuth, (req, res) => {
     });
   }
   
+  // Validate facility cost modifier
+  const facilityCostModifier = parseFloat(req.body.facilityCostModifier ?? 0);
+  if (isNaN(facilityCostModifier) || facilityCostModifier < -100 || facilityCostModifier > 300) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Facility Cost Modifier must be between -100 and 300' 
+    });
+  }
+  
   const settings = {
     portalHeading: headingValidation.value,
     unt: unt.trim(),
@@ -1378,7 +1725,8 @@ app.put('/api/settings', requireAdminAuth, (req, res) => {
     operationProgress: operationProgress,
     openTable: openTable,
     clientPassword: clientPasswordValidation.value,
-    adminPassword: adminPasswordValidation.value
+    adminPassword: adminPasswordValidation.value,
+    facilityCostModifier: facilityCostModifier
   };
   
   writeSettings(settings);
@@ -1387,6 +1735,299 @@ app.put('/api/settings', requireAdminAuth, (req, res) => {
   broadcastSSE('settings', { action: 'update', settings });
   
   res.json({ success: true, settings });
+});
+
+// ==================== RESERVES API ENDPOINTS ====================
+app.get('/api/reserves', requireAnyAuth, (req, res) => {
+  const reserves = readReserves();
+  res.json(reserves);
+});
+
+app.post('/api/reserves', requireAdminAuth, (req, res) => {
+  const reserves = readReserves();
+  
+  // Validate reserve data
+  const validation = helpers.validateReserveData(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  const newReserve = {
+    id: helpers.generateId(),
+    rank: validation.rank,
+    name: validation.name,
+    price: validation.price,
+    description: validation.description,
+    isCustom: true // All reserves created via admin are custom
+  };
+  
+  reserves.push(newReserve);
+  writeReserves(reserves);
+  
+  // Broadcast SSE update
+  broadcastSSE('reserves', { action: 'create', reserve: newReserve, reserves });
+  
+  res.json({ success: true, reserve: newReserve });
+});
+
+app.put('/api/reserves/:id', requireAdminAuth, (req, res) => {
+  const reserves = readReserves();
+  const index = reserves.findIndex(r => r.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Reserve not found' });
+  }
+  
+  // Validate reserve data
+  const validation = helpers.validateReserveData(req.body);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  // Update reserve (preserve ID and isCustom flag)
+  reserves[index] = {
+    id: reserves[index].id,
+    rank: validation.rank,
+    name: validation.name,
+    price: validation.price,
+    description: validation.description,
+    isCustom: reserves[index].isCustom
+  };
+  
+  writeReserves(reserves);
+  
+  // Broadcast SSE update
+  broadcastSSE('reserves', { action: 'update', reserve: reserves[index], reserves });
+  
+  res.json({ success: true, reserve: reserves[index] });
+});
+
+app.delete('/api/reserves/:id', requireAdminAuth, (req, res) => {
+  const reserves = readReserves();
+  const pilots = readPilots();
+  const storeConfig = readStoreConfig();
+  
+  const index = reserves.findIndex(r => r.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Reserve not found' });
+  }
+  
+  // Check if reserve is in use by any pilot
+  const inUseByPilot = pilots.some(pilot => 
+    pilot.reserves && pilot.reserves.some(r => {
+      // Handle both legacy UUID format and new object format
+      if (typeof r === 'string') {
+        return r === req.params.id;
+      } else if (r && typeof r === 'object') {
+        return r.reserveId === req.params.id;
+      }
+      return false;
+    })
+  );
+  
+  if (inUseByPilot) {
+    return res.status(409).json({ 
+      success: false, 
+      message: 'Cannot delete reserve: it is currently owned by one or more pilots' 
+    });
+  }
+  
+  // Remove from store stock if present
+  if (storeConfig && storeConfig.currentStock) {
+    const updatedStock = storeConfig.currentStock.filter(id => id !== req.params.id);
+    if (updatedStock.length !== storeConfig.currentStock.length) {
+      storeConfig.currentStock = updatedStock;
+      writeStoreConfig(storeConfig);
+      broadcastSSE('store-config', { action: 'update', storeConfig });
+    }
+  }
+  
+  const deletedReserve = reserves[index];
+  reserves.splice(index, 1);
+  writeReserves(reserves);
+  
+  // Broadcast SSE update
+  broadcastSSE('reserves', { action: 'delete', reserveId: req.params.id, reserves });
+  
+  res.json({ success: true, reserve: deletedReserve });
+});
+
+// ==================== STORE CONFIG API ENDPOINTS ====================
+app.get('/api/store-config', requireAnyAuth, (req, res) => {
+  const storeConfig = readStoreConfig();
+  res.json(storeConfig);
+});
+
+app.put('/api/store-config', requireAdminAuth, (req, res) => {
+  const storeConfig = readStoreConfig() || {};
+  
+  // Update resupply items if provided
+  if (req.body.resupplyItems) {
+    // Validate resupply items array
+    if (!Array.isArray(req.body.resupplyItems) || req.body.resupplyItems.length !== 3) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Resupply items must be an array of exactly 3 items' 
+      });
+    }
+    
+    // Validate each resupply item
+    for (const item of req.body.resupplyItems) {
+      if (!item.id || !item.name || typeof item.price !== 'number' || typeof item.enabled !== 'boolean') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Each resupply item must have id, name, price, and enabled fields' 
+        });
+      }
+      
+      if (item.price < 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Resupply item prices must be non-negative' 
+        });
+      }
+    }
+    
+    storeConfig.resupplyItems = req.body.resupplyItems;
+  }
+  
+  // Update current stock if provided
+  if (req.body.currentStock !== undefined) {
+    if (!Array.isArray(req.body.currentStock)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current stock must be an array' 
+      });
+    }
+    
+    // Validate reserve UUIDs exist
+    const reserves = readReserves();
+    const validation = helpers.validateReserveIds(req.body.currentStock, reserves);
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, message: validation.message });
+    }
+    
+    storeConfig.currentStock = req.body.currentStock;
+  }
+  
+  // Update resupply settings if provided
+  if (req.body.resupplySettings) {
+    storeConfig.resupplySettings = req.body.resupplySettings;
+  }
+  
+  writeStoreConfig(storeConfig);
+  
+  // Broadcast SSE update
+  broadcastSSE('store-config', { action: 'update', storeConfig });
+  
+  res.json({ success: true, storeConfig });
+});
+
+// Add random reserve to store stock
+app.post('/api/store-config/add-random', requireAdminAuth, (req, res) => {
+  const storeConfig = readStoreConfig();
+  const reserves = readReserves();
+  
+  // Get filter parameters from request body
+  const { rankFilter, hideDefaultReserves } = req.body;
+  
+  // Filter reserves based on parameters
+  let filteredReserves = reserves;
+  
+  // Apply rank filter
+  if (rankFilter && rankFilter !== 'all') {
+    const rank = parseInt(rankFilter);
+    filteredReserves = filteredReserves.filter(r => r.rank === rank);
+  }
+  
+  // Apply hide default reserves filter
+  if (hideDefaultReserves) {
+    filteredReserves = filteredReserves.filter(r => r.isCustom);
+  }
+  
+  if (filteredReserves.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'No reserves match the current filter' 
+    });
+  }
+  
+  // Pick a random reserve from filtered list
+  const randomIndex = Math.floor(Math.random() * filteredReserves.length);
+  const selectedReserve = filteredReserves[randomIndex];
+  
+  // Add to stock
+  storeConfig.currentStock = storeConfig.currentStock || [];
+  storeConfig.currentStock.push(selectedReserve.id);
+  
+  writeStoreConfig(storeConfig);
+  
+  // Broadcast SSE update
+  broadcastSSE('store-config', { action: 'update', storeConfig });
+  
+  res.json({ 
+    success: true, 
+    storeConfig, 
+    addedReserve: selectedReserve 
+  });
+});
+
+// Remove reserve from store stock
+app.post('/api/store-config/remove-stock', requireAdminAuth, (req, res) => {
+  const storeConfig = readStoreConfig();
+  const { reserveIds, removeAll } = req.body;
+  
+  if (removeAll) {
+    // Remove all selected reserves from stock
+    if (!Array.isArray(reserveIds) || reserveIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No reserves selected to remove' 
+      });
+    }
+    
+    const initialLength = storeConfig.currentStock.length;
+    storeConfig.currentStock = storeConfig.currentStock.filter(id => !reserveIds.includes(id));
+    const removedCount = initialLength - storeConfig.currentStock.length;
+    
+    writeStoreConfig(storeConfig);
+    broadcastSSE('store-config', { action: 'update', storeConfig });
+    
+    return res.json({ 
+      success: true, 
+      storeConfig, 
+      removedCount 
+    });
+  } else {
+    // Remove single reserve (first occurrence)
+    if (!reserveIds || reserveIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No reserve selected to remove' 
+      });
+    }
+    
+    const reserveId = reserveIds[0];
+    const index = storeConfig.currentStock.indexOf(reserveId);
+    
+    if (index === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Reserve not found in stock' 
+      });
+    }
+    
+    storeConfig.currentStock.splice(index, 1);
+    
+    writeStoreConfig(storeConfig);
+    broadcastSSE('store-config', { action: 'update', storeConfig });
+    
+    return res.json({ 
+      success: true, 
+      storeConfig 
+    });
+  }
 });
 
 // API endpoint to delete emblem
@@ -1713,28 +2354,929 @@ app.put('/api/manna/transaction/:id/pilots', requireAdminAuth, (req, res) => {
   res.json({ success: true, balances, pilots: enrichedPilots });
 });
 
-// Base API endpoints
-app.get('/api/base', requireAnyAuth, (req, res) => {
-  const base = readBase();
-  res.json(base);
+// Facilities API endpoints
+app.get('/api/facilities/core-major', requireAnyAuth, (req, res) => {
+  const facilities = readCoreMajorFacilities();
+  res.json(facilities);
 });
 
-app.put('/api/base', requireAdminAuth, (req, res) => {
-  const modules = req.body.modules;
+app.put('/api/facilities/core-major', requireAdminAuth, (req, res) => {
+  const facilities = req.body;
   
-  if (!Array.isArray(modules) || modules.length !== BASE_MODULES.TOTAL_COUNT) {
+  if (!Array.isArray(facilities) || facilities.length !== FACILITY_COUNTS.TOTAL_CORE_MAJOR_COUNT) {
     return res.status(400).json({ 
       success: false, 
-      message: `Base must have exactly ${BASE_MODULES.TOTAL_COUNT} modules` 
+      message: `Core/Major facilities must have exactly ${FACILITY_COUNTS.TOTAL_CORE_MAJOR_COUNT} facilities` 
     });
   }
   
-  writeBase({ modules });
+  // Validate each facility
+  for (let i = 0; i < facilities.length; i++) {
+    const validation = helpers.validateCoreMajorFacility(facilities[i]);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: `Facility at index ${i}: ${validation.message}`
+      });
+    }
+  }
+  
+  writeCoreMajorFacilities(facilities);
   
   // Broadcast SSE update
-  broadcastSSE('base', { action: 'update', base: { modules } });
+  broadcastSSE('facilities-core-major', { action: 'update', facilities });
   
-  res.json({ success: true, base: { modules } });
+  res.json({ success: true, facilities });
+});
+
+app.get('/api/facilities/minor-slots', requireAnyAuth, (req, res) => {
+  const minorFacilities = readMinorFacilitiesSlots();
+  res.json(minorFacilities);
+});
+
+app.put('/api/facilities/minor-slots', requireAdminAuth, (req, res) => {
+  const minorFacilities = req.body;
+  
+  if (!minorFacilities || !minorFacilities.slots || !Array.isArray(minorFacilities.slots) || minorFacilities.slots.length !== FACILITY_COUNTS.MINOR_SLOTS_COUNT) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Minor facilities must have exactly ${FACILITY_COUNTS.MINOR_SLOTS_COUNT} slots` 
+    });
+  }
+  
+  // Validate each slot
+  for (let i = 0; i < minorFacilities.slots.length; i++) {
+    const validation = helpers.validateMinorFacilitySlot(minorFacilities.slots[i]);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: `Slot at index ${i}: ${validation.message}`
+      });
+    }
+  }
+  
+  writeMinorFacilitiesSlots(minorFacilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+  
+  res.json({ success: true, minorFacilities });
+});
+
+// Get list of available minor facility options (from default data)
+app.get('/api/facilities/minor-options', requireAnyAuth, (req, res) => {
+  res.json(DEFAULT_MINOR_FACILITIES);
+});
+
+// PATCH endpoint to toggle facility purchased status
+app.patch('/api/facilities/core-major/:index/purchased', requireAdminAuth, (req, res) => {
+  const facilityIndex = parseInt(req.params.index);
+  const { isPurchased } = req.body;
+  
+  const facilities = readCoreMajorFacilities();
+  
+  if (Number.isNaN(facilityIndex) || facilityIndex < 0 || facilityIndex >= facilities.length) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid facility index' 
+    });
+  }
+  
+  facilities[facilityIndex].isPurchased = Boolean(isPurchased);
+  writeCoreMajorFacilities(facilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-core-major', { action: 'update', facilities });
+  
+  res.json({ success: true, facilities });
+});
+
+// PATCH endpoint to update upgrade count
+app.patch('/api/facilities/core-major/:facilityIndex/upgrades/:upgradeIndex', requireAdminAuth, (req, res) => {
+  const facilityIndex = parseInt(req.params.facilityIndex);
+  const upgradeIndex = parseInt(req.params.upgradeIndex);
+  const { upgradeCount } = req.body;
+  
+  const facilities = readCoreMajorFacilities();
+  
+  if (Number.isNaN(facilityIndex) || facilityIndex < 0 || facilityIndex >= facilities.length) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid facility index' 
+    });
+  }
+  
+  const facility = facilities[facilityIndex];
+  
+  if (!Array.isArray(facility.upgrades) || facility.upgrades.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Facility has no upgrades configured'
+    });
+  }
+  
+  const upgrades = facility.upgrades;
+  
+  if (Number.isNaN(upgradeIndex) || upgradeIndex < 0 || upgradeIndex >= upgrades.length) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid upgrade index' 
+    });
+  }
+  
+  const upgrade = upgrades[upgradeIndex];
+  const count = parseInt(upgradeCount);
+  
+  if (isNaN(count) || count < 0 || count > upgrade.maxPurchases) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Upgrade count must be between 0 and ${upgrade.maxPurchases}` 
+    });
+  }
+  
+  upgrade.upgradeCount = count;
+  writeCoreMajorFacilities(facilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-core-major', { action: 'update', facilities });
+  
+  res.json({ success: true, facilities });
+});
+
+// PUT endpoint to assign minor facility to slot
+app.put('/api/facilities/minor-slots/:slotNumber/assign', requireAdminAuth, (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  const { facilityName, facilityDescription } = req.body;
+  
+  const minorFacilities = readMinorFacilitiesSlots();
+  
+  if (Number.isNaN(slotNumber)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+  if (slotIndex === -1) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slot = minorFacilities.slots[slotIndex];
+  
+  if (!slot.enabled) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Cannot assign facility to disabled slot' 
+    });
+  }
+  
+  // Validate facilityName input
+  if (typeof facilityName !== 'string' || facilityName.trim() === '') {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Facility name is required and must be a non-empty string' 
+    });
+  }
+  
+  // Validate facilityDescription input
+  if (facilityDescription !== undefined && typeof facilityDescription !== 'string') {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Facility description must be a string' 
+    });
+  }
+  
+  // Check uniqueness - facility name must not be used in other slots
+  const isNameUsed = minorFacilities.slots.some(s => 
+    s.slotNumber !== slotNumber && s.facilityName === facilityName
+  );
+  
+  if (isNameUsed) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'This facility is already assigned to another slot' 
+    });
+  }
+  
+  slot.facilityName = facilityName.trim();
+  slot.facilityDescription = (facilityDescription || '').trim();
+  
+  writeMinorFacilitiesSlots(minorFacilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+  
+  res.json({ success: true, minorFacilities });
+});
+
+// DELETE endpoint to clear minor facility slot
+app.delete('/api/facilities/minor-slots/:slotNumber/clear', requireAdminAuth, (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  
+  const minorFacilities = readMinorFacilitiesSlots();
+  
+  if (Number.isNaN(slotNumber)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+  if (slotIndex === -1) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slot = minorFacilities.slots[slotIndex];
+  slot.facilityName = '';
+  slot.facilityDescription = '';
+  
+  writeMinorFacilitiesSlots(minorFacilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+  
+  res.json({ success: true, minorFacilities });
+});
+
+// PATCH endpoint to toggle minor slot enabled status
+app.patch('/api/facilities/minor-slots/:slotNumber/toggle-enabled', requireAdminAuth, (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  const { enabled } = req.body;
+  
+  const minorFacilities = readMinorFacilitiesSlots();
+  
+  if (Number.isNaN(slotNumber)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+  if (slotIndex === -1) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slot = minorFacilities.slots[slotIndex];
+  
+  // Only last 2 slots (5 and 6) can be toggled
+  if (slotNumber < 5) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Only slots 5 and 6 can be enabled/disabled' 
+    });
+  }
+  
+  slot.enabled = Boolean(enabled);
+  
+  // If disabling, clear the slot
+  if (!slot.enabled) {
+    slot.facilityName = '';
+    slot.facilityDescription = '';
+  }
+  
+  writeMinorFacilitiesSlots(minorFacilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+  
+  res.json({ success: true, minorFacilities });
+});
+
+// CLIENT Facility Purchase Endpoints
+
+// POST endpoint to purchase a Core/Major facility
+app.post('/api/facilities/core-major/:index/purchase', requireClientAuth, async (req, res) => {
+  const facilityIndex = parseInt(req.params.index);
+  const { expensePilots } = req.body;
+  
+  // Acquire mutex lock to prevent race conditions
+  // FileMutex has a built-in 5-second timeout that will throw an error if lock cannot be acquired
+  await fileMutex.acquire('facility-purchase');
+  
+  try {
+    // Validate inputs
+    if (!Array.isArray(expensePilots) || expensePilots.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid purchase request: expensePilots must be a non-empty array' 
+      });
+    }
+    
+    const facilities = readCoreMajorFacilities();
+    
+    if (Number.isNaN(facilityIndex) || facilityIndex < 0 || facilityIndex >= facilities.length) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid facility index' 
+      });
+    }
+    
+    const facility = facilities[facilityIndex];
+    
+    // Validate facility can be purchased
+    if (facility.isPurchased) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Facility is already purchased' 
+      });
+    }
+    
+    if (facility.facilityPrice === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Core facilities cannot be purchased (they are already owned)' 
+      });
+    }
+    
+    // Load data
+    const pilots = readPilots();
+    const manna = readManna();
+    const settings = readSettings();
+    
+    // Validate all expense pilots exist
+    const invalidPilots = expensePilots.filter(id => !pilots.find(p => p.id === id));
+    if (invalidPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid pilot IDs in expense list' 
+      });
+    }
+    
+    // Apply facility cost modifier
+    const basePrice = facility.facilityPrice;
+    const modifier = settings.facilityCostModifier || 0;
+    const modifiedPrice = helpers.applyFacilityCostModifier(basePrice, modifier);
+    
+    // Calculate cost per pilot (rounded up)
+    const costPerPilot = Math.ceil(modifiedPrice / expensePilots.length);
+    
+    // Verify all pilots have sufficient balance
+    const insufficientPilots = [];
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        const balance = helpers.calculatePilotBalance(pilot, manna.transactions);
+        if (balance < costPerPilot) {
+          insufficientPilots.push(pilot.name);
+        }
+      }
+    });
+    
+    if (insufficientPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient funds for: ${insufficientPilots.join(', ')}` 
+      });
+    }
+    
+    // Create transaction
+    const now = new Date().toISOString();
+    const transaction = {
+      id: helpers.generateId(),
+      date: now,
+      amount: -costPerPilot,
+      description: `Purchased facility: ${facility.facilityName}`
+    };
+    
+    manna.transactions.push(transaction);
+    
+    // Add transaction to all expense pilots' personal transactions
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        if (!pilot.personalTransactions) {
+          pilot.personalTransactions = [];
+        }
+        pilot.personalTransactions.push(transaction.id);
+      }
+    });
+    
+    // Mark facility as purchased
+    facility.isPurchased = true;
+    
+    // Save all changes
+    writeCoreMajorFacilities(facilities);
+    writeManna(manna);
+    writePilots(pilots);
+    
+    // Broadcast SSE updates
+    broadcastSSE('facilities-core-major', { action: 'update', facilities });
+    broadcastSSE('manna', { action: 'update', manna });
+    const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+    broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+    
+    res.json({ success: true, facilities });
+  } finally {
+    // Always release the lock
+    fileMutex.release('facility-purchase');
+  }
+});
+
+// POST endpoint to purchase a facility upgrade
+app.post('/api/facilities/core-major/:facilityIndex/upgrades/:upgradeIndex/purchase', requireClientAuth, async (req, res) => {
+  const facilityIndex = parseInt(req.params.facilityIndex);
+  const upgradeIndex = parseInt(req.params.upgradeIndex);
+  const { expensePilots } = req.body;
+  
+  // Acquire mutex lock to prevent race conditions
+  // FileMutex has a built-in 5-second timeout that will throw an error if lock cannot be acquired
+  await fileMutex.acquire('facility-upgrade-purchase');
+  
+  try {
+    // Validate inputs
+    if (!Array.isArray(expensePilots) || expensePilots.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid purchase request: expensePilots must be a non-empty array' 
+      });
+    }
+    
+    const facilities = readCoreMajorFacilities();
+    
+    if (Number.isNaN(facilityIndex) || facilityIndex < 0 || facilityIndex >= facilities.length) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid facility index' 
+      });
+    }
+    
+    const facility = facilities[facilityIndex];
+    
+    // Validate facility is purchased
+    if (!facility.isPurchased) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot purchase upgrades for an unpurchased facility' 
+      });
+    }
+    
+    if (!Array.isArray(facility.upgrades) || facility.upgrades.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Facility has no upgrades configured'
+      });
+    }
+    
+    if (Number.isNaN(upgradeIndex) || upgradeIndex < 0 || upgradeIndex >= facility.upgrades.length) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid upgrade index' 
+      });
+    }
+    
+    const upgrade = facility.upgrades[upgradeIndex];
+    
+    // Validate upgrade can be purchased
+    if (upgrade.upgradeCount >= upgrade.maxPurchases) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Upgrade is already at maximum purchases' 
+      });
+    }
+    
+    // Load data
+    const pilots = readPilots();
+    const manna = readManna();
+    const settings = readSettings();
+    
+    // Validate all expense pilots exist
+    const invalidPilots = expensePilots.filter(id => !pilots.find(p => p.id === id));
+    if (invalidPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid pilot IDs in expense list' 
+      });
+    }
+    
+    // Apply facility cost modifier
+    const basePrice = upgrade.upgradePrice;
+    const modifier = settings.facilityCostModifier || 0;
+    const modifiedPrice = helpers.applyFacilityCostModifier(basePrice, modifier);
+    
+    // Calculate cost per pilot (rounded up)
+    const costPerPilot = Math.ceil(modifiedPrice / expensePilots.length);
+    
+    // Verify all pilots have sufficient balance
+    const insufficientPilots = [];
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        const balance = helpers.calculatePilotBalance(pilot, manna.transactions);
+        if (balance < costPerPilot) {
+          insufficientPilots.push(pilot.name);
+        }
+      }
+    });
+    
+    if (insufficientPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient funds for: ${insufficientPilots.join(', ')}` 
+      });
+    }
+    
+    // Create transaction
+    const now = new Date().toISOString();
+    const transaction = {
+      id: helpers.generateId(),
+      date: now,
+      amount: -costPerPilot,
+      description: `Purchased upgrade: ${upgrade.upgradeName} for ${facility.facilityName}`
+    };
+    
+    manna.transactions.push(transaction);
+    
+    // Add transaction to all expense pilots' personal transactions
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        if (!pilot.personalTransactions) {
+          pilot.personalTransactions = [];
+        }
+        pilot.personalTransactions.push(transaction.id);
+      }
+    });
+    
+    // Increment upgrade count
+    upgrade.upgradeCount += 1;
+    
+    // Save all changes
+    writeCoreMajorFacilities(facilities);
+    writeManna(manna);
+    writePilots(pilots);
+    
+    // Broadcast SSE updates
+    broadcastSSE('facilities-core-major', { action: 'update', facilities });
+    broadcastSSE('manna', { action: 'update', manna });
+    const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+    broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+    
+    res.json({ success: true, facilities });
+  } finally {
+    // Always release the lock
+    fileMutex.release('facility-upgrade-purchase');
+  }
+});
+
+// POST endpoint to enable (purchase) a minor facility slot
+app.post('/api/facilities/minor-slots/:slotNumber/enable', requireClientAuth, async (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  const { expensePilots } = req.body;
+  
+  // Acquire mutex lock to prevent race conditions
+  // FileMutex has a built-in 5-second timeout that will throw an error if lock cannot be acquired
+  await fileMutex.acquire('minor-slot-enable');
+  
+  try {
+    // Validate inputs
+    if (!Array.isArray(expensePilots) || expensePilots.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid purchase request: expensePilots must be a non-empty array' 
+      });
+    }
+    
+    const minorFacilities = readMinorFacilitiesSlots();
+    
+    if (Number.isNaN(slotNumber)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid slot number' 
+      });
+    }
+    
+    const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+    if (slotIndex === -1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid slot number' 
+      });
+    }
+    
+    const slot = minorFacilities.slots[slotIndex];
+    
+    // Only last 2 slots (5 and 6) can be purchased/enabled
+    if (slotNumber < 5) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only slots 5 and 6 can be unlocked' 
+      });
+    }
+    
+    if (slot.enabled) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Slot is already enabled' 
+      });
+    }
+    
+    // Load data
+    const pilots = readPilots();
+    const manna = readManna();
+    const settings = readSettings();
+    
+    // Validate all expense pilots exist
+    const invalidPilots = expensePilots.filter(id => !pilots.find(p => p.id === id));
+    if (invalidPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid pilot IDs in expense list' 
+      });
+    }
+    
+    // Fixed base price for slot unlock, apply modifier
+    const basePrice = 5000;
+    const modifier = settings.facilityCostModifier || 0;
+    const modifiedPrice = helpers.applyFacilityCostModifier(basePrice, modifier);
+    const costPerPilot = Math.ceil(modifiedPrice / expensePilots.length);
+    
+    // Verify all pilots have sufficient balance
+    const insufficientPilots = [];
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        const balance = helpers.calculatePilotBalance(pilot, manna.transactions);
+        if (balance < costPerPilot) {
+          insufficientPilots.push(pilot.name);
+        }
+      }
+    });
+    
+    if (insufficientPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient funds for: ${insufficientPilots.join(', ')}` 
+      });
+    }
+    
+    // Create transaction
+    const now = new Date().toISOString();
+    const transaction = {
+      id: helpers.generateId(),
+      date: now,
+      amount: -costPerPilot,
+      description: `Unlocked minor facility slot ${slotNumber}`
+    };
+    
+    manna.transactions.push(transaction);
+    
+    // Add transaction to all expense pilots' personal transactions
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        if (!pilot.personalTransactions) {
+          pilot.personalTransactions = [];
+        }
+        pilot.personalTransactions.push(transaction.id);
+      }
+    });
+    
+    // Enable the slot
+    slot.enabled = true;
+    
+    // Save all changes
+    writeMinorFacilitiesSlots(minorFacilities);
+    writeManna(manna);
+    writePilots(pilots);
+    
+    // Broadcast SSE updates
+    broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+    broadcastSSE('manna', { action: 'update', manna });
+    const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+    broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+    
+    res.json({ success: true, minorFacilities });
+  } finally {
+    // Always release the lock
+    fileMutex.release('minor-slot-enable');
+  }
+});
+
+// POST endpoint to assign (purchase) a minor facility to a slot
+app.post('/api/facilities/minor-slots/:slotNumber/assign', requireClientAuth, async (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  const { facilityName, facilityDescription, expensePilots } = req.body;
+  
+  // Acquire mutex lock to prevent race conditions
+  // FileMutex has a built-in 5-second timeout that will throw an error if lock cannot be acquired
+  await fileMutex.acquire('minor-slot-assign');
+  
+  try {
+    // Validate inputs
+    if (!Array.isArray(expensePilots) || expensePilots.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid purchase request: expensePilots must be a non-empty array' 
+      });
+    }
+    
+    const minorFacilities = readMinorFacilitiesSlots();
+    
+    if (Number.isNaN(slotNumber)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid slot number' 
+      });
+    }
+    
+    const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+    if (slotIndex === -1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid slot number' 
+      });
+    }
+    
+    const slot = minorFacilities.slots[slotIndex];
+    
+    if (!slot.enabled) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot assign facility to disabled slot' 
+      });
+    }
+    
+    if (slot.facilityName) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Slot already has a facility assigned. Demolish it first.' 
+      });
+    }
+    
+    // Validate facilityName input
+    if (typeof facilityName !== 'string' || facilityName.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Facility name is required and must be a non-empty string' 
+      });
+    }
+    
+    // Validate facilityDescription input
+    if (facilityDescription !== undefined && typeof facilityDescription !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Facility description must be a string' 
+      });
+    }
+    
+    // Check uniqueness - facility name must not be used in other slots
+    const isNameUsed = minorFacilities.slots.some(s => 
+      s.slotNumber !== slotNumber && s.facilityName === facilityName
+    );
+    
+    if (isNameUsed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'This facility is already assigned to another slot' 
+      });
+    }
+    
+    // Find the facility in default options to get price
+    const facilityOption = DEFAULT_MINOR_FACILITIES.find(f => f.minorFacilityName === facilityName);
+    if (!facilityOption) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid facility name: not found in available options' 
+      });
+    }
+    
+    // Load data
+    const pilots = readPilots();
+    const manna = readManna();
+    const settings = readSettings();
+    
+    // Validate all expense pilots exist
+    const invalidPilots = expensePilots.filter(id => !pilots.find(p => p.id === id));
+    if (invalidPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid pilot IDs in expense list' 
+      });
+    }
+    
+    // Apply facility cost modifier
+    const basePrice = facilityOption.minorFacilityPrice;
+    const modifier = settings.facilityCostModifier || 0;
+    const modifiedPrice = helpers.applyFacilityCostModifier(basePrice, modifier);
+    
+    // Calculate cost per pilot (rounded up)
+    const costPerPilot = Math.ceil(modifiedPrice / expensePilots.length);
+    
+    // Verify all pilots have sufficient balance
+    const insufficientPilots = [];
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        const balance = helpers.calculatePilotBalance(pilot, manna.transactions);
+        if (balance < costPerPilot) {
+          insufficientPilots.push(pilot.name);
+        }
+      }
+    });
+    
+    if (insufficientPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient funds for: ${insufficientPilots.join(', ')}` 
+      });
+    }
+    
+    // Create transaction
+    const now = new Date().toISOString();
+    const transaction = {
+      id: helpers.generateId(),
+      date: now,
+      amount: -costPerPilot,
+      description: `Purchased minor facility: ${facilityName}`
+    };
+    
+    manna.transactions.push(transaction);
+    
+    // Add transaction to all expense pilots' personal transactions
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        if (!pilot.personalTransactions) {
+          pilot.personalTransactions = [];
+        }
+        pilot.personalTransactions.push(transaction.id);
+      }
+    });
+    
+    // Assign facility to slot
+    slot.facilityName = facilityName.trim();
+    slot.facilityDescription = (facilityDescription || '').trim();
+    
+    // Save all changes
+    writeMinorFacilitiesSlots(minorFacilities);
+    writeManna(manna);
+    writePilots(pilots);
+    
+    // Broadcast SSE updates
+    broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+    broadcastSSE('manna', { action: 'update', manna });
+    const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+    broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+    
+    res.json({ success: true, minorFacilities });
+  } finally {
+    // Always release the lock
+    fileMutex.release('minor-slot-assign');
+  }
+});
+
+// DELETE endpoint to demolish (clear) minor facility slot
+app.delete('/api/facilities/minor-slots/:slotNumber/demolish', requireClientAuth, async (req, res) => {
+  const slotNumber = parseInt(req.params.slotNumber);
+  
+  const minorFacilities = readMinorFacilitiesSlots();
+  
+  if (Number.isNaN(slotNumber)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slotIndex = minorFacilities.slots.findIndex(slot => slot.slotNumber === slotNumber);
+  if (slotIndex === -1) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Invalid slot number' 
+    });
+  }
+  
+  const slot = minorFacilities.slots[slotIndex];
+  
+  if (!slot.facilityName) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Slot is already empty' 
+    });
+  }
+  
+  // Clear the slot (free operation, no transaction)
+  slot.facilityName = '';
+  slot.facilityDescription = '';
+  
+  writeMinorFacilitiesSlots(minorFacilities);
+  
+  // Broadcast SSE update
+  broadcastSSE('facilities-minor-slots', { action: 'update', minorFacilities });
+  
+  res.json({ success: true, minorFacilities });
 });
 
 // Factions API endpoints
@@ -1838,11 +3380,12 @@ app.get('/api/pilots', requireAnyAuth, (req, res) => {
 });
 
 app.post('/api/pilots', requireAdminAuth, (req, res) => {
-  // Read manna data for transaction validation
+  // Read manna data for transaction validation and reserves for reserve validation
   const manna = readManna();
+  const reserves = readReserves();
   
   // Validate pilot data
-  const validation = validatePilotData(req.body, manna);
+  const validation = validatePilotData(req.body, manna, reserves);
   if (!validation.valid) {
     return res.status(400).json({ success: false, message: validation.message });
   }
@@ -1853,11 +3396,12 @@ app.post('/api/pilots', requireAdminAuth, (req, res) => {
     name: validation.name,
     callsign: validation.callsign,
     ll: validation.ll,
-    reserves: validation.reserves,
+    notes: validation.notes,
     active: validation.active,
     relatedJobs: [],
     personalOperationProgress: validation.personalOperationProgress,
-    personalTransactions: validation.personalTransactions
+    personalTransactions: validation.personalTransactions,
+    reserves: validation.reserves
   };
   pilots.push(newPilot);
   writePilots(pilots);
@@ -1880,11 +3424,12 @@ app.put('/api/pilots/:id', requireAdminAuth, (req, res) => {
     return res.status(404).json({ success: false, message: 'Pilot not found' });
   }
   
-  // Read manna data for transaction validation
+  // Read manna data for transaction validation and reserves for reserve validation
   const manna = readManna();
+  const reserves = readReserves();
   
   // Validate pilot data
-  const validation = validatePilotData(req.body, manna);
+  const validation = validatePilotData(req.body, manna, reserves);
   if (!validation.valid) {
     return res.status(400).json({ success: false, message: validation.message });
   }
@@ -1894,11 +3439,12 @@ app.put('/api/pilots/:id', requireAdminAuth, (req, res) => {
     name: validation.name,
     callsign: validation.callsign,
     ll: validation.ll,
-    reserves: validation.reserves,
+    notes: validation.notes,
     active: validation.active,
     relatedJobs: validation.relatedJobs,
     personalOperationProgress: validation.personalOperationProgress,
-    personalTransactions: validation.personalTransactions
+    personalTransactions: validation.personalTransactions,
+    reserves: validation.reserves
   };
   writePilots(pilots);
   
@@ -1923,7 +3469,7 @@ app.delete('/api/pilots/:id', requireAdminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Update pilot reserves only (CLIENT-side endpoint)
+// Update pilot notes only (CLIENT-side endpoint)
 app.put('/api/pilots/:id/reserves', requireAnyAuth, (req, res) => {
   const pilots = readPilots();
   const index = pilots.findIndex(p => p.id === req.params.id);
@@ -1932,14 +3478,178 @@ app.put('/api/pilots/:id/reserves', requireAnyAuth, (req, res) => {
     return res.status(404).json({ success: false, message: 'Pilot not found' });
   }
   
-  // Update only reserves field
-  pilots[index].reserves = (req.body.reserves || '').trim();
+  // Update only notes field (keeping endpoint name for backwards compatibility)
+  pilots[index].notes = (req.body.reserves || req.body.notes || '').trim();
   writePilots(pilots);
   
   // Broadcast SSE update
   broadcastSSE('pilots', { action: 'update', pilot: pilots[index], pilots });
   
   res.json({ success: true, pilot: pilots[index] });
+});
+
+// Update pilot reserves management (ADMIN-side endpoint)
+app.put('/api/pilots/:id/reserves-management', requireAdminAuth, (req, res) => {
+  const pilots = readPilots();
+  const reserves = readReserves();
+  const index = pilots.findIndex(p => p.id === req.params.id);
+  
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Pilot not found' });
+  }
+  
+  // Validate reserves array
+  if (!req.body.reserves) {
+    return res.status(400).json({ success: false, message: 'Reserves array is required' });
+  }
+  
+  if (!Array.isArray(req.body.reserves)) {
+    return res.status(400).json({ success: false, message: 'Reserves must be an array' });
+  }
+  
+  // Validate reserve objects
+  const validation = helpers.validatePilotReserves(req.body.reserves, reserves);
+  if (!validation.valid) {
+    return res.status(400).json({ success: false, message: validation.message });
+  }
+  
+  // Update pilot reserves
+  pilots[index].reserves = validation.value;
+  writePilots(pilots);
+  
+  // Enrich pilot with balance for SSE broadcast
+  const manna = readManna();
+  const enrichedPilot = enrichPilotsWithBalance([pilots[index]], manna)[0];
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilot: enrichedPilot, pilots: enrichPilotsWithBalance(pilots, manna) });
+  
+  res.json({ success: true, pilot: enrichedPilot });
+});
+
+// Cycle reserve deployment status (CLIENT-side endpoint)
+app.put('/api/pilots/:pilotId/reserves/:reserveId/cycle', requireClientAuth, (req, res) => {
+  const pilots = readPilots();
+  const pilotIndex = pilots.findIndex(p => p.id === req.params.pilotId);
+  
+  if (pilotIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Pilot not found' });
+  }
+  
+  const pilot = pilots[pilotIndex];
+  const reserveIndex = (pilot.reserves || []).findIndex(r => r.reserveId === req.params.reserveId);
+  
+  if (reserveIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Reserve not found for this pilot' });
+  }
+  
+  // Validate new deployment status
+  const newStatus = req.body.deploymentStatus;
+  const statusValidation = helpers.validateDeploymentStatus(newStatus);
+  if (!statusValidation.valid) {
+    return res.status(400).json({ success: false, message: statusValidation.message });
+  }
+  
+  // Update deployment status
+  pilots[pilotIndex].reserves[reserveIndex].deploymentStatus = statusValidation.value;
+  writePilots(pilots);
+  
+  // Enrich pilot with balance for SSE broadcast
+  const manna = readManna();
+  const enrichedPilot = enrichPilotsWithBalance([pilots[pilotIndex]], manna)[0];
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilot: enrichedPilot, pilots: enrichPilotsWithBalance(pilots, manna) });
+  
+  res.json({ success: true, pilot: enrichedPilot });
+});
+
+// Transfer reserve to another pilot (CLIENT-side endpoint)
+app.post('/api/pilots/:pilotId/reserves/:reserveId/transfer', requireClientAuth, (req, res) => {
+  const pilots = readPilots();
+  const sourcePilotIndex = pilots.findIndex(p => p.id === req.params.pilotId);
+  
+  if (sourcePilotIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Source pilot not found' });
+  }
+  
+  const targetPilotId = req.body.targetPilotId;
+  if (!targetPilotId) {
+    return res.status(400).json({ success: false, message: 'Target pilot ID is required' });
+  }
+  
+  const targetPilotIndex = pilots.findIndex(p => p.id === targetPilotId);
+  if (targetPilotIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Target pilot not found' });
+  }
+  
+  // Cannot transfer to self
+  if (sourcePilotIndex === targetPilotIndex) {
+    return res.status(400).json({ success: false, message: 'Cannot transfer reserve to the same pilot' });
+  }
+  
+  const sourcePilot = pilots[sourcePilotIndex];
+  const targetPilot = pilots[targetPilotIndex];
+  
+  // Find reserve in source pilot
+  const reserveIndex = (sourcePilot.reserves || []).findIndex(r => r.reserveId === req.params.reserveId);
+  
+  if (reserveIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Reserve not found for source pilot' });
+  }
+  
+  // Remove from source pilot
+  const reserveToTransfer = sourcePilot.reserves.splice(reserveIndex, 1)[0];
+  
+  // Add to target pilot (ensure reserves array exists)
+  if (!targetPilot.reserves) {
+    targetPilot.reserves = [];
+  }
+  targetPilot.reserves.push(reserveToTransfer);
+  
+  // Save changes
+  writePilots(pilots);
+  
+  // Enrich pilots with balance for SSE broadcast
+  const manna = readManna();
+  const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+  
+  res.json({ success: true });
+});
+
+// Remove reserve from pilot (CLIENT-side endpoint)
+app.delete('/api/pilots/:pilotId/reserves/:reserveId', requireClientAuth, (req, res) => {
+  const pilots = readPilots();
+  const pilotIndex = pilots.findIndex(p => p.id === req.params.pilotId);
+  
+  if (pilotIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Pilot not found' });
+  }
+  
+  const pilot = pilots[pilotIndex];
+  const reserveIndex = (pilot.reserves || []).findIndex(r => r.reserveId === req.params.reserveId);
+  
+  if (reserveIndex === -1) {
+    return res.status(404).json({ success: false, message: 'Reserve not found for this pilot' });
+  }
+  
+  // Remove reserve
+  pilot.reserves.splice(reserveIndex, 1);
+  
+  // Save changes
+  writePilots(pilots);
+  
+  // Enrich pilot with balance for SSE broadcast
+  const manna = readManna();
+  const enrichedPilot = enrichPilotsWithBalance([pilots[pilotIndex]], manna)[0];
+  
+  // Broadcast SSE update
+  broadcastSSE('pilots', { action: 'update', pilot: enrichedPilot, pilots: enrichPilotsWithBalance(pilots, manna) });
+  
+  res.json({ success: true });
 });
 
 // Get pilot balance and transaction history
@@ -2024,6 +3734,197 @@ app.put('/api/pilots/:id/personal-transactions', requireAdminAuth, (req, res) =>
   
   // Return enriched pilot with balance in response
   res.json({ success: true, pilot: enrichedPilot });
+});
+
+// Procurement purchase endpoint
+app.post('/api/procurement/purchase', requireClientAuth, async (req, res) => {
+  // Acquire lock to prevent race conditions
+  await fileMutex.acquire('procurement-purchase');
+  
+  try {
+    const { itemId, itemType, expensePilots, assignee } = req.body;
+  
+    // Validate inputs
+    if (!itemId || !itemType || !Array.isArray(expensePilots) || expensePilots.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid purchase request: missing required fields' 
+      });
+    }
+    
+    // Validate item type
+    if (itemType !== 'reserve' && itemType !== 'resupply') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid item type' 
+      });
+    }
+    
+    // Assignee is now required for both reserve and resupply items
+    if (!assignee) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Assignee is required for all purchases' 
+      });
+    }
+    
+    // Load data
+    const reserves = readReserves();
+    const storeConfig = readStoreConfig();
+    const pilots = readPilots();
+    const manna = readManna();
+    
+    // Get item details
+    let item;
+    let itemName;
+    
+    if (itemType === 'resupply') {
+      item = storeConfig.resupplyItems.find(i => i.id === itemId);
+      if (!item || !item.enabled) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Resupply item not found or not available' 
+        });
+      }
+      itemName = item.name;
+    } else {
+      // Validate reserve is in stock
+      if (!storeConfig.currentStock.includes(itemId)) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Reserve not in stock' 
+        });
+      }
+      
+      item = reserves.find(r => r.id === itemId);
+      if (!item) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Reserve not found' 
+        });
+      }
+      itemName = item.name;
+    }
+    
+    // Validate all expense pilots exist
+    const invalidPilots = expensePilots.filter(id => !pilots.find(p => p.id === id));
+    if (invalidPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid pilot IDs in expense list' 
+      });
+    }
+    
+    // Validate assignee exists (assignee may be any pilot, not limited to expensePilots)
+    const assigneePilot = pilots.find(p => p.id === assignee);
+    if (!assigneePilot) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid assignee pilot ID' 
+      });
+    }
+    
+    // Validate item price is a positive, finite number
+    const price = Number(item.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid item price: must be a positive number'
+      });
+    }
+    
+    // Calculate cost per pilot (rounded up)
+    const costPerPilot = Math.ceil(price / expensePilots.length);
+    
+    // Verify all pilots have sufficient balance
+    const insufficientPilots = [];
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        const balance = helpers.calculatePilotBalance(pilot, manna.transactions);
+        if (balance < costPerPilot) {
+          insufficientPilots.push(pilot.name);
+        }
+      }
+    });
+    
+    if (insufficientPilots.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient funds for: ${insufficientPilots.join(', ')}` 
+      });
+    }
+    
+    // Create one transaction instead of multiple
+    const now = new Date().toISOString();
+    const transaction = {
+      id: helpers.generateId(),
+      date: now,
+      amount: -costPerPilot,
+      description: `Purchased ${itemName} for ${assigneePilot.name}`
+    };
+    
+    manna.transactions.push(transaction);
+    
+    // Add transaction to all expense pilots' personal transactions
+    expensePilots.forEach(pilotId => {
+      const pilot = pilots.find(p => p.id === pilotId);
+      if (pilot) {
+        if (!pilot.personalTransactions) {
+          pilot.personalTransactions = [];
+        }
+        pilot.personalTransactions.push(transaction.id);
+      }
+    });
+    
+    // For reserve items, assign to assignee with default "In Reserve" status and remove from stock
+    if (itemType === 'reserve') {
+      if (!assigneePilot.reserves) {
+        assigneePilot.reserves = [];
+      }
+      // Add reserve as object with default "In Reserve" deployment status
+      assigneePilot.reserves.push({
+        reserveId: itemId,
+        deploymentStatus: 'In Reserve'
+      });
+      
+      // Remove from stock (first occurrence)
+      const stockIndex = storeConfig.currentStock.indexOf(itemId);
+      if (stockIndex !== -1) {
+        storeConfig.currentStock.splice(stockIndex, 1);
+      }
+    }
+    
+    // Save changes
+    writeManna(manna);
+    writePilots(pilots);
+    writeStoreConfig(storeConfig);
+    
+    // Calculate balances for SSE broadcast
+    const balances = calculateBalancesFromPilots();
+    
+    // Enrich pilots with balance data
+    const enrichedPilots = enrichPilotsWithBalance(pilots, manna);
+    
+    // Broadcast SSE updates
+    broadcastSSE('manna', { action: 'transaction', manna, balances });
+    broadcastSSE('pilots', { action: 'update', pilots: enrichedPilots });
+    // Always broadcast store-config when a purchase modifies storeConfig
+    broadcastSSE('store-config', { action: 'update', storeConfig });
+    if (itemType === 'reserve') {
+      // Also broadcast reserves-specific update so all reserves listeners stay in sync
+      broadcastSSE('reserves', { action: 'update', pilots: enrichedPilots, storeConfig });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Purchase completed successfully',
+      transactionId: transaction.id
+    });
+  } finally {
+    // Always release the lock
+    fileMutex.release('procurement-purchase');
+  }
 });
 
 // Progress all jobs endpoint

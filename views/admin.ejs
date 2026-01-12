@@ -226,6 +226,7 @@
     .job-item-field {
       margin-bottom: 8px;
       color: #b0b0b0;
+      white-space: pre-line;
     }
     
     .job-item-field strong {
@@ -239,6 +240,16 @@
     .rank-display {
       color: #FFD700;
       font-size: 18px;
+      font-family: Arial, sans-serif;
+      white-space: nowrap;
+      display: inline-flex;
+      gap: 0;
+    }
+    
+    .rank-display .star {
+      display: inline-block;
+      width: 1em;
+      text-align: center;
     }
     
     .modal {
@@ -493,27 +504,194 @@
       display: block;
     }
     
-    .module-grid {
+    .facility-grid {
       display: grid;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 15px;
+      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     }
     
-    .module-item {
+    .facility-card {
       border: 1px solid #444;
-      padding: 10px;
-      border-radius: 3px;
+      padding: 15px;
+      border-radius: 5px;
       background-color: #1a1a1a;
     }
     
-    .module-item h4 {
+    .facility-card.disabled-facility {
+      opacity: 0.4;
+    }
+    
+    .facility-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .facility-header h4 {
       color: #66BB6A;
+      margin: 0;
+      font-size: 16px;
+    }
+    
+    .facility-price {
+      color: #FFD54F;
+      font-size: 14px;
       margin-bottom: 8px;
+      font-weight: bold;
+    }
+    
+    .facility-description {
+      color: #b0b0b0;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+    
+    .purchased-toggle,
+    .enabled-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #b0b0b0;
+    }
+    
+    .purchased-toggle input,
+    .enabled-toggle input {
+      cursor: pointer;
+    }
+    
+    .upgrades-section {
+      border-top: 1px solid #333;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+    
+    .upgrades-section h5 {
+      color: #e0e0e0;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .upgrade-item {
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+      border-radius: 3px;
+      margin-bottom: 10px;
+    }
+    
+    .upgrade-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .upgrade-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    
+    .upgrade-info strong {
+      color: #e0e0e0;
       font-size: 13px;
     }
     
-    .module-item.disabled-module {
-      opacity: 0.4;
+    .upgrade-price {
+      color: #FFD54F;
+      font-size: 12px;
+    }
+    
+    .upgrade-description {
+      color: #b0b0b0;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    
+    .upgrade-count {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #b0b0b0;
+    }
+    
+    .upgrade-count-input {
+      width: 50px;
+      padding: 4px;
+      border: 1px solid #444;
+      border-radius: 3px;
+      background-color: #2a2a2a;
+      color: #e0e0e0;
+      text-align: center;
+    }
+    
+    .assigned-facility h5 {
+      color: #66BB6A;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .empty-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .minor-slot.disabled-facility .btn {
+      display: none;
+    }
+    
+    .minor-facility-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #0a0a0a;
+      border-radius: 5px;
+    }
+    
+    .minor-facility-option {
+      border: 2px solid #444;
+      padding: 12px;
+      border-radius: 5px;
+      background-color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .minor-facility-option:hover {
+      border-color: #66BB6A;
+      background-color: #2a2a2a;
+    }
+    
+    .minor-facility-option h4 {
+      color: #66BB6A;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .minor-facility-option .facility-price {
+      color: #FFD54F;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    
+    .minor-facility-option p {
+      color: #b0b0b0;
+      font-size: 12px;
+      line-height: 1.4;
     }
     
     .manna-display {
@@ -591,6 +769,7 @@
     <button class="tab-button" onclick="switchTab('base', event)">Base Config</button>
     <button class="tab-button" onclick="switchTab('pilots', event)">Pilot Config</button>
     <button class="tab-button" onclick="switchTab('factions', event)">Faction Config</button>
+    <button class="tab-button" onclick="switchTab('store', event)">Store Config</button>
   </div>
 
   <!-- Overview Tab -->
@@ -639,13 +818,6 @@
         </div>
         
         <div class="form-group">
-          <label for="settingsOpenTable" style="display: inline-block; font-weight: normal; margin-bottom: 0;">
-            Open Table (Show pilot personal operation progress)
-          </label>
-          <input type="checkbox" id="settingsOpenTable" name="openTable" value="true" <%= settings.openTable ? 'checked' : '' %> style="width: auto; margin-left: 10px; vertical-align: middle;">
-        </div>
-        
-        <div class="form-group">
           <label for="settingsClientPassword">Pilot Password (CLIENT Mode Access)</label>
           <input type="text" id="settingsClientPassword" name="clientPassword" value="<%= settings.clientPassword || '' %>" placeholder="Alphanumeric only, empty for no password" pattern="[A-Za-z0-9]*">
           <small style="display: block; color: #b0b0b0; margin-top: 5px;">Only alphanumeric characters allowed. Leave empty to allow access without password.</small>
@@ -655,6 +827,13 @@
           <label for="settingsAdminPassword">Admin Password (ADMIN Mode Access)</label>
           <input type="text" id="settingsAdminPassword" name="adminPassword" value="<%= settings.adminPassword || '' %>" placeholder="Alphanumeric only, empty for no password" pattern="[A-Za-z0-9]*">
           <small style="display: block; color: #b0b0b0; margin-top: 5px;">Only alphanumeric characters allowed. Leave empty to allow access without password.</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="settingsOpenTable" style="display: inline-block; font-weight: normal; margin-bottom: 0;">
+            Open Table (Show pilot personal operation progress)
+          </label>
+          <input type="checkbox" id="settingsOpenTable" name="openTable" value="true" <%= settings.openTable ? 'checked' : '' %> style="width: auto; margin-left: 10px; vertical-align: middle;">
         </div>
         
         <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -920,8 +1099,8 @@
           <div class="job-item-field">
             <strong>Rank:</strong> 
             <span class="rank-display">
-              <% for(let i = 0; i < job.rank; i++) { %>★<% } %>
-              <% for(let i = job.rank; i < 3; i++) { %>☆<% } %>
+              <% for(let i = 0; i < job.rank; i++) { %><span class="star">★</span><% } %>
+              <% for(let i = job.rank; i < 3; i++) { %><span class="star">☆</span><% } %>
             </span>
           </div>
           <div class="job-item-field"><strong>Faction:</strong> <%= job.faction ? job.faction.title : 'FIELD_NULL' %></div>
@@ -1054,82 +1233,162 @@
   <!-- Base Tab -->
   <div id="base-tab" class="tab-content">
     <div class="settings-section">
-      <h2>Base Module Configuration</h2>
-      <p style="color: #b0b0b0; margin-bottom: 20px;">Configure the 15 base modules (3 Core, 6 Major, 6 Minor). Last 2 Minor modules are disabled by default.</p>
-      <form id="baseForm">
-        <button type="submit" class="btn btn-primary" style="margin-bottom: 20px;">Save Base Configuration</button>
-        <h3 style="color: #e0e0e0; margin-bottom: 15px;">Core Modules (3)</h3>
-        <div class="module-grid">
-          <% for (let i = 0; i < 3; i++) { %>
-            <div class="module-item">
-              <h4>Core Module <%= i + 1 %></h4>
-              <div class="form-group">
-                <label>Title</label>
-                <input type="text" name="modules[<%= i %>][title]" value="<%= base.modules[i].title %>" placeholder="Optional">
-              </div>
-              <div class="form-group">
-                <label>Description</label>
-                <textarea name="modules[<%= i %>][description]" placeholder="Optional"><%= base.modules[i].description %></textarea>
-              </div>
-              <input type="hidden" name="modules[<%= i %>][type]" value="Core">
-              <input type="hidden" name="modules[<%= i %>][disabled]" value="false">
-            </div>
-          <% } %>
+      <h2>Base Facility Configuration</h2>
+      <p style="color: #b0b0b0; margin-bottom: 20px;">Configure base facilities (3 Core, 6 Major, 6 Minor slots). Manage facility purchases, upgrades, and slot assignments.</p>
+      
+      <!-- Facility Cost Modifier Section -->
+      <div class="form-group" style="margin-bottom: 30px; max-width: 500px;">
+        <label for="facilityCostModifier">Facility Cost Modifier</label>
+        <p style="color: #999; font-size: 12px; margin: 5px 0 10px 0;">Prices are tuned for 4 players. Recommended to add or take 20% for each extra or missing player respectively.</p>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input type="number" 
+                 id="facilityCostModifier" 
+                 name="facilityCostModifier" 
+                 value="<%= settings.facilityCostModifier || 0 %>" 
+                 min="-100" 
+                 max="300" 
+                 step="5"
+                 style="width: 100px;">
+          <span style="color: #e0e0e0;">%</span>
+          <button type="button" class="btn" onclick="updateFacilityCostModifier()" style="margin-left: 10px;">Update Modifier</button>
         </div>
-        
-        <h3 style="color: #e0e0e0; margin: 20px 0 15px;">Major Modules (6)</h3>
-        <div class="module-grid">
-          <% for (let i = 3; i < 9; i++) { %>
-            <div class="module-item">
-              <h4>Major Module <%= i - 2 %></h4>
-              <div class="form-group">
-                <label>Title</label>
-                <input type="text" name="modules[<%= i %>][title]" value="<%= base.modules[i].title %>" placeholder="Optional">
-              </div>
-              <div class="form-group">
-                <label>Description</label>
-                <textarea name="modules[<%= i %>][description]" placeholder="Optional"><%= base.modules[i].description %></textarea>
-              </div>
-              <input type="hidden" name="modules[<%= i %>][type]" value="Major">
-              <input type="hidden" name="modules[<%= i %>][disabled]" value="false">
+      </div>
+      
+      <!-- Core Facilities Section -->
+      <h3 style="color: #e0e0e0; margin-bottom: 15px;">Core Facilities (3)</h3>
+      <div class="facility-grid">
+        <% coreMajorFacilities.slice(0, 3).forEach((facility, index) => { %>
+          <div class="facility-card" data-facility-index="<%= index %>">
+            <div class="facility-header">
+              <h4><%= facility.facilityName %></h4>
+              <label class="purchased-toggle">
+                <input type="checkbox" 
+                       <%= facility.isPurchased ? 'checked' : '' %> 
+                       disabled
+                       title="Core facilities are always purchased">
+                <span>Purchased</span>
+              </label>
             </div>
-          <% } %>
-        </div>
-        
-        <h3 style="color: #e0e0e0; margin: 20px 0 15px;">Minor Modules (6 - last 2 can be enabled/disabled)</h3>
-        <div class="module-grid">
-          <% for (let i = 9; i < 15; i++) { %>
-            <% if (i >= 13) { %>
-              <div style="grid-column: span 1; margin-bottom: 10px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 3px;">
-                  <input type="checkbox" name="modules[<%= i %>][enabled]" <%= !base.modules[i].disabled ? 'checked' : '' %> onchange="toggleMinorModule(this, <%= i %>)" style="cursor: pointer;">
-                  <span style="color: #e0e0e0;">Enable Minor Module <%= i - 8 %></span>
-                </label>
+            <p class="facility-description"><%= facility.facilityDescription %></p>
+            
+            <% if (facility.upgrades && facility.upgrades.length > 0) { %>
+              <div class="upgrades-section">
+                <h5>Upgrades</h5>
+                <% facility.upgrades.forEach((upgrade, upgradeIndex) => { %>
+                  <div class="upgrade-item">
+                    <div class="upgrade-info">
+                      <strong><%= upgrade.upgradeName %></strong>
+                      <span class="upgrade-price"><%= upgrade.upgradePrice %><img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></span>
+                    </div>
+                    <p class="upgrade-description"><%= upgrade.upgradeDescription %></p>
+                    <div class="upgrade-count">
+                      <label>Purchased:</label>
+                      <input type="number" 
+                             class="upgrade-count-input"
+                             value="<%= upgrade.upgradeCount %>"
+                             min="0"
+                             max="<%= upgrade.maxPurchases %>"
+                             data-facility-index="<%= index %>"
+                             data-upgrade-index="<%= upgradeIndex %>"
+                             onchange="updateUpgradeCount(this)">
+                      <span>/ <%= upgrade.maxPurchases %></span>
+                    </div>
+                  </div>
+                <% }); %>
               </div>
             <% } %>
-            <div class="module-item <%= base.modules[i].disabled ? 'disabled-module' : '' %>">
-              <h4>Minor Module <%= i - 8 %> <%= base.modules[i].disabled ? '(DISABLED)' : '' %></h4>
-              <div id="module-<%= i %>-fields" style="<%= base.modules[i].disabled ? 'display: none;' : '' %>">
-                <div class="form-group">
-                  <label>Title</label>
-                  <input type="text" name="modules[<%= i %>][title]" value="<%= base.modules[i].title %>" placeholder="Optional" <%= base.modules[i].disabled ? 'disabled' : '' %>>
-                </div>
-                <div class="form-group">
-                  <label>Description</label>
-                  <textarea name="modules[<%= i %>][description]" placeholder="Optional" <%= base.modules[i].disabled ? 'disabled' : '' %>><%= base.modules[i].description %></textarea>
-                </div>
-              </div>
-              <% if (base.modules[i].disabled && i >= 13) { %>
-                <p style="color: #666; text-align: center; padding: 20px;">This module slot is disabled</p>
-              <% } %>
-              <input type="hidden" name="modules[<%= i %>][type]" value="Minor">
-              <input type="hidden" id="module-<%= i %>-disabled" name="modules[<%= i %>][disabled]" value="<%= base.modules[i].disabled %>">
+          </div>
+        <% }); %>
+      </div>
+      
+      <!-- Major Facilities Section -->
+      <h3 style="color: #e0e0e0; margin: 20px 0 15px;">Major Facilities (6)</h3>
+      <div class="facility-grid">
+        <% coreMajorFacilities.slice(3, 9).forEach((facility, localIndex) => { 
+           const index = localIndex + 3;
+        %>
+          <div class="facility-card" data-facility-index="<%= index %>">
+            <div class="facility-header">
+              <h4><%= facility.facilityName %></h4>
+              <label class="purchased-toggle">
+                <input type="checkbox" 
+                       <%= facility.isPurchased ? 'checked' : '' %>
+                       data-facility-index="<%= index %>"
+                       onchange="toggleFacilityPurchased(this)">
+                <span>Purchased</span>
+              </label>
             </div>
-          <% } %>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">Save Base Configuration</button>
-      </form>
+            <div class="facility-price">Price: <%= facility.facilityPrice %><img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></div>
+            <p class="facility-description"><%= facility.facilityDescription %></p>
+            
+            <% if (facility.upgrades && facility.upgrades.length > 0) { %>
+              <div class="upgrades-section">
+                <h5>Upgrades</h5>
+                <% facility.upgrades.forEach((upgrade, upgradeIndex) => { %>
+                  <div class="upgrade-item">
+                    <div class="upgrade-info">
+                      <strong><%= upgrade.upgradeName %></strong>
+                      <span class="upgrade-price"><%= upgrade.upgradePrice %><img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></span>
+                    </div>
+                    <p class="upgrade-description"><%= upgrade.upgradeDescription %></p>
+                    <div class="upgrade-count">
+                      <label>Purchased:</label>
+                      <input type="number" 
+                             class="upgrade-count-input"
+                             value="<%= upgrade.upgradeCount %>"
+                             min="0"
+                             max="<%= upgrade.maxPurchases %>"
+                             data-facility-index="<%= index %>"
+                             data-upgrade-index="<%= upgradeIndex %>"
+                             onchange="updateUpgradeCount(this)">
+                      <span>/ <%= upgrade.maxPurchases %></span>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+            <% } %>
+          </div>
+        <% }); %>
+      </div>
+      
+      <!-- Minor Facilities Section -->
+      <h3 style="color: #e0e0e0; margin: 20px 0 15px;">Minor Facility Slots (6)</h3>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Last 2 slots can be enabled/disabled. Click "Assign" to select from available minor facilities.</p>
+      <div class="facility-grid">
+        <% minorFacilitiesSlots.slots.forEach((slot, slotIndex) => { %>
+          <div class="facility-card minor-slot <%= !slot.enabled ? 'disabled-facility' : '' %>" data-slot-number="<%= slot.slotNumber %>">
+            <div class="facility-header">
+              <h4>Minor Slot <%= slot.slotNumber %></h4>
+              <% if (slotIndex >= 4) { %>
+                <label class="enabled-toggle">
+                  <input type="checkbox" 
+                         <%= slot.enabled ? 'checked' : '' %>
+                         data-slot-number="<%= slot.slotNumber %>"
+                         onchange="toggleMinorSlotEnabled(this)">
+                  <span>Enabled</span>
+                </label>
+              <% } %>
+            </div>
+            
+            <% if (slot.enabled) { %>
+              <% if (slot.facilityName) { %>
+                <div class="assigned-facility">
+                  <h5><%= slot.facilityName %></h5>
+                  <p class="facility-description"><%= slot.facilityDescription %></p>
+                  <button class="btn btn-delete btn-sm" onclick="clearMinorSlot(<%= slot.slotNumber %>)">Clear Slot</button>
+                </div>
+              <% } else { %>
+                <div class="empty-slot">
+                  <p style="color: #888; text-align: center; padding: 20px;">No facility assigned</p>
+                  <button class="btn btn-primary btn-sm" onclick="openMinorFacilityAssignModal(<%= slot.slotNumber %>)">Assign Facility</button>
+                </div>
+              <% } %>
+            <% } else { %>
+              <p style="color: #666; text-align: center; padding: 20px;">This slot is disabled</p>
+            <% } %>
+          </div>
+        <% }); %>
+      </div>
     </div>
   </div>
 
@@ -1154,8 +1413,8 @@
         </div>
         
         <div class="form-group">
-          <label for="pilotReserves">Reserves (multiline)</label>
-          <textarea id="pilotReserves" name="reserves" rows="4" placeholder="Optional"></textarea>
+          <label for="pilotNotes">Notes (multiline)</label>
+          <textarea id="pilotNotes" name="notes" rows="4" placeholder="Optional"></textarea>
         </div>
         
         <div class="form-group" id="addPilotPersonalOperationProgressGroup" style="display: <%= settings.openTable ? 'block' : 'none' %>">
@@ -1202,8 +1461,8 @@
                 <span class="pilot-balance" data-pilot-id="<%= pilot.id %>"><%= pilot.balance || 0 %></span>
                 <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon">
               </div>
-              <% if (pilot.reserves) { %>
-                <div class="job-item-field"><strong>Reserves:</strong><br><pre style="margin: 5px 0; font-family: inherit; white-space: pre-wrap;"><%= pilot.reserves %></pre></div>
+              <% if (pilot.notes) { %>
+                <div class="job-item-field"><strong>Notes:</strong><br><pre style="margin: 5px 0; font-family: inherit; white-space: pre-wrap;"><%= pilot.notes %></pre></div>
               <% } %>
               <div class="job-item-field">
                 <strong>Related Jobs:</strong> <%= (pilot.relatedJobs || []).length %> job(s)
@@ -1215,6 +1474,7 @@
                 <button class="btn btn-edit" onclick="editPilot('<%= pilot.id %>')">Edit</button>
                 <button class="btn btn-neutral" onclick="openPilotRelatedJobsModal('<%= pilot.id %>')">Related Jobs</button>
                 <button class="btn btn-neutral" onclick="openPilotBalanceHistoryModal('<%= pilot.id %>')">Balance History</button>
+                <button class="btn btn-neutral" onclick="openPilotReservesModal('<%= pilot.id %>')">Edit Reserves</button>
                 <button class="btn btn-delete" onclick="deletePilot('<%= pilot.id %>')">Delete</button>
               </div>
             </div>
@@ -1462,8 +1722,8 @@
         </div>
         
         <div class="form-group">
-          <label for="editPilotReserves">Reserves (multiline)</label>
-          <textarea id="editPilotReserves" name="reserves" rows="4"></textarea>
+          <label for="editPilotNotes">Notes (multiline)</label>
+          <textarea id="editPilotNotes" name="notes" rows="4"></textarea>
         </div>
         
         <div class="form-group" id="editPilotPersonalOperationProgressGroup" style="display: <%= settings.openTable ? 'block' : 'none' %>">
@@ -1531,6 +1791,67 @@
     </div>
   </div>
   
+  <!-- Pilot Reserves Modal -->
+  <div id="pilotReservesModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Pilot Reserves</h2>
+        <span class="close" onclick="closePilotReservesModal()">&times;</span>
+      </div>
+      <input type="hidden" id="pilotReservesModalPilotId">
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Manage reserves owned by this pilot. Click cards to select/deselect.</p>
+      
+      <!-- Reserve Action Buttons -->
+      <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-neutral" onclick="setSelectedReservesStatus('In Reserve')" id="setInReserveBtn" disabled>Set to In Reserve</button>
+        <button class="btn btn-neutral" onclick="setSelectedReservesStatus('Deployed')" id="setDeployedBtn" disabled>Set to Deployed</button>
+        <button class="btn btn-neutral" onclick="setSelectedReservesStatus('Expended')" id="setExpendedBtn" disabled>Set to Expended</button>
+        <button class="btn btn-delete" onclick="removeSelectedReservesFromPilot()" id="removeReservesBtn" disabled>Remove Reserve</button>
+        <button class="btn btn-primary" onclick="openAddReservesToPilotModal()">Add Reserve</button>
+      </div>
+      
+      <!-- Pilot Reserves Grid -->
+      <div id="pilotReservesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; min-height: 100px; max-height: 500px; overflow-y: auto; border: 1px solid #444; padding: 15px; border-radius: 3px; background-color: #1a1a1a;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add Reserves to Pilot Modal (Sub-modal) -->
+  <div id="addReservesToPilotModal" class="modal">
+    <div class="modal-content" style="max-width: 1200px;">
+      <div class="modal-header">
+        <h2>Add Reserves to Pilot</h2>
+        <span class="close" onclick="closeAddReservesToPilotModal()">&times;</span>
+      </div>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Select reserves to add to this pilot. Click cards to select/deselect.</p>
+      
+      <div style="margin-bottom: 15px;">
+        <button class="btn btn-primary" onclick="addSelectedStockReservesToPilot()" id="addStockReservesBtn" disabled>Add Selected to Pilot</button>
+      </div>
+      
+      <!-- Filter Pills -->
+      <div class="filter-pills" style="margin-bottom: 15px;">
+        <button class="filter-pill active" data-rank="all" onclick="filterPilotAddReserves('all', event)" id="pilotAddFilterAll">All</button>
+        <button class="filter-pill" data-rank="1" onclick="filterPilotAddReserves('1', event)" id="pilotAddFilterRank1">Rank 1</button>
+        <button class="filter-pill" data-rank="2" onclick="filterPilotAddReserves('2', event)" id="pilotAddFilterRank2">Rank 2</button>
+        <button class="filter-pill" data-rank="3" onclick="filterPilotAddReserves('3', event)" id="pilotAddFilterRank3">Rank 3</button>
+        <button class="filter-pill" data-hide-default="false" onclick="togglePilotAddHideDefault(event)" id="pilotAddHideDefaultPill">Hide Default Reserves</button>
+      </div>
+      
+      <!-- Search Field -->
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label for="pilotAddReserveSearchInput">Search Reserves</label>
+        <input type="text" id="pilotAddReserveSearchInput" placeholder="Search by name..." oninput="searchPilotAddReserves(this.value)" style="max-width: 400px;">
+      </div>
+      
+      <!-- Available Reserves Grid -->
+      <div id="addReservesStockGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; min-height: 100px; max-height: 500px; overflow-y: auto; border: 1px solid #444; padding: 15px; border-radius: 3px; background-color: #1a1a1a;">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+  
   <!-- Faction Related Jobs Modal -->
   <div id="factionRelatedJobsModal" class="modal">
     <div class="modal-content">
@@ -1594,6 +1915,235 @@
       </div>
     </div>
   </div>
+
+  <!-- Minor Facility Assignment Modal -->
+  <div id="minorFacilityAssignModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2>Assign Minor Facility to Slot <span id="assignModalSlotNumber"></span></h2>
+        <span class="close" onclick="closeMinorFacilityAssignModal()">&times;</span>
+      </div>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Select a minor facility to assign to this slot. Already assigned facilities are not shown.</p>
+      <div id="minorFacilityGrid" class="minor-facility-selection-grid">
+        <!-- Populated dynamically -->
+      </div>
+      <div style="margin-top: 20px;">
+        <button class="btn btn-neutral" onclick="closeMinorFacilityAssignModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Store Config Tab -->
+  <div id="store-tab" class="tab-content">
+    <!-- Resupply Item Settings Section -->
+    <div class="settings-section">
+      <h2>Resupply Item Settings</h2>
+      <p style="color: #b0b0b0; margin-bottom: 20px;">Configure pricing and availability for static resupply items.</p>
+      <form id="resupplyItemsForm">
+        <% if (storeConfig && storeConfig.resupplyItems) { %>
+          <% storeConfig.resupplyItems.forEach((item, index) => { %>
+            <div style="border: 1px solid #444; padding: 15px; margin-bottom: 15px; border-radius: 3px; background-color: #1a1a1a;">
+              <h3 style="color: #66BB6A; margin-bottom: 10px;"><%= item.name %></h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="resupply-<%= index %>-price">Price</label>
+                  <input type="number" id="resupply-<%= index %>-price" name="items[<%= index %>][price]" value="<%= item.price %>" min="0" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; padding-top: 25px;">
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="resupply-<%= index %>-enabled" name="items[<%= index %>][enabled]" <%= item.enabled ? 'checked' : '' %> style="width: auto;">
+                    <span>Enabled</span>
+                  </label>
+                </div>
+              </div>
+              <input type="hidden" name="items[<%= index %>][id]" value="<%= item.id %>">
+              <input type="hidden" name="items[<%= index %>][name]" value="<%= item.name %>">
+            </div>
+          <% }); %>
+        <% } %>
+        <button type="submit" class="btn btn-primary">Save Resupply Settings</button>
+      </form>
+    </div>
+
+    <!-- Reserve Stock Management Section -->
+    <div class="settings-section">
+      <h2>Reserve Stock Management</h2>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Current reserves available for purchase in the store.</p>
+      
+      <div style="margin-bottom: 15px;">
+        <button class="btn btn-delete" id="removeSelectedBtn" onclick="removeSelectedReserves(false)">Remove Selected</button>
+        <button class="btn btn-delete" id="removeAllSelectedBtn" onclick="removeSelectedReserves(true)">Remove All Selected</button>
+      </div>
+      
+      <div id="reserveStockGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; min-height: 50px;">
+        <% if (!storeConfig || !storeConfig.currentStock || storeConfig.currentStock.length === 0) { %>
+          <p style="color: #888; font-style: italic; margin: 20px 0;">No Reserves currently stocked.</p>
+        <% } else { %>
+          <%
+            // Get reserve details from stock IDs and sort by rank then name
+            const stockReserves = storeConfig.currentStock
+              .map(id => reserves.find(r => r.id === id))
+              .filter(r => r !== undefined)
+              .sort((a, b) => {
+                if (a.rank !== b.rank) return a.rank - b.rank;
+                return a.name.localeCompare(b.name);
+              });
+          %>
+          <% stockReserves.forEach(reserve => { %>
+            <div class="job-item" style="cursor: pointer; transition: all 0.2s;" onclick="toggleStockReserveSelection(this, '<%= reserve.id %>')" data-reserve-id="<%= reserve.id %>">
+              <h3 style="color: #e0e0e0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" class="stock-reserve-checkbox" value="<%= reserve.id %>" onclick="event.stopPropagation(); toggleStockReserveSelection(this.parentElement.parentElement, '<%= reserve.id %>')" style="width: auto; margin: 0;">
+                <span><%= reserve.name %></span>
+              </h3>
+              <div class="job-item-field"><strong>Rank:</strong> R<%= reserve.rank %></div>
+              <div class="job-item-field"><strong>Price:</strong> <%= reserve.price %> <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></div>
+              <% if (reserve.description) { %>
+                <div class="job-item-field"><strong>Description:</strong><br><%= reserve.description %></div>
+              <% } %>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Available Reserves Section -->
+    <div class="settings-section">
+      <h2>Available Reserves</h2>
+      <p style="color: #b0b0b0; margin-bottom: 15px;">Manage all reserve items. Create, edit, delete, or add to stock.</p>
+      
+      <!-- Add Random Reserve and Add Selected to Stock Buttons -->
+      <div style="margin-bottom: 15px;">
+        <button class="btn btn-primary" onclick="addRandomReserve()">Add random Reserve from current view</button>
+        <button class="btn btn-neutral" id="addToStockBtn" onclick="addSelectedToStock()" disabled>Add Selected to Stock</button>
+      </div>
+      
+      <!-- CRUD Buttons -->
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-primary" onclick="openCreateReserveModal()">Create Reserve</button>
+        <button class="btn btn-edit" id="editReserveBtn" onclick="openEditReserveModal()" disabled>Edit Selected</button>
+        <button class="btn btn-delete" id="deleteReserveBtn" onclick="deleteSelectedReserve()" disabled>Delete Selected</button>
+      </div>
+      
+      <!-- Filter Pills -->
+      <div class="filter-pills" style="margin-bottom: 20px;">
+        <button class="filter-pill active" data-rank="all" onclick="filterAvailableReserves('all', event)">All</button>
+        <button class="filter-pill" data-rank="1" onclick="filterAvailableReserves('1', event)">Rank 1</button>
+        <button class="filter-pill" data-rank="2" onclick="filterAvailableReserves('2', event)">Rank 2</button>
+        <button class="filter-pill" data-rank="3" onclick="filterAvailableReserves('3', event)">Rank 3</button>
+        <button class="filter-pill" data-hide-default="false" onclick="toggleHideDefaultReserves(event)" id="hideDefaultPill">Hide Default Reserves</button>
+      </div>
+      
+      <!-- Search Field -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="reserveSearchInput">Search Reserves</label>
+        <input type="text" id="reserveSearchInput" placeholder="Search by name..." oninput="searchAvailableReserves(this.value)" style="max-width: 400px;">
+      </div>
+      
+      <!-- Available Reserves Grid -->
+      <div id="availableReservesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+        <% 
+          // Sort reserves by rank then name
+          const sortedReserves = [...reserves].sort((a, b) => {
+            if (a.rank !== b.rank) return a.rank - b.rank;
+            return a.name.localeCompare(b.name);
+          });
+        %>
+        <% sortedReserves.forEach(reserve => { %>
+          <div class="job-item available-reserve-card" 
+               data-reserve-id="<%= reserve.id %>" 
+               data-rank="<%= reserve.rank %>"
+               data-is-custom="<%= reserve.isCustom %>"
+               style="cursor: pointer; transition: all 0.2s;" 
+               onclick="selectAvailableReserve(this, '<%= reserve.id %>')">
+            <h3 style="color: #e0e0e0; margin-bottom: 10px;"><%= reserve.name %></h3>
+            <div class="job-item-field"><strong>Rank:</strong> R<%= reserve.rank %></div>
+            <div class="job-item-field"><strong>Price:</strong> <%= reserve.price %> <img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></div>
+            <% if (reserve.description) { %>
+              <div class="job-item-field"><strong>Description:</strong><br><%= reserve.description %></div>
+            <% } %>
+            <div class="job-item-field"><strong>Type:</strong> <%= reserve.isCustom ? 'Custom' : 'Default' %></div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Reserve Modal -->
+  <div id="createReserveModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create Reserve</h2>
+        <span class="close" onclick="closeCreateReserveModal()">&times;</span>
+      </div>
+      <form id="createReserveForm">
+        <div class="form-group">
+          <label for="createReserveRank">Rank (1-3)</label>
+          <select id="createReserveRank" name="rank" required>
+            <option value="1">Rank 1</option>
+            <option value="2">Rank 2</option>
+            <option value="3">Rank 3</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="createReserveName">Name</label>
+          <input type="text" id="createReserveName" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="createReservePrice">Price</label>
+          <input type="number" id="createReservePrice" name="price" min="0" value="0" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="createReserveDescription">Description</label>
+          <textarea id="createReserveDescription" name="description" rows="4"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Reserve</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Reserve Modal -->
+  <div id="editReserveModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Reserve</h2>
+        <span class="close" onclick="closeEditReserveModal()">&times;</span>
+      </div>
+      <form id="editReserveForm">
+        <input type="hidden" id="editReserveId">
+        
+        <div class="form-group">
+          <label for="editReserveRank">Rank (1-3)</label>
+          <select id="editReserveRank" name="rank" required>
+            <option value="1">Rank 1</option>
+            <option value="2">Rank 2</option>
+            <option value="3">Rank 3</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editReserveName">Name</label>
+          <input type="text" id="editReserveName" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editReservePrice">Price</label>
+          <input type="number" id="editReservePrice" name="price" min="0" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="editReserveDescription">Description</label>
+          <textarea id="editReserveDescription" name="description" rows="4"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
 <script src="/js/sse-client.js"></script>
 <script>
     // Handle settings update from SSE for admin view
@@ -1628,6 +2178,24 @@
         const progressOperationButtonContainer = document.getElementById('progressOperationButtonContainer');
         if (progressOperationButtonContainer) {
           progressOperationButtonContainer.style.display = settings.openTable ? 'block' : 'none';
+        }
+      }
+    }
+
+    // Handle pilots update from SSE for admin view
+    function handlePilotsUpdate(data) {
+      if (!data || !data.pilots) {
+        return;
+      }
+      
+      // Check if the pilot reserves modal is currently open
+      const pilotReservesModal = document.getElementById('pilotReservesModal');
+      if (pilotReservesModal && pilotReservesModal.style.display === 'block') {
+        // Get the current pilot ID from the modal
+        const pilotId = document.getElementById('pilotReservesModalPilotId').value;
+        if (pilotId) {
+          // Refresh the modal with updated data
+          openPilotReservesModal(pilotId);
         }
       }
     }
@@ -1767,51 +2335,398 @@
     }
     
     // Toggle minor module enable/disable
-    function toggleMinorModule(checkbox, moduleIndex) {
-      const fieldsDiv = document.getElementById(`module-${moduleIndex}-fields`);
-      const disabledInput = document.getElementById(`module-${moduleIndex}-disabled`);
+    // ==================== FACILITY MANAGEMENT ====================
+    
+    // Toggle facility purchased status (Major facilities only)
+    async function toggleFacilityPurchased(checkbox) {
+      const facilityIndex = parseInt(checkbox.dataset.facilityIndex);
+      const isPurchased = checkbox.checked;
       
-      // Find the module-item by looking for it in the parent grid
-      const moduleGrid = checkbox.closest('.module-grid');
-      const allItems = moduleGrid.querySelectorAll('.module-item');
-      let moduleItem = null;
+      try {
+        const response = await fetch(`/api/facilities/core-major/${facilityIndex}/purchased`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPurchased })
+        });
+        
+        if (!response.ok) {
+          alert('Failed to update facility purchase status');
+          checkbox.checked = !isPurchased; // Revert
+        }
+      } catch (error) {
+        console.error('Error updating facility purchase status:', error);
+        alert('Error updating facility purchase status');
+        checkbox.checked = !isPurchased; // Revert
+      }
+    }
+    
+    // Update facility cost modifier
+    async function updateFacilityCostModifier() {
+      const input = document.getElementById('facilityCostModifier');
+      const modifier = parseFloat(input.value);
       
-      // Find the module item that corresponds to this moduleIndex
-      allItems.forEach(item => {
-        const header = item.querySelector('h4');
-        if (header && header.textContent.includes(`Minor Module ${moduleIndex - 8}`)) {
-          moduleItem = item;
+      // Validate modifier
+      if (isNaN(modifier) || modifier < -100 || modifier > 300) {
+        alert('Facility Cost Modifier must be between -100 and 300');
+        return;
+      }
+      
+      try {
+        // Get current settings first
+        const settingsResponse = await fetch('/api/settings');
+        const currentSettings = await settingsResponse.json();
+        
+        // Update with new modifier
+        const updatedSettings = {
+          ...currentSettings,
+          facilityCostModifier: modifier
+        };
+        
+        const response = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedSettings)
+        });
+        
+        if (response.ok) {
+          alert('Facility Cost Modifier updated successfully');
+          // Refresh the displayed prices
+          updateDisplayedPrices(modifier);
+        } else {
+          const data = await response.json();
+          alert(`Failed to update modifier: ${data.message || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error('Error updating facility cost modifier:', error);
+        alert('Error updating facility cost modifier');
+      }
+    }
+    
+    /**
+     * Apply facility cost modifier to a price and round to nearest 50
+     */
+    function applyFacilityCostModifier(basePrice, modifier) {
+      const price = Number(basePrice);
+      if (Number.isNaN(price) || price < 0) {
+        return 0;
+      }
+      
+      const mod = Number(modifier);
+      if (Number.isNaN(mod)) {
+        return Math.round(price / 50) * 50;
+      }
+      
+      const clampedModifier = Math.max(-100, Math.min(300, mod));
+      const modifiedPrice = price * (1 + clampedModifier / 100);
+      return Math.round(modifiedPrice / 50) * 50;
+    }
+    
+    /**
+     * Update all displayed prices based on the current modifier
+     */
+    function updateDisplayedPrices(modifier) {
+      // Update all upgrade prices
+      document.querySelectorAll('.upgrade-price').forEach(priceEl => {
+        const basePriceStr = priceEl.getAttribute('data-base-price');
+        if (basePriceStr) {
+          const basePrice = parseInt(basePriceStr);
+          const modifiedPrice = applyFacilityCostModifier(basePrice, modifier);
+          // Update the text content, keeping the currency icon
+          const iconHtml = priceEl.querySelector('.currency-icon') ? priceEl.querySelector('.currency-icon').outerHTML : '';
+          priceEl.innerHTML = modifiedPrice + iconHtml;
         }
       });
       
-      if (!moduleItem) return; // Safety check
-      
-      const titleInput = fieldsDiv.querySelector('input[type="text"]');
-      const descriptionInput = fieldsDiv.querySelector('textarea');
-      const moduleHeader = moduleItem.querySelector('h4');
-      const disabledMessage = moduleItem.querySelector('p');
-      
-      if (checkbox.checked) {
-        // Enable the module
-        fieldsDiv.style.display = '';
-        disabledInput.value = 'false';
-        titleInput.disabled = false;
-        descriptionInput.disabled = false;
-        moduleItem.classList.remove('disabled-module');
-        moduleHeader.textContent = `Minor Module ${moduleIndex - 8}`;
-        if (disabledMessage) disabledMessage.style.display = 'none';
-      } else {
-        // Disable the module
-        fieldsDiv.style.display = 'none';
-        disabledInput.value = 'true';
-        titleInput.disabled = true;
-        descriptionInput.disabled = true;
-        titleInput.value = '';
-        descriptionInput.value = '';
-        moduleItem.classList.add('disabled-module');
-        moduleHeader.textContent = `Minor Module ${moduleIndex - 8} (DISABLED)`;
-        if (disabledMessage) disabledMessage.style.display = '';
+      // Update all facility prices
+      document.querySelectorAll('.facility-price').forEach(priceEl => {
+        const basePriceStr = priceEl.getAttribute('data-base-price');
+        if (basePriceStr) {
+          const basePrice = parseInt(basePriceStr);
+          const modifiedPrice = applyFacilityCostModifier(basePrice, modifier);
+          // Update the text content, keeping the "Price: " label and currency icon
+          const iconHtml = priceEl.querySelector('.currency-icon') ? priceEl.querySelector('.currency-icon').outerHTML : '';
+          priceEl.innerHTML = 'Price: ' + modifiedPrice + iconHtml;
+        }
+      });
+    }
+    
+    // Initialize prices with current modifier on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      /**
+       * Ensure all price elements under the given root have a data-base-price
+       * attribute. If not already set, derive it from the text content by
+       * stripping non-digit characters. This is more robust against currency
+       * symbols, commas, and additional formatting than a simple regex match.
+       * 
+       * NOTE: Only handles positive integer prices. Negative prices and decimals
+       * are not supported by the facility system.
+       */
+      const initializeBasePriceAttributes = (root) => {
+        if (!root) return;
+        
+        const upgradePrices = root.querySelectorAll
+          ? root.querySelectorAll('.upgrade-price')
+          : [];
+        upgradePrices.forEach(priceEl => {
+          if (priceEl.dataset && priceEl.dataset.basePrice) {
+            return;
+          }
+          const text = priceEl.textContent ? priceEl.textContent.trim() : '';
+          const numeric = text.replace(/[^\d]/g, ''); // Remove all non-digits (currency symbols, commas, etc.)
+          if (numeric) {
+            priceEl.setAttribute('data-base-price', numeric);
+          }
+        });
+        
+        const facilityPrices = root.querySelectorAll
+          ? root.querySelectorAll('.facility-price')
+          : [];
+        facilityPrices.forEach(priceEl => {
+          if (priceEl.dataset && priceEl.dataset.basePrice) {
+            return;
+          }
+          const text = priceEl.textContent ? priceEl.textContent.trim() : '';
+          const numeric = text.replace(/[^\d]/g, ''); // Remove all non-digits (currency symbols, commas, etc.)
+          if (numeric) {
+            priceEl.setAttribute('data-base-price', numeric);
+          }
+        });
+      };
+
+      const modifierInput = document.getElementById('facilityCostModifier');
+      if (modifierInput) {
+        const currentModifier = parseFloat(modifierInput.value) || 0;
+
+        // Store base prices as data attributes for all existing price elements
+        initializeBasePriceAttributes(document);
+        
+        // Apply modifier to displayed prices
+        if (currentModifier !== 0) {
+          updateDisplayedPrices(currentModifier);
+        }
+
+        // Observe dynamically added elements and initialize their base prices
+        // Note: Observer is not disconnected as it needs to run for the lifetime of the page
+        if (window.MutationObserver && document.body) {
+          const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+              mutation.addedNodes.forEach(node => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  initializeBasePriceAttributes(node);
+                  // Apply current modifier to newly added elements
+                  // Read current modifier from input element to ensure we use the latest value
+                  const currentMod = parseFloat(modifierInput.value) || 0;
+                  if (currentMod !== 0) {
+                    const upgradePrices = node.querySelectorAll ? node.querySelectorAll('.upgrade-price') : [];
+                    const facilityPrices = node.querySelectorAll ? node.querySelectorAll('.facility-price') : [];
+                    [...upgradePrices, ...facilityPrices].forEach(priceEl => {
+                      const basePrice = parseInt(priceEl.dataset.basePrice, 10); // Explicitly use base-10 parsing
+                      if (!isNaN(basePrice)) {
+                        const modifiedPrice = applyFacilityCostModifier(basePrice, currentMod);
+                        const iconHtml = priceEl.querySelector('.currency-icon') ? priceEl.querySelector('.currency-icon').outerHTML : '';
+                        priceEl.innerHTML = 'Price: ' + modifiedPrice + iconHtml;
+                      }
+                    });
+                  }
+                }
+              });
+            });
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
       }
+    });
+    
+    // Update upgrade count
+    async function updateUpgradeCount(input) {
+      const facilityIndex = parseInt(input.dataset.facilityIndex);
+      const upgradeIndex = parseInt(input.dataset.upgradeIndex);
+      const upgradeCount = parseInt(input.value);
+      const maxPurchases = parseInt(input.max);
+      
+      // Validate count
+      if (upgradeCount < 0 || upgradeCount > maxPurchases) {
+        alert(`Upgrade count must be between 0 and ${maxPurchases}`);
+        input.value = Math.max(0, Math.min(upgradeCount, maxPurchases));
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/facilities/core-major/${facilityIndex}/upgrades/${upgradeIndex}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ upgradeCount })
+        });
+        
+        if (!response.ok) {
+          alert('Failed to update upgrade count');
+          // Reload to get correct value
+          location.reload();
+        }
+      } catch (error) {
+        console.error('Error updating upgrade count:', error);
+        alert('Error updating upgrade count');
+        location.reload();
+      }
+    }
+    
+    // Toggle minor slot enabled status
+    async function toggleMinorSlotEnabled(checkbox) {
+      const slotNumber = parseInt(checkbox.dataset.slotNumber);
+      const enabled = checkbox.checked;
+      
+      try {
+        const response = await fetch(`/api/facilities/minor-slots/${slotNumber}/toggle-enabled`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        
+        if (!response.ok) {
+          alert('Failed to toggle slot enabled status');
+          checkbox.checked = !enabled; // Revert
+        }
+      } catch (error) {
+        console.error('Error toggling slot enabled status:', error);
+        alert('Error toggling slot enabled status');
+        checkbox.checked = !enabled; // Revert
+      }
+    }
+    
+    // Open minor facility assignment modal
+    function openMinorFacilityAssignModal(slotNumber) {
+      const modal = document.getElementById('minorFacilityAssignModal');
+      const slotNumberSpan = document.getElementById('assignModalSlotNumber');
+      const grid = document.getElementById('minorFacilityGrid');
+      
+      slotNumberSpan.textContent = slotNumber;
+      
+      // Fetch current minor slots to determine which facilities are already assigned
+      fetch('/api/facilities/minor-slots')
+        .then(res => res.json())
+        .then(minorData => {
+          // Get list of already assigned facility names (excluding the current slot)
+          const assignedNames = minorData.slots
+            .filter(slot => slot.slotNumber !== slotNumber && slot.facilityName)
+            .map(slot => slot.facilityName);
+          
+          // Fetch available minor facility options
+          return fetch('/api/facilities/minor-options')
+            .then(res => res.json())
+            .then(options => {
+              // Filter out already assigned facilities
+              const availableOptions = options.filter(opt => !assignedNames.includes(opt.minorFacilityName));
+              
+              // Populate grid
+              grid.innerHTML = '';
+              availableOptions.forEach(option => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'minor-facility-option';
+                optionDiv.innerHTML = `
+                  <h4>${option.minorFacilityName}</h4>
+                  <div class="facility-price">Price: ${option.minorFacilityPrice}<img src="/css/images/manna_symbol.svg" alt="Currency Icon" class="currency-icon"></div>
+                  <p>${option.minorFacilityDescription}</p>
+                `;
+                optionDiv.onclick = () => assignMinorFacility(slotNumber, option);
+                grid.appendChild(optionDiv);
+              });
+              
+              if (availableOptions.length === 0) {
+                grid.innerHTML = '<p style="color: #888; text-align: center; padding: 40px;">No available facilities to assign</p>';
+              }
+            });
+        })
+        .catch(error => {
+          console.error('Error loading minor facility options:', error);
+          alert('Error loading minor facility options');
+        });
+      
+      modal.style.display = 'block';
+    }
+    
+    // Close minor facility assignment modal
+    function closeMinorFacilityAssignModal() {
+      const modal = document.getElementById('minorFacilityAssignModal');
+      modal.style.display = 'none';
+    }
+    
+    // Assign minor facility to slot
+    async function assignMinorFacility(slotNumber, facilityOption) {
+      try {
+        const response = await fetch(`/api/facilities/minor-slots/${slotNumber}/assign`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            facilityName: facilityOption.minorFacilityName,
+            facilityDescription: facilityOption.minorFacilityDescription
+          })
+        });
+        
+        if (response.ok) {
+          closeMinorFacilityAssignModal();
+          // UI will update via SSE
+        } else {
+          alert('Failed to assign facility');
+        }
+      } catch (error) {
+        console.error('Error assigning facility:', error);
+        alert('Error assigning facility');
+      }
+    }
+    
+    // Clear minor facility slot
+    async function clearMinorSlot(slotNumber) {
+      if (!confirm('Are you sure you want to clear this facility slot?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/facilities/minor-slots/${slotNumber}/clear`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          alert('Failed to clear facility slot');
+        }
+        // UI will update via SSE
+      } catch (error) {
+        console.error('Error clearing facility slot:', error);
+        alert('Error clearing facility slot');
+      }
+    }
+    
+    // SSE handler for Core/Major Facilities updates
+    function handleFacilitiesCoreMajorUpdate(data) {
+      if (!data || !data.facilities) {
+        return;
+      }
+      
+      // Only reload if we're on the Base Config tab
+      const baseTab = document.getElementById('base-tab');
+      if (!baseTab || baseTab.style.display === 'none') {
+        return;
+      }
+      
+      // Reload the page to refresh facility data
+      // In a production app, you'd update the DOM directly, but for simplicity we reload
+      location.reload();
+    }
+    
+    // SSE handler for Minor Facilities Slots updates
+    function handleFacilitiesMinorSlotsUpdate(data) {
+      if (!data || !data.minorFacilities) {
+        return;
+      }
+      
+      // Only reload if we're on the Base Config tab
+      const baseTab = document.getElementById('base-tab');
+      if (!baseTab || baseTab.style.display === 'none') {
+        return;
+      }
+      
+      // Reload the page to refresh facility data
+      // In a production app, you'd update the DOM directly, but for simplicity we reload
+      location.reload();
     }
     
     // Helper function to format emblem filename for display
@@ -2257,40 +3172,6 @@
     }
 
     // ==================== BASE MANAGEMENT ====================
-    if (document.getElementById('baseForm')) {
-      document.getElementById('baseForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        
-        // Build modules array
-        const modules = [];
-        for (let i = 0; i < 15; i++) {
-          modules.push({
-            type: formData.get(`modules[${i}][type]`),
-            title: formData.get(`modules[${i}][title]`) || '',
-            description: formData.get(`modules[${i}][description]`) || '',
-            disabled: formData.get(`modules[${i}][disabled]`) === 'true'
-          });
-        }
-        
-        try {
-          const response = await fetch('/api/base', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modules })
-          });
-          
-          if (response.ok) {
-            showNotification('Base configuration saved successfully!');
-          } else {
-            alert('Failed to save base configuration');
-          }
-        } catch (error) {
-          alert('Error saving base configuration');
-        }
-      });
-    }
-    
     
     // ==================== OVERVIEW MANNA MANAGEMENT ====================
     // Pilot selection modal state
@@ -2724,7 +3605,7 @@
       document.getElementById('editPilotName').value = pilotData.name;
       document.getElementById('editPilotCallsign').value = pilotData.callsign;
       document.getElementById('editPilotLL').value = pilotData.ll;
-      document.getElementById('editPilotReserves').value = pilotData.reserves || '';
+      document.getElementById('editPilotNotes').value = pilotData.notes || '';
       document.getElementById('editPilotActive').checked = pilotData.active;
       
       // Set personalOperationProgress if the field exists (when openTable is ON)
@@ -2975,6 +3856,510 @@
       }
     }
     
+    // ==================== PILOT RESERVES MANAGEMENT ====================
+    let selectedPilotReserves = new Set();
+    let selectedStockReservesForAdd = new Set();
+    
+    async function openPilotReservesModal(pilotId) {
+      try {
+        // Fetch fresh pilot and reserves data
+        const pilotsResponse = await fetch('/api/pilots');
+        const reservesResponse = await fetch('/api/reserves');
+        const pilotsData = await pilotsResponse.json();
+        const reservesData = await reservesResponse.json();
+        
+        const pilot = pilotsData.find(p => p.id === pilotId);
+        if (!pilot) {
+          alert('Pilot not found');
+          return;
+        }
+        
+        // Set pilot ID
+        document.getElementById('pilotReservesModalPilotId').value = pilotId;
+        
+        // Clear previous selection
+        selectedPilotReserves.clear();
+        updateReserveActionButtons();
+        
+        // Build reserves grid
+        const grid = document.getElementById('pilotReservesGrid');
+        
+        if (!pilot.reserves || pilot.reserves.length === 0) {
+          grid.innerHTML = '<p style="color: #888; font-style: italic; margin: 20px 0;">No reserves owned by this pilot.</p>';
+        } else {
+          // Get full reserve details and sort by rank then name
+          const pilotReservesWithDetails = pilot.reserves.map(pr => {
+            const reserve = reservesData.find(r => r.id === pr.reserveId);
+            return reserve ? { ...reserve, deploymentStatus: pr.deploymentStatus } : null;
+          }).filter(r => r !== null)
+            .sort((a, b) => {
+              if (a.rank !== b.rank) return a.rank - b.rank;
+              return a.name.localeCompare(b.name);
+            });
+          
+          // Clear existing content
+          grid.innerHTML = '';
+          
+          // Build cards using safe DOM APIs to avoid XSS
+          pilotReservesWithDetails.forEach(reserve => {
+            const statusColor = reserve.deploymentStatus === 'In Reserve' ? '#66BB6A' : 
+                               reserve.deploymentStatus === 'Deployed' ? '#FFA726' : '#f44336';
+            
+            const card = document.createElement('div');
+            card.className = 'job-item pilot-reserve-card';
+            card.dataset.reserveId = reserve.id;
+            card.style.cursor = 'pointer';
+            card.style.transition = 'all 0.2s';
+            
+            card.addEventListener('click', () => {
+              togglePilotReserveSelection(card, reserve.id);
+            });
+            
+            // Title
+            const titleEl = document.createElement('h3');
+            titleEl.style.color = '#e0e0e0';
+            titleEl.style.marginBottom = '10px';
+            titleEl.textContent = reserve.name;
+            card.appendChild(titleEl);
+            
+            // Rank
+            const rankDiv = document.createElement('div');
+            rankDiv.className = 'job-item-field';
+            const rankStrong = document.createElement('strong');
+            rankStrong.textContent = 'Rank:';
+            rankDiv.appendChild(rankStrong);
+            rankDiv.appendChild(document.createTextNode(' R' + reserve.rank));
+            card.appendChild(rankDiv);
+            
+            // Price
+            const priceDiv = document.createElement('div');
+            priceDiv.className = 'job-item-field';
+            const priceStrong = document.createElement('strong');
+            priceStrong.textContent = 'Price:';
+            priceDiv.appendChild(priceStrong);
+            priceDiv.appendChild(document.createTextNode(' ' + reserve.price + ' '));
+            const priceImg = document.createElement('img');
+            priceImg.src = '/css/images/manna_symbol.svg';
+            priceImg.alt = 'Currency Icon';
+            priceImg.className = 'currency-icon';
+            priceDiv.appendChild(priceImg);
+            card.appendChild(priceDiv);
+            
+            // Status
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'job-item-field';
+            const statusStrong = document.createElement('strong');
+            statusStrong.textContent = 'Status:';
+            statusDiv.appendChild(statusStrong);
+            statusDiv.appendChild(document.createTextNode(' '));
+            const statusSpan = document.createElement('span');
+            statusSpan.style.color = statusColor;
+            statusSpan.style.fontWeight = 'bold';
+            statusSpan.textContent = reserve.deploymentStatus;
+            statusDiv.appendChild(statusSpan);
+            card.appendChild(statusDiv);
+            
+            // Description (optional)
+            if (reserve.description) {
+              const descDiv = document.createElement('div');
+              descDiv.className = 'job-item-field';
+              const descStrong = document.createElement('strong');
+              descStrong.textContent = 'Description:';
+              descDiv.appendChild(descStrong);
+              descDiv.appendChild(document.createElement('br'));
+              descDiv.appendChild(document.createTextNode(reserve.description));
+              card.appendChild(descDiv);
+            }
+            
+            grid.appendChild(card);
+          });
+        }
+        
+        // Show modal
+        document.getElementById('pilotReservesModal').style.display = 'block';
+      } catch (error) {
+        console.error('Error opening pilot reserves modal:', error);
+        alert('Error loading pilot reserves');
+      }
+    }
+    
+    function closePilotReservesModal() {
+      document.getElementById('pilotReservesModal').style.display = 'none';
+      selectedPilotReserves.clear();
+    }
+    
+    function togglePilotReserveSelection(element, reserveId) {
+      if (selectedPilotReserves.has(reserveId)) {
+        selectedPilotReserves.delete(reserveId);
+        element.style.backgroundColor = '';
+        element.style.border = '';
+      } else {
+        selectedPilotReserves.add(reserveId);
+        element.style.backgroundColor = '#3a3a3a';
+        element.style.border = '2px solid #66BB6A';
+      }
+      updateReserveActionButtons();
+    }
+    
+    function updateReserveActionButtons() {
+      const hasSelection = selectedPilotReserves.size > 0;
+      document.getElementById('setInReserveBtn').disabled = !hasSelection;
+      document.getElementById('setDeployedBtn').disabled = !hasSelection;
+      document.getElementById('setExpendedBtn').disabled = !hasSelection;
+      document.getElementById('removeReservesBtn').disabled = !hasSelection;
+    }
+    
+    async function setSelectedReservesStatus(newStatus) {
+      if (selectedPilotReserves.size === 0) {
+        return;
+      }
+      
+      const pilotId = document.getElementById('pilotReservesModalPilotId').value;
+      
+      try {
+        // Fetch fresh pilot data
+        const pilotsResponse = await fetch('/api/pilots');
+        const pilotsData = await pilotsResponse.json();
+        const pilot = pilotsData.find(p => p.id === pilotId);
+        
+        if (!pilot) {
+          alert('Pilot not found');
+          return;
+        }
+        
+        // Update reserves array
+        const updatedReserves = pilot.reserves.map(pr => {
+          if (selectedPilotReserves.has(pr.reserveId)) {
+            return { ...pr, deploymentStatus: newStatus };
+          }
+          return pr;
+        });
+        
+        const response = await fetch(`/api/pilots/${pilotId}/reserves-management`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reserves: updatedReserves })
+        });
+        
+        if (response.ok) {
+          showNotification(`Deployment status updated to "${newStatus}"`);
+          selectedPilotReserves.clear();
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to update reserves');
+        }
+      } catch (error) {
+        console.error('Error updating reserves:', error);
+        alert('Error updating reserves');
+      }
+    }
+    
+    async function removeSelectedReservesFromPilot() {
+      if (selectedPilotReserves.size === 0) {
+        return;
+      }
+      
+      if (!confirm(`Remove ${selectedPilotReserves.size} reserve(s) from this pilot?`)) {
+        return;
+      }
+      
+      const pilotId = document.getElementById('pilotReservesModalPilotId').value;
+      const pilotsData = <%- JSON.stringify(pilots) %>;
+      const pilot = pilotsData.find(p => p.id === pilotId);
+      
+      if (!pilot) {
+        alert('Pilot not found');
+        return;
+      }
+      
+      // Filter out selected reserves
+      const updatedReserves = pilot.reserves.filter(pr => !selectedPilotReserves.has(pr.reserveId));
+      
+      try {
+        const response = await fetch(`/api/pilots/${pilotId}/reserves-management`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reserves: updatedReserves })
+        });
+        
+        if (response.ok) {
+          showNotification('Reserves removed from pilot');
+          selectedPilotReserves.clear();
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to remove reserves');
+        }
+      } catch (error) {
+        console.error('Error removing reserves:', error);
+        alert('Error removing reserves');
+      }
+    }
+    
+    async function openAddReservesToPilotModal() {
+      try {
+        const reservesData = <%- JSON.stringify(reserves) %>;
+        
+        // Clear previous selection and filters
+        selectedStockReservesForAdd.clear();
+        updateAddStockReservesButton();
+        
+        // Reset filters
+        document.getElementById('pilotAddReserveSearchInput').value = '';
+        document.querySelectorAll('#addReservesToPilotModal .filter-pill').forEach(pill => {
+          pill.classList.remove('active');
+        });
+        document.getElementById('pilotAddFilterAll').classList.add('active');
+        document.getElementById('pilotAddHideDefaultPill').dataset.hideDefault = 'false';
+        document.getElementById('pilotAddHideDefaultPill').classList.remove('active');
+        
+        // Build reserves grid - show ALL reserves
+        const grid = document.getElementById('addReservesStockGrid');
+        
+        if (!reservesData || reservesData.length === 0) {
+          grid.innerHTML = '<p style="color: #888; font-style: italic; margin: 20px 0;">No reserves available.</p>';
+        } else {
+          // Sort by rank then name
+          const sortedReserves = [...reservesData].sort((a, b) => {
+            if (a.rank !== b.rank) return a.rank - b.rank;
+            return a.name.localeCompare(b.name);
+          });
+          
+          // Clear existing content
+          grid.innerHTML = '';
+          
+          // Build cards using safe DOM APIs to avoid XSS
+          sortedReserves.forEach(reserve => {
+            const card = document.createElement('div');
+            card.className = 'job-item stock-reserve-card';
+            card.dataset.reserveId = reserve.id;
+            card.dataset.rank = String(reserve.rank);
+            card.dataset.isCustom = String(reserve.isCustom);
+            card.dataset.name = (reserve.name || '').toLowerCase();
+            card.style.cursor = 'pointer';
+            card.style.transition = 'all 0.2s';
+            
+            card.addEventListener('click', () => {
+              toggleStockReserveForAdd(card, reserve.id);
+            });
+            
+            // Title
+            const titleEl = document.createElement('h3');
+            titleEl.style.color = '#e0e0e0';
+            titleEl.style.marginBottom = '10px';
+            titleEl.textContent = reserve.name;
+            card.appendChild(titleEl);
+            
+            // Rank
+            const rankDiv = document.createElement('div');
+            rankDiv.className = 'job-item-field';
+            const rankStrong = document.createElement('strong');
+            rankStrong.textContent = 'Rank:';
+            rankDiv.appendChild(rankStrong);
+            rankDiv.appendChild(document.createTextNode(' R' + reserve.rank));
+            card.appendChild(rankDiv);
+            
+            // Price
+            const priceDiv = document.createElement('div');
+            priceDiv.className = 'job-item-field';
+            const priceStrong = document.createElement('strong');
+            priceStrong.textContent = 'Price:';
+            priceDiv.appendChild(priceStrong);
+            priceDiv.appendChild(document.createTextNode(' ' + reserve.price + ' '));
+            const priceImg = document.createElement('img');
+            priceImg.src = '/css/images/manna_symbol.svg';
+            priceImg.alt = 'Currency Icon';
+            priceImg.className = 'currency-icon';
+            priceDiv.appendChild(priceImg);
+            card.appendChild(priceDiv);
+            
+            // Description (optional)
+            if (reserve.description) {
+              const descDiv = document.createElement('div');
+              descDiv.className = 'job-item-field';
+              const descStrong = document.createElement('strong');
+              descStrong.textContent = 'Description:';
+              descDiv.appendChild(descStrong);
+              descDiv.appendChild(document.createElement('br'));
+              descDiv.appendChild(document.createTextNode(reserve.description));
+              card.appendChild(descDiv);
+            }
+            
+            // Type
+            const typeDiv = document.createElement('div');
+            typeDiv.className = 'job-item-field';
+            const typeStrong = document.createElement('strong');
+            typeStrong.textContent = 'Type:';
+            typeDiv.appendChild(typeStrong);
+            typeDiv.appendChild(document.createTextNode(' ' + (reserve.isCustom ? 'Custom' : 'Default')));
+            card.appendChild(typeDiv);
+            
+            grid.appendChild(card);
+          });
+        }
+        
+        // Show modal
+        document.getElementById('addReservesToPilotModal').style.display = 'block';
+      } catch (error) {
+        console.error('Error opening add reserves modal:', error);
+        alert('Error loading reserves');
+      }
+    }
+    
+    function closeAddReservesToPilotModal() {
+      document.getElementById('addReservesToPilotModal').style.display = 'none';
+      selectedStockReservesForAdd.clear();
+    }
+    
+    function filterPilotAddReserves(rank, event) {
+      // Update active pill
+      document.querySelectorAll('#addReservesToPilotModal .filter-pill[data-rank]').forEach(pill => {
+        pill.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Apply filter
+      const cards = document.querySelectorAll('#addReservesStockGrid .stock-reserve-card');
+      cards.forEach(card => {
+        const cardRank = card.dataset.rank;
+        const hideDefault = document.getElementById('pilotAddHideDefaultPill').dataset.hideDefault === 'true';
+        const isCustom = card.dataset.isCustom === 'true';
+        const searchValue = document.getElementById('pilotAddReserveSearchInput').value.toLowerCase();
+        const cardName = card.dataset.name;
+        
+        let shouldShow = true;
+        
+        // Rank filter
+        if (rank !== 'all' && cardRank !== rank) {
+          shouldShow = false;
+        }
+        
+        // Hide default filter
+        if (hideDefault && !isCustom) {
+          shouldShow = false;
+        }
+        
+        // Search filter
+        if (searchValue && !cardName.includes(searchValue)) {
+          shouldShow = false;
+        }
+        
+        card.style.display = shouldShow ? '' : 'none';
+      });
+    }
+    
+    function togglePilotAddHideDefault(event) {
+      const currentState = event.target.dataset.hideDefault === 'true';
+      event.target.dataset.hideDefault = currentState ? 'false' : 'true';
+      event.target.classList.toggle('active');
+      
+      // Re-apply current rank filter
+      const activeRankPill = document.querySelector('#addReservesToPilotModal .filter-pill[data-rank].active');
+      const currentRank = activeRankPill ? activeRankPill.dataset.rank : 'all';
+      filterPilotAddReserves(currentRank, activeRankPill || event);
+    }
+    
+    function searchPilotAddReserves(searchValue) {
+      searchValue = searchValue.toLowerCase();
+      
+      // Re-apply current filters
+      const activeRankPill = document.querySelector('#addReservesToPilotModal .filter-pill[data-rank].active');
+      const currentRank = activeRankPill ? activeRankPill.dataset.rank : 'all';
+      
+      const cards = document.querySelectorAll('#addReservesStockGrid .stock-reserve-card');
+      cards.forEach(card => {
+        const cardRank = card.dataset.rank;
+        const hideDefault = document.getElementById('pilotAddHideDefaultPill').dataset.hideDefault === 'true';
+        const isCustom = card.dataset.isCustom === 'true';
+        const cardName = card.dataset.name;
+        
+        let shouldShow = true;
+        
+        // Rank filter
+        if (currentRank !== 'all' && cardRank !== currentRank) {
+          shouldShow = false;
+        }
+        
+        // Hide default filter
+        if (hideDefault && !isCustom) {
+          shouldShow = false;
+        }
+        
+        // Search filter
+        if (searchValue && !cardName.includes(searchValue)) {
+          shouldShow = false;
+        }
+        
+        card.style.display = shouldShow ? '' : 'none';
+      });
+    }
+    
+    function toggleStockReserveForAdd(element, reserveId) {
+      if (selectedStockReservesForAdd.has(reserveId)) {
+        selectedStockReservesForAdd.delete(reserveId);
+        element.style.backgroundColor = '';
+        element.style.border = '';
+      } else {
+        selectedStockReservesForAdd.add(reserveId);
+        element.style.backgroundColor = '#3a3a3a';
+        element.style.border = '2px solid #66BB6A';
+      }
+      updateAddStockReservesButton();
+    }
+    
+    function updateAddStockReservesButton() {
+      const hasSelection = selectedStockReservesForAdd.size > 0;
+      document.getElementById('addStockReservesBtn').disabled = !hasSelection;
+    }
+    
+    async function addSelectedStockReservesToPilot() {
+      if (selectedStockReservesForAdd.size === 0) {
+        return;
+      }
+      
+      const pilotId = document.getElementById('pilotReservesModalPilotId').value;
+      const pilotsData = <%- JSON.stringify(pilots) %>;
+      const pilot = pilotsData.find(p => p.id === pilotId);
+      
+      if (!pilot) {
+        alert('Pilot not found');
+        return;
+      }
+      
+      // Add new reserves with "In Reserve" status
+      const newReserves = Array.from(selectedStockReservesForAdd).map(reserveId => ({
+        reserveId: reserveId,
+        deploymentStatus: 'In Reserve'
+      }));
+      
+      const updatedReserves = [...pilot.reserves, ...newReserves];
+      
+      try {
+        const response = await fetch(`/api/pilots/${pilotId}/reserves-management`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reserves: updatedReserves })
+        });
+        
+        if (response.ok) {
+          showNotification(`${newReserves.length} reserve(s) added to pilot`);
+          closeAddReservesToPilotModal();
+          selectedPilotReserves.clear();
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to add reserves');
+        }
+      } catch (error) {
+        console.error('Error adding reserves:', error);
+        alert('Error adding reserves');
+      }
+    }
+    
     // ==================== FACTION RELATED JOBS ====================
     function openFactionRelatedJobsModal(factionId) {
       const allJobs = <%- JSON.stringify(jobs) %>;
@@ -3177,6 +4562,8 @@
       const factionRelatedJobsModal = document.getElementById('factionRelatedJobsModal');
       const progressAllJobsModal = document.getElementById('progressAllJobsModal');
       const progressOperationModal = document.getElementById('progressOperationModal');
+      const createReserveModal = document.getElementById('createReserveModal');
+      const editReserveModal = document.getElementById('editReserveModal');
       
       if (event.target === modal) {
         closeEditModal();
@@ -3202,7 +4589,419 @@
       if (event.target === progressOperationModal) {
         closeProgressOperationModal();
       }
+      if (event.target === createReserveModal) {
+        closeCreateReserveModal();
+      }
+      if (event.target === editReserveModal) {
+        closeEditReserveModal();
+      }
     };
+    
+    // ==================== STORE CONFIG MANAGEMENT ====================
+    
+    // Global state for available reserves selection
+    let selectedAvailableReserveId = null;
+    let selectedStockReserveIds = [];
+    let currentRankFilter = 'all';
+    let hideDefaultReservesFilter = false;
+    let currentSearchQuery = '';
+    
+    // Resupply Items Form Submit
+    if (document.getElementById('resupplyItemsForm')) {
+      document.getElementById('resupplyItemsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        // Build resupply items array
+        const resupplyItems = [];
+        const itemCount = 3; // Fixed count
+        for (let i = 0; i < itemCount; i++) {
+          resupplyItems.push({
+            id: formData.get(`items[${i}][id]`),
+            name: formData.get(`items[${i}][name]`),
+            price: parseInt(formData.get(`items[${i}][price]`)),
+            enabled: formData.get(`items[${i}][enabled]`) === 'on'
+          });
+        }
+        
+        try {
+          const response = await fetch('/api/store-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resupplyItems })
+          });
+          
+          if (response.ok) {
+            showNotification('Resupply settings saved successfully!');
+          } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to save resupply settings');
+          }
+        } catch (error) {
+          alert('Error saving resupply settings');
+        }
+      });
+    }
+    
+    // Toggle stock reserve selection
+    function toggleStockReserveSelection(card, reserveId) {
+      const checkbox = card.querySelector('.stock-reserve-checkbox');
+      
+      // Toggle checkbox
+      checkbox.checked = !checkbox.checked;
+      
+      // Update selected IDs array
+      if (checkbox.checked) {
+        if (!selectedStockReserveIds.includes(reserveId)) {
+          selectedStockReserveIds.push(reserveId);
+        }
+        card.style.borderColor = '#66BB6A';
+        card.style.backgroundColor = '#2a3a2a';
+      } else {
+        selectedStockReserveIds = selectedStockReserveIds.filter(id => id !== reserveId);
+        card.style.borderColor = '#444';
+        card.style.backgroundColor = '#1a1a1a';
+      }
+      
+      // Update button states
+      updateStockRemoveButtons();
+    }
+    
+    // Update stock remove button states
+    function updateStockRemoveButtons() {
+      const removeBtn = document.getElementById('removeSelectedBtn');
+      const removeAllBtn = document.getElementById('removeAllSelectedBtn');
+      const hasSelection = selectedStockReserveIds.length > 0;
+      
+      if (removeBtn) removeBtn.disabled = !hasSelection;
+      if (removeAllBtn) removeAllBtn.disabled = !hasSelection;
+    }
+    
+    // Remove selected reserves from stock
+    async function removeSelectedReserves(removeAll) {
+      if (selectedStockReserveIds.length === 0) {
+        alert('No reserves selected');
+        return;
+      }
+      
+      const action = removeAll ? 'Remove all selected reserves' : 'Remove first occurrence of selected reserves';
+      if (!confirm(`${action} from stock?`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/store-config/remove-stock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            reserveIds: selectedStockReserveIds,
+            removeAll 
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const message = removeAll 
+            ? `Removed ${data.removedCount} reserve(s) from stock`
+            : 'Reserve removed from stock';
+          showNotification(message);
+          selectedStockReserveIds = [];
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to remove reserves from stock');
+        }
+      } catch (error) {
+        alert('Error removing reserves from stock');
+      }
+    }
+    
+    // Select available reserve
+    function selectAvailableReserve(card, reserveId) {
+      // Deselect all cards
+      document.querySelectorAll('.available-reserve-card').forEach(c => {
+        c.style.borderColor = '#444';
+        c.style.backgroundColor = '#1a1a1a';
+      });
+      
+      // Select clicked card
+      card.style.borderColor = '#66BB6A';
+      card.style.backgroundColor = '#2a3a2a';
+      selectedAvailableReserveId = reserveId;
+      
+      // Enable/disable action buttons
+      updateAvailableReserveButtons();
+    }
+    
+    // Update available reserve action buttons
+    function updateAvailableReserveButtons() {
+      const editBtn = document.getElementById('editReserveBtn');
+      const deleteBtn = document.getElementById('deleteReserveBtn');
+      const addToStockBtn = document.getElementById('addToStockBtn');
+      const hasSelection = selectedAvailableReserveId !== null;
+      
+      if (editBtn) editBtn.disabled = !hasSelection;
+      if (deleteBtn) deleteBtn.disabled = !hasSelection;
+      if (addToStockBtn) addToStockBtn.disabled = !hasSelection;
+    }
+    
+    // Filter available reserves
+    function filterAvailableReserves(rank, event) {
+      // Update filter pills (except Hide Default which is independent)
+      document.querySelectorAll('.filter-pill[data-rank]').forEach(pill => {
+        pill.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      currentRankFilter = rank;
+      applyReserveFilters();
+    }
+    
+    // Toggle hide default reserves
+    function toggleHideDefaultReserves(event) {
+      hideDefaultReservesFilter = !hideDefaultReservesFilter;
+      
+      if (hideDefaultReservesFilter) {
+        event.target.classList.add('active');
+      } else {
+        event.target.classList.remove('active');
+      }
+      
+      applyReserveFilters();
+    }
+    
+    // Apply both filters to available reserves
+    function applyReserveFilters() {
+      const cards = document.querySelectorAll('.available-reserve-card');
+      
+      cards.forEach(card => {
+        const cardRank = card.getAttribute('data-rank');
+        const cardIsCustom = card.getAttribute('data-is-custom') === 'true';
+        const cardName = card.querySelector('h3').textContent.trim();
+        
+        let show = true;
+        
+        // Apply rank filter
+        if (currentRankFilter !== 'all' && cardRank !== currentRankFilter) {
+          show = false;
+        }
+        
+        // Apply hide default filter
+        if (hideDefaultReservesFilter && !cardIsCustom) {
+          show = false;
+        }
+        
+        // Apply search filter
+        if (currentSearchQuery && !cardName.toLowerCase().includes(currentSearchQuery.toLowerCase())) {
+          show = false;
+        }
+        
+        card.style.display = show ? '' : 'none';
+      });
+    }
+    
+    // Search available reserves by name
+    function searchAvailableReserves(query) {
+      currentSearchQuery = query;
+      applyReserveFilters();
+    }
+    
+    // Add random reserve from current view
+    async function addRandomReserve() {
+      try {
+        const response = await fetch('/api/store-config/add-random', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rankFilter: currentRankFilter,
+            hideDefaultReserves: hideDefaultReservesFilter
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          showNotification(`${data.addedReserve.name} Reserve was added to the Reserve Stock`);
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to add random reserve');
+        }
+      } catch (error) {
+        alert('Error adding random reserve');
+      }
+    }
+    
+    // Add selected reserve to stock
+    async function addSelectedToStock() {
+      if (!selectedAvailableReserveId) {
+        alert('No reserve selected');
+        return;
+      }
+      
+      try {
+        const storeConfig = await fetch('/api/store-config').then(r => r.json());
+        const currentStock = storeConfig.currentStock || [];
+        currentStock.push(selectedAvailableReserveId);
+        
+        const response = await fetch('/api/store-config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentStock })
+        });
+        
+        if (response.ok) {
+          showNotification('Reserve added to stock');
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to add reserve to stock');
+        }
+      } catch (error) {
+        alert('Error adding reserve to stock');
+      }
+    }
+    
+    // Create Reserve Modal
+    function openCreateReserveModal() {
+      document.getElementById('createReserveModal').style.display = 'block';
+    }
+    
+    function closeCreateReserveModal() {
+      document.getElementById('createReserveModal').style.display = 'none';
+    }
+    
+    if (document.getElementById('createReserveForm')) {
+      document.getElementById('createReserveForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        
+        try {
+          const response = await fetch('/api/reserves', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rank: parseInt(data.rank),
+              name: data.name,
+              price: parseInt(data.price),
+              description: data.description || ''
+            })
+          });
+          
+          if (response.ok) {
+            showNotification('Reserve created successfully!');
+            closeCreateReserveModal();
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
+          } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to create reserve');
+          }
+        } catch (error) {
+          alert('Error creating reserve');
+        }
+      });
+    }
+    
+    // Edit Reserve Modal
+    async function openEditReserveModal() {
+      if (!selectedAvailableReserveId) {
+        alert('No reserve selected');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/reserves');
+        const reserves = await response.json();
+        const reserve = reserves.find(r => r.id === selectedAvailableReserveId);
+        
+        if (!reserve) {
+          alert('Reserve not found');
+          return;
+        }
+        
+        document.getElementById('editReserveId').value = reserve.id;
+        document.getElementById('editReserveRank').value = reserve.rank;
+        document.getElementById('editReserveName').value = reserve.name;
+        document.getElementById('editReservePrice').value = reserve.price;
+        document.getElementById('editReserveDescription').value = reserve.description || '';
+        
+        document.getElementById('editReserveModal').style.display = 'block';
+      } catch (error) {
+        alert('Error loading reserve data');
+      }
+    }
+    
+    function closeEditReserveModal() {
+      document.getElementById('editReserveModal').style.display = 'none';
+    }
+    
+    if (document.getElementById('editReserveForm')) {
+      document.getElementById('editReserveForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        const id = document.getElementById('editReserveId').value;
+        
+        try {
+          const response = await fetch(`/api/reserves/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rank: parseInt(data.rank),
+              name: data.name,
+              price: parseInt(data.price),
+              description: data.description || ''
+            })
+          });
+          
+          if (response.ok) {
+            showNotification('Reserve updated successfully');
+            closeEditReserveModal();
+            saveScrollPositionForReload();
+            setTimeout(() => location.reload(), 400);
+          } else {
+            const errorData = await response.json();
+            alert(errorData.message || 'Failed to update reserve');
+          }
+        } catch (error) {
+          alert('Error updating reserve');
+        }
+      });
+    }
+    
+    // Delete Reserve
+    async function deleteSelectedReserve() {
+      if (!selectedAvailableReserveId) {
+        alert('No reserve selected');
+        return;
+      }
+      
+      if (!confirm('Are you sure you want to delete this reserve? This action cannot be undone.')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/reserves/${selectedAvailableReserveId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          showNotification('Reserve deleted successfully!');
+          selectedAvailableReserveId = null;
+          saveScrollPositionForReload();
+          setTimeout(() => location.reload(), 400);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to delete reserve');
+        }
+      } catch (error) {
+        alert('Error deleting reserve');
+      }
+    }
     
     // ==================== TAB PERSISTENCE AND SCROLL RESTORATION ====================
     
@@ -3219,7 +5018,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Get tab from URL hash (e.g., #jobs -> 'jobs')
       const hash = window.location.hash.substring(1);
-      const validTabs = ['overview', 'jobs', 'base', 'pilots', 'factions'];
+      const validTabs = ['overview', 'jobs', 'base', 'pilots', 'factions', 'store'];
       
       if (hash && validTabs.includes(hash)) {
         // Find the button for this tab by matching the tab name in onclick attribute using a direct selector

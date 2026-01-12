@@ -80,13 +80,13 @@
           </div>
           
           <div class="pilot-field">
-            <span class="field-label">RESERVES:</span>
-            <span class="field-value" style="white-space: pre-line;"><%= pilot.reserves || 'NO_DATA' %></span>
+            <span class="field-label">NOTES:</span>
+            <span class="field-value" style="white-space: pre-line;"><%= pilot.notes || 'NO_DATA' %></span>
           </div>
           
           <div class="pilot-actions">
-            <button class="pilot-button" data-pilot-id="<%= pilot.id %>" data-pilot-name="<%= pilot.name %>" data-pilot-reserves-b64="<%= Buffer.from(pilot.reserves || '').toString('base64') %>" onclick="openEditReserves(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotReservesB64))">
-              [EDIT_RESERVES]
+            <button class="pilot-button" data-pilot-id="<%= pilot.id %>" data-pilot-name="<%= pilot.name %>" data-pilot-notes-b64="<%= Buffer.from(pilot.notes || '').toString('base64') %>" onclick="openEditNotes(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotNotesB64))">
+              [EDIT_NOTES]
             </button>
             <button class="pilot-button" onclick="openPilotJobHistory('<%= pilot.id %>', '<%= pilot.name.replace(/'/g, "\\'") %>')">
               [JOB_HISTORY]
@@ -189,7 +189,7 @@
         const grid = document.getElementById('pilots-grid');
         grid.style.display = 'grid';
         grid.innerHTML = sortedPilots.map(pilot => {
-          const reservesB64 = btoa(pilot.reserves || '');
+          const notesB64 = btoa(pilot.notes || '');
           const escapedNameForOnclick = pilot.name.replace(/'/g, "\\'");
           const personalProgress = pilot.personalOperationProgress || 0;
           const pilotBalance = getPilotBalance(pilot);
@@ -232,13 +232,13 @@
               </div>
               
               <div class="pilot-field">
-                <span class="field-label">RESERVES:</span>
-                <span class="field-value" style="white-space: pre-line;">${pilot.reserves || 'NO_DATA'}</span>
+                <span class="field-label">NOTES:</span>
+                <span class="field-value" style="white-space: pre-line;">${pilot.notes || 'NO_DATA'}</span>
               </div>
               
               <div class="pilot-actions">
-                <button class="pilot-button" data-pilot-id="${pilot.id}" data-pilot-name="${pilot.name}" data-pilot-reserves-b64="${reservesB64}" onclick="openEditReserves(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotReservesB64))">
-                  [EDIT_RESERVES]
+                <button class="pilot-button" data-pilot-id="${pilot.id}" data-pilot-name="${pilot.name}" data-pilot-notes-b64="${notesB64}" onclick="openEditNotes(this.dataset.pilotId, this.dataset.pilotName, atob(this.dataset.pilotNotesB64))">
+                  [EDIT_NOTES]
                 </button>
                 <button class="pilot-button" onclick="openPilotJobHistory('${pilot.id}', '${escapedNameForOnclick}')">
                   [JOB_HISTORY]
@@ -250,38 +250,38 @@
       }
     }
     
-    // Open edit reserves modal
-    function openEditReserves(pilotId, pilotName, currentReserves) {
-      const modal = document.getElementById('edit-reserves-modal');
-      const title = document.getElementById('edit-reserves-title');
-      const textarea = document.getElementById('reserves-textarea');
-      const form = document.getElementById('reserves-form');
+    // Open edit notes modal
+    function openEditNotes(pilotId, pilotName, currentNotes) {
+      const modal = document.getElementById('edit-notes-modal');
+      const title = document.getElementById('edit-notes-title');
+      const textarea = document.getElementById('notes-textarea');
+      const form = document.getElementById('notes-form');
       
-      title.textContent = `${pilotName} - EDIT RESERVES`;
-      textarea.value = currentReserves || '';
+      title.textContent = `${pilotName} - EDIT NOTES`;
+      textarea.value = currentNotes || '';
       
       form.onsubmit = async (e) => {
         e.preventDefault();
-        const newReserves = textarea.value;
+        const newNotes = textarea.value;
         
         try {
           const response = await fetch(`/api/pilots/${pilotId}/reserves`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reserves: newReserves })
+            body: JSON.stringify({ reserves: newNotes })
           });
           
           const result = await response.json();
           
           if (result.success) {
-            closeModal('edit-reserves-modal');
+            closeModal('edit-notes-modal');
             // Update will come via SSE
           } else {
-            alert('Error: ' + (result.message || 'Failed to update reserves'));
+            alert('Error: ' + (result.message || 'Failed to update notes'));
           }
         } catch (err) {
-          console.error('Error updating reserves:', err);
-          alert('Error: Failed to update reserves');
+          console.error('Error updating notes:', err);
+          alert('Error: Failed to update notes');
         }
       };
       
@@ -409,17 +409,17 @@
     initializeModalHandlers();
   </script>
   
-  <!-- Edit Reserves Modal -->
-  <div id="edit-reserves-modal" class="modal-overlay">
+  <!-- Edit Notes Modal -->
+  <div id="edit-notes-modal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="edit-reserves-title">EDIT RESERVES</h2>
-        <button class="modal-close" onclick="closeModal('edit-reserves-modal')">[X]</button>
+        <h2 id="edit-notes-title">EDIT NOTES</h2>
+        <button class="modal-close" onclick="closeModal('edit-notes-modal')">[X]</button>
       </div>
       <div class="modal-body">
-        <form id="reserves-form" class="reserves-form">
-          <textarea id="reserves-textarea" placeholder="Enter reserves information..."></textarea>
-          <button type="submit">[SAVE_RESERVES]</button>
+        <form id="notes-form" class="notes-form">
+          <textarea id="notes-textarea" placeholder="Enter notes..."></textarea>
+          <button type="submit">[SAVE_NOTES]</button>
         </form>
       </div>
     </div>
