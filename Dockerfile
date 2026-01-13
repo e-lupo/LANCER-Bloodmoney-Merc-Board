@@ -12,9 +12,9 @@ RUN npm install --production
 
 # Copy source code
 COPY . .
-
+RUN chmod +x scripts/start.sh
 # Expose the application port (this is just metadata, actual binding is in docker-compose.yml)
 EXPOSE 3000
 
 # Start the application
-CMD ["./scripts/start.sh"]
+CMD ["sh", "./scripts/start.sh"]
