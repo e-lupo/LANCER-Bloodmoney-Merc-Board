@@ -32,8 +32,11 @@ function ping() {
 // Only run in production
 if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
   console.log('Keep-alive script started - pinging every 14 minutes');
-  ping(); // Initial ping
-  setInterval(ping, PING_INTERVAL);
+  // Wait for server to be ready before first ping
+  setTimeout(() => {
+    ping(); // First ping after delay
+    setInterval(ping, PING_INTERVAL); // Then every 14 minutes
+  }, INITIAL_DELAY);
 } else {
   console.log('Keep-alive script disabled in development');
 }
