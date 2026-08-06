@@ -176,6 +176,11 @@ router.get('/client/reserves', requireClientAuth, (req, res) => {
   });
 });
 
+router.get('/client/theaters', requireClientAuth, (req, res) => {
+  const settings = dataStore.readSettings();
+  res.render('client-theaters', { settings, colorScheme: settings.colorScheme });
+});
+
 router.get('/admin', requireAdminAuth, (req, res) => {
   const jobs = dataStore.readJobs();
   const settings = dataStore.readSettings();
@@ -187,6 +192,7 @@ router.get('/admin', requireAdminAuth, (req, res) => {
   const reserves = dataStore.readReserves();
   const storeConfig = dataStore.readStoreConfig();
   const votingPeriodsData = dataStore.readVotingPeriods();
+  const theaters = dataStore.readTheaters();
   const emblemFiles = fs.readdirSync(dataStore.getLogoArtDir())
     .filter(file => file.endsWith('.svg'))
     .sort();
@@ -231,6 +237,7 @@ router.get('/admin', requireAdminAuth, (req, res) => {
     votingPeriods: votingPeriodsData.periods || [],
     activeJobIds: activeJobIds,
     ongoingPeriod: ongoingPeriod,
+    theaters: theaters,
     emblems: emblemFiles, 
     formatEmblemTitle: helpers.formatEmblemTitle,
     jobStates: helpers.JOB_STATES,

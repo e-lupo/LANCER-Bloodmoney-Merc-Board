@@ -26,6 +26,8 @@ app.use(express.json());
 // Serve static files (no session needed)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/emblems', express.static(path.join(BASE_PATH, 'logo_art')));
+app.use('/theater-assets', express.static(path.join(BASE_PATH, 'theater_assets')));
+app.use('/planet-textures', express.static(path.join(BASE_PATH, 'planet_textures')));
 
 // Health endpoint for monitoring uptime
 app.get('/health', (req, res) => {
@@ -55,6 +57,7 @@ app.use('/', require('./routes/auth'));
 app.use('/', require('./routes/pages'));
 app.use('/', require('./routes/sse'));
 app.use('/', require('./routes/upload'));
+app.use('/', require('./routes/theaterUpload'));
 app.use('/api/jobs', require('./routes/api/jobs'));
 app.use('/api/settings', require('./routes/api/settings'));
 app.use('/api/reserves', require('./routes/api/reserves'));
@@ -65,6 +68,7 @@ app.use('/api/facilities', require('./routes/api/facilities'));
 app.use('/api/factions', require('./routes/api/factions'));
 app.use('/api/pilots', require('./routes/api/pilots'));
 app.use('/api/shop', require('./routes/api/shop'));
+app.use('/api/theaters', require('./routes/api/theaters'));
 // Admin batch operations are mounted at root since they use /api/jobs/ and /api/pilots/ prefixes
 app.use('/', require('./routes/api/admin'));
 

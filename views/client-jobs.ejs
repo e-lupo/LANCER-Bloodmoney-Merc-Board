@@ -213,6 +213,16 @@
       currentOngoingVotingPeriod = currentVotingPeriods.periods.find(p => p.state === 'Ongoing') || null;
     }
     
+    // Expose voting context to shared job-details modal (shared-handlers.js)
+    // so the "VOTES" section + [CAST_VOTE] button can render inside the modal.
+    Object.defineProperty(window, 'currentOngoingVotingPeriod', {
+      get: () => currentOngoingVotingPeriod,
+      configurable: true
+    });
+    window.isVotingActive = () => isVotingActive();
+    window.getVoteCount = (jobId) => getVoteCount(jobId);
+    window.openVotingModal = (jobId) => openVotingModal(jobId);
+
     // Check if voting is currently active (ongoing period and not past end time)
     // Note: This uses client-side time for UI responsiveness, but server validates with server time
     function isVotingActive() {

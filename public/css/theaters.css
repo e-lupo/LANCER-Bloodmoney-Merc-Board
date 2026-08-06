@@ -1,0 +1,355 @@
+/* ==================== Operational Theater Styles ==================== */
+
+/* Side-by-side layout: map on the left, detail/editor panel on the right */
+.theater-workspace {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.theater-workspace-map {
+  flex: 1 1 600px;
+  min-width: 320px;
+}
+
+.theater-workspace-side {
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+
+/* Shared map viewport used by both admin editor and client viewer */
+.theater-map-viewport {
+  position: relative;
+  width: 100%;
+  border: 2px solid var(--border-color);
+  background: var(--card-bg);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.theater-map-viewport.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+.theater-map-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* Location markers overlaid on the map (normalized coords) */
+.theater-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.theater-marker img {
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  /* Emblem SVGs are dark; invert so they read on the dark theme */
+  filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+.theater-marker .theater-marker-label {
+  margin-top: 2px;
+  font-size: 11px;
+  white-space: nowrap;
+  background: var(--bg-color);
+  padding: 1px 4px;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.theater-marker.selected img {
+  outline: 2px solid var(--glow-color);
+  outline-offset: 2px;
+}
+
+/* Editor placement mode indicator */
+.theater-map-viewport.placing {
+  cursor: crosshair;
+}
+
+/* Theater list (admin + client selector) */
+.theater-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.theater-list-item {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--hover-bg);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.theater-list-item:hover {
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.theater-list-item.active {
+  border-color: var(--glow-color);
+  color: var(--button-text);
+  background: var(--button-bg);
+}
+
+/* Location detail / assigned missions panel */
+.theater-location-panel {
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+.theater-location-panel h3,
+.theater-location-panel h4 {
+  margin-top: 0;
+  color: var(--text-color);
+  text-shadow: 0 0 5px var(--text-color);
+}
+
+.theater-location-panel p {
+  color: var(--text-color);
+}
+
+.theater-assigned-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theater-assigned-job {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  background: var(--hover-bg);
+  color: var(--text-color);
+}
+
+.theater-assigned-job:hover {
+  border-color: var(--glow-color);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+/* Admin editor controls */
+.theater-editor-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: var(--text-color);
+}
+
+.theater-editor-controls label {
+  color: var(--text-color);
+}
+
+.theater-editor-controls input,
+.theater-editor-controls select,
+.theater-editor-controls textarea {
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 4px 6px;
+  font-family: 'Courier New', monospace;
+}
+
+.theater-icon-option {
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  padding: 2px;
+  /* Emblem SVGs are dark; invert so they show on the dark theme */
+  filter: invert(1);
+}
+
+.theater-icon-option.selected {
+  border-color: var(--glow-color);
+  box-shadow: 0 0 8px var(--glow-color);
+}
+
+.theater-job-checklist {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  padding: 6px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.theater-job-checklist label {
+  display: block;
+  padding: 2px 0;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+/* ==================== Admin tab styling ====================
+   The admin panel does not use the client.css theme variables, so these
+   rules give the theater tab the same look as the Faction tab:
+   - the tab container is the medium-grey .add-job-section
+   - each theater / the location editor is a dark card (.theater-item)
+   - headings are white, secondary text is grey
+   ------------------------------------------------------------------ */
+
+#theaters-tab .theater-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#theaters-tab .theater-list-item {
+  padding: 8px 14px;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+#theaters-tab .theater-list-item:hover {
+  background: #2a2a2a;
+  border-color: #666;
+  color: #ffffff;
+}
+
+#theaters-tab .theater-list-item.active {
+  background: #007bff;
+  border-color: #007bff;
+  color: #ffffff;
+}
+
+/* Inactive (player-hidden) theaters are dimmed in the GM list */
+#theaters-tab .theater-list-item.theater-inactive {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+/* Dark card for the location editor, matching .faction-item */
+#theaters-tab .theater-item {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 20px;
+  color: #b0b0b0;
+}
+
+#theaters-tab .theater-item h3 {
+  color: #ffffff;
+  margin-top: 0;
+}
+
+#theaters-tab .theater-location-panel {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #b0b0b0;
+}
+
+#theaters-tab .theater-location-panel h3,
+#theaters-tab .theater-location-panel h4 {
+  color: #ffffff;
+  text-shadow: none;
+}
+
+/* Map viewport on the admin side */
+#theaters-tab .theater-map-viewport {
+  border: 2px solid #444;
+  background: #0a0a0a;
+}
+
+#theaters-tab .theater-map-viewport.empty {
+  color: #b0b0b0;
+}
+
+/* Icon picker grid */
+#theaters-tab .theater-icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  background: #0d0d0d;
+  padding: 6px;
+}
+
+#theaters-tab .theater-icon-option {
+  filter: invert(1);
+}
+
+#theaters-tab .theater-icon-option.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 8px #007bff;
+}
+
+/* Job assignment checklist */
+#theaters-tab .theater-job-checklist {
+  background: #0d0d0d;
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+
+/* Marker labels on the admin map */
+#theaters-tab .theater-marker .theater-marker-label {
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid #444;
+  color: #e0e0e0;
+}
+
+#theaters-tab .theater-marker.selected img {
+  outline: 2px solid #007bff;
+}
+
+#theaters-tab .theater-marker img {
+  filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+/* Color picker rendered as a compact square swatch (not a wide bar) */
+.theater-color-swatch {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid #444;
+  background: #0d0d0d;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.theater-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.theater-color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.theater-color-swatch::-moz-color-swatch {
+  border: none;
+  border-radius: 2px;
+}

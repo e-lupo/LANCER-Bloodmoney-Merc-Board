@@ -1,0 +1,128 @@
+<!-- Operational Theaters Config Tab -->
+<div id="theaters-tab" class="tab-content">
+  <link rel="stylesheet" href="/css/theaters.css">
+
+  <!-- Create + edit section (styled like the "Add New Faction" section) -->
+  <div class="add-job-section">
+    <h2>Operational Theaters</h2>
+    <p style="color: #b0b0b0;">Define theaters (background maps), place locations on them, and assign missions from the job stack to those locations.</p>
+
+    <div class="form-group">
+      <button type="button" class="btn btn-primary" onclick="theaterAdminCreate()">Add New Theater</button>
+    </div>
+
+    <!-- Theater selector -->
+    <div class="form-group">
+      <label>Select Theater</label>
+      <div class="theater-list" id="admin-theater-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Selected theater editor -->
+    <div id="admin-theater-editor" style="display: none;">
+      <div class="form-group">
+        <label for="admin-theater-name">Theater Name</label>
+        <input type="text" id="admin-theater-name">
+      </div>
+
+      <div class="form-group">
+        <label for="admin-theater-type">Type</label>
+        <select id="admin-theater-type">
+          <option value="flat">Flat (2D Map)</option>
+          <option value="planet">Planet (3D - Iteration 2)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="admin-theater-active">
+          <input type="checkbox" id="admin-theater-active" checked>
+          Active (visible to players)
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label for="admin-theater-description">Description</label>
+        <textarea id="admin-theater-description" rows="2"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="admin-theater-bg-file">Background Map</label>
+        <input type="file" id="admin-theater-bg-file" accept="image/png,image/jpeg,image/bmp">
+        <button type="button" class="btn btn-neutral" onclick="theaterAdminUploadBackground()">Upload Map</button>
+        <span id="admin-theater-bg-status" style="color: #b0b0b0;"></span>
+      </div>
+
+      <div class="form-group">
+        <button type="button" class="btn btn-primary" onclick="theaterAdminSaveDetails()">Save Details</button>
+        <button type="button" class="btn btn-delete" onclick="theaterAdminDelete()">Delete Theater</button>
+      </div>
+
+      <div class="form-group">
+        <button type="button" class="btn btn-neutral" id="admin-place-toggle" onclick="theaterAdminTogglePlacement()">Place New Location</button>
+        <span id="admin-place-hint" style="color: #b0b0b0;"></span>
+      </div>
+
+      <!-- Map + location editor side by side -->
+      <div class="theater-workspace">
+        <div class="theater-workspace-map">
+          <div class="theater-map-viewport empty" id="admin-theater-viewport">
+            <span>> NO_THEATER_SELECTED_</span>
+          </div>
+        </div>
+
+        <div class="theater-workspace-side">
+          <div class="theater-item" id="admin-location-editor" style="display: none;">
+            <h3>Edit Location</h3>
+
+            <div class="form-group">
+              <label for="admin-loc-name">Location Name</label>
+              <input type="text" id="admin-loc-name">
+            </div>
+
+            <div class="form-group">
+              <label for="admin-loc-description">Description</label>
+              <input type="text" id="admin-loc-description">
+            </div>
+
+            <div class="form-group">
+              <label for="admin-loc-color">Marker Color</label>
+              <input type="color" id="admin-loc-color" value="#e0e0e0" class="theater-color-swatch">
+              <label for="admin-loc-scale" style="margin-left: 12px;">Scale</label>
+              <input type="number" id="admin-loc-scale" min="0.25" max="4" step="0.25" value="1" style="width:70px;">
+            </div>
+
+            <div class="form-group">
+              <label for="admin-loc-child-theater">Drill-down to Theater</label>
+              <select id="admin-loc-child-theater">
+                <option value="">(none)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Icon</label>
+              <div id="admin-loc-icon-grid" class="theater-icon-grid">
+                <% (typeof emblems !== 'undefined' ? emblems : []).forEach(function(emblem) { %>
+                  <img class="theater-icon-option" src="/emblems/<%= emblem %>" data-icon="<%= emblem %>" title="<%= emblem %>" onclick="theaterAdminSelectIcon('<%= emblem %>')">
+                <% }); %>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Assigned Missions</label>
+              <div class="theater-job-checklist" id="admin-loc-jobs">
+                <!-- Populated by JS from /api/jobs -->
+              </div>
+            </div>
+
+            <div class="form-group">
+              <button type="button" class="btn btn-primary" onclick="theaterAdminSaveLocation()">Save Location</button>
+              <button type="button" class="btn btn-delete" onclick="theaterAdminDeleteLocation()">Delete Location</button>
+              <button type="button" class="btn btn-neutral" onclick="theaterAdminCloseLocationEditor()">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

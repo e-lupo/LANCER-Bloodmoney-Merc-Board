@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lancer-job-board.local/schemas/theater.schema.json",
+  "title": "Theater",
+  "description": "An operational theater: a flat map or a planet, with location markers",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "type",
+    "locations"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier (UUID)",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "description": "Theater name",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Theater description (optional)"
+    },
+    "type": {
+      "type": "string",
+      "description": "Rendering type: flat 2D map or planet sphere",
+      "enum": ["flat", "planet"]
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether the theater is visible to players (inactive theaters are hidden from clients)"
+    },
+    "backgroundImage": {
+      "type": ["string", "null"],
+      "description": "Filename of the flat background map (served via /theater-assets)"
+    },
+    "textureImage": {
+      "type": ["string", "null"],
+      "description": "Filename of the planet surface texture (served via /planet-textures, Iteration 2)"
+    },
+    "locations": {
+      "type": "array",
+      "description": "Location markers on this theater",
+      "items": { "$ref": "theater-location.schema.json" }
+    }
+  },
+  "additionalProperties": false,
+  "notes": [
+    "Flat theaters use normalized x/y (0..1) for resolution-independent markers.",
+    "Planet theaters use lat/lon on location markers (Iteration 2).",
+    "Locations may reference a childTheaterId to enable drill-down sublocations.",
+    "Assigned jobs are stored as references (job IDs) into jobs.json; job data itself is never duplicated."
+  ]
+}

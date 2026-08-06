@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LANCER Job Board - Operational Theaters</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="stylesheet" href="/css/currency.css">
+  <link rel="stylesheet" href="/css/client.css">
+  <link rel="stylesheet" href="/css/theaters.css">
+</head>
+<body class="<%= colorScheme %>">
+  <div class="terminal-header">
+    <div class="terminal-header-left">
+      <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - OPERATIONAL THEATERS_</h1>
+      <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
+    </div>
+    <div class="terminal-header-right">
+      <p class="terminal-info">> UNT: <span id="unt"><%= settings.unt %></span>U</p>
+      <p class="terminal-info">> CURRENT_GALACTIC_POS: <span id="galactic-pos"><%= settings.currentGalacticPos %></span></p>
+    </div>
+  </div>
+
+  <div class="overview-container">
+    <h2>> SELECT_THEATER_</h2>
+    <div class="theater-list" id="theater-list">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <div class="theater-workspace">
+      <div class="theater-workspace-map">
+        <div class="theater-map-viewport empty" id="theater-viewport">
+          <span>> LOADING_THEATERS_</span>
+        </div>
+      </div>
+
+      <div class="theater-workspace-side">
+        <div class="theater-location-panel" id="theater-location-panel" style="display: none;">
+          <h3 id="theater-location-name"></h3>
+          <p id="theater-location-description"></p>
+          <div id="theater-child-link-container" style="display:none; margin-bottom: 10px;">
+            <button class="nav-button" id="theater-child-link-btn">> ZOOM_INTO_SUBLOCATION</button>
+          </div>
+          <h4>> ASSIGNED_MISSIONS_</h4>
+          <div class="theater-assigned-jobs" id="theater-assigned-jobs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Job Details Modal (reuses shared handlers) -->
+  <div id="job-details-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>JOB DETAILS</h2>
+        <button class="modal-close" onclick="closeModal('job-details-modal')">[X]</button>
+      </div>
+      <div class="modal-body">
+        <div id="job-details-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voting Modal (same interface as the job board) -->
+  <div id="voting-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>VOTING INTERFACE</h2>
+        <button class="modal-close" onclick="closeVotingModal()">[X]</button>
+      </div>
+      <div class="modal-body">
+        <p class="voting-instruction">> EACH PILOT MAY ONLY VOTE FOR ONE JOB.</p>
+        <p class="voting-instruction">> SELECT A PILOT TO CAST THEIR VOTE:</p>
+        <div class="pilots-list" id="voting-pilots-list">
+          <!-- Populated by JavaScript -->
+        </div>
+        <p id="vote-warning" class="vote-warning" style="display: none;"></p>
+        <div class="modal-actions">
+          <button class="modal-button confirm-button" id="cast-vote-btn" onclick="confirmVote()" disabled>
+            [CAST_VOTE]
+          </button>
+          <button class="modal-button cancel-button" onclick="closeVotingModal()">
+            [CANCEL]
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/shared-handlers.js"></script>
+  <script>
+    if (typeof currentCurrencyIcon !== 'undefined') {
+      currentCurrencyIcon = '<%= settings.currencyIcon || "manna_symbol.svg" %>';
+    }
+  </script>
+  <script src="/js/theaters-shared.js"></script>
+  <script src="/js/sse-client.js"></script>
+  <script src="/js/client-theaters.js"></script>
+</body>
+</html>
