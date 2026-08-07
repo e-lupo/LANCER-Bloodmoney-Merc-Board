@@ -68,6 +68,13 @@
   filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
 }
 
+/* Color-tinted marker icon: the emblem SVG is used as a mask and filled
+   with the location's chosen color (set inline in theaters-shared.js). */
+.theater-marker-icon {
+  display: inline-block;
+  pointer-events: none;
+}
+
 .theater-marker .theater-marker-label {
   margin-top: 2px;
   font-size: 11px;
@@ -327,6 +334,25 @@
 
 #theaters-tab .theater-marker img {
   filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+/* Inline checkbox + label (not vertically stacked/centered) */
+#theaters-tab .theater-inline-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+#theaters-tab .theater-inline-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+#theaters-tab .theater-inline-check label {
+  margin: 0;
+  color: #e0e0e0;
 }
 
 /* Color picker rendered as a compact square swatch (not a wide bar) */

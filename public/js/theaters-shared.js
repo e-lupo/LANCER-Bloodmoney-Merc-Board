@@ -54,15 +54,31 @@ function renderFlatTheater(viewport, theater, opts) {
     marker.style.top = (loc.y * 100) + '%';
     marker.dataset.locationId = loc.id;
 
-    const icon = document.createElement('img');
-    icon.src = '/emblems/' + encodeURIComponent(loc.icon || 'token--world.svg');
-    icon.alt = loc.name || 'Location';
+    // Render the marker icon. When a color is set, tint the whole icon body
+    // by using the emblem SVG as a CSS mask filled with that color. Without a
+    // color, fall back to an inverted <img> so dark SVGs stay visible.
     const scale = Number(loc.iconScale) || 1;
-    icon.style.width = (32 * scale) + 'px';
-    icon.style.height = (32 * scale) + 'px';
+    const size = 32 * scale;
+    const iconUrl = '/emblems/' + encodeURIComponent(loc.icon || 'token--world.svg');
+
+    let icon;
     if (loc.iconColor) {
-      // Tint via CSS filter drop-shadow ring for visibility
-      icon.style.filter = 'drop-shadow(0 0 2px ' + loc.iconColor + ')';
+      icon = document.createElement('span');
+      icon.className = 'theater-marker-icon';
+      icon.style.width = size + 'px';
+      icon.style.height = size + 'px';
+      icon.style.backgroundColor = loc.iconColor;
+      const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
+      icon.style.webkitMask = maskValue;
+      icon.style.mask = maskValue;
+      // Subtle dark outline for contrast against light backgrounds
+      icon.style.filter = 'drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))';
+    } else {
+      icon = document.createElement('img');
+      icon.src = iconUrl;
+      icon.alt = loc.name || 'Location';
+      icon.style.width = size + 'px';
+      icon.style.height = size + 'px';
     }
     marker.appendChild(icon);
 

@@ -188,7 +188,10 @@ function handleVotingPeriodsUpdate(data) {
 // SSE handlers (invoked by sse-client.js)
 function handleTheatersUpdate(data) {
   if (data && Array.isArray(data.theaters)) {
-    theaterState.theaters = data.theaters;
+    // The SSE payload contains ALL theaters (including admin-only inactive
+    // ones). On the client viewer we only ever show active theaters, so
+    // filter them out here as a safety net alongside the server-side GET filter.
+    theaterState.theaters = data.theaters.filter(t => t.active !== false);
 
     // If selected theater was deleted, reset selection
     if (!theaterState.theaters.some(t => t.id === theaterState.selectedTheaterId)) {

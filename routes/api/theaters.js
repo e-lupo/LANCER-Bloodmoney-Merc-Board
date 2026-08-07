@@ -89,9 +89,15 @@ function validateLocationData(body, jobIds) {
 
 // ==================== Theater CRUD ====================
 
-// GET all theaters (any authenticated user)
+// GET theaters (any authenticated user).
+// Admins see all theaters; clients only see active (visible) theaters.
 router.get('/', requireAnyAuth, (req, res) => {
-  res.json(dataStore.readTheaters());
+  const theaters = dataStore.readTheaters();
+  const isAdmin = req.session && req.session.role === 'admin';
+  if (isAdmin) {
+    return res.json(theaters);
+  }
+  res.json(theaters.filter(t => t.active !== false));
 });
 
 // POST create theater (admin)
@@ -137,6 +143,7 @@ router.put('/:id', requireAdminAuth, (req, res) => {
     name: validation.name,
     description: validation.description,
     type: validation.type,
+    active: validation.active,
     backgroundImage: validation.backgroundImage,
     textureImage: validation.textureImage
   };
