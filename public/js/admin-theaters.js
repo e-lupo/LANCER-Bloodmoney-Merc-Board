@@ -124,6 +124,7 @@ function theaterAdminUploadBackground() {
         return;
       }
       status.textContent = ' Uploaded.';
+      fileInput.value = '';
       // Save the new background onto the theater
       return fetch('/api/theaters/' + theater.id, {
         method: 'PUT',
@@ -136,10 +137,120 @@ function theaterAdminUploadBackground() {
           backgroundImage: res.backgroundImage,
           textureImage: theater.textureImage
         })
-      });
+      }).then(() => theaterAdminRenderGallery());
     })
     .catch(() => {
       status.textContent = ' Upload error';
+    });
+}
+
+// ==================== Background gallery ====================
+
+// Fetch and render the gallery of previously uploaded background images.
+function theaterAdminRenderGallery() {
+  const gallery = document.getElementById('admin-theater-bg-gallery');
+  if (!gallery) return;
+
+  fetch('/api/theater-assets')
+    .then(r => r.json())
+    .then(assets => {
+      gallery.innerHTML = '';
+      if (!Array.isArray(assets) || assets.length === 0) {
+        gallery.innerHTML = '<span style="color:#b0b0b0;">No uploaded images yet.</span>';
+        return;
+      }
+
+      const theater = theaterAdminGetSelected();
+      const currentBg = theater ? theater.backgroundImage : null;
+
+      assets.forEach(asset => {
+        const cell = document.createElement('div');
+        cell.className = 'theater-bg-thumb' +
+          (asset.filename === currentBg ? ' selected' : '');
+
+        const img = document.createElement('img');
+        img.src = '/theater-assets/' + encodeURIComponent(asset.filename);
+        img.alt = asset.filename;
+        img.title = 'Use this background';
+        img.onclick = () => theaterAdminSelectBackground(asset.filename);
+        cell.appendChild(img);
+
+        // Delete button — deleting an in-use image clears it from its theater.
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'theater-bg-thumb-delete';
+        del.textContent = '✕';
+        del.title = asset.inUse
+          ? 'In use — deleting will remove it from its theater'
+          : 'Delete image';
+        del.onclick = (e) => {
+          e.stopPropagation();
+          theaterAdminDeleteBackground(asset.filename, asset.inUse);
+        };
+        cell.appendChild(del);
+
+        gallery.appendChild(cell);
+      });
+    })
+    .catch(() => {
+      gallery.innerHTML = '<span style="color:#b0b0b0;">Failed to load images.</span>';
+    });
+}
+
+// Set the selected theater's background to an existing uploaded image.
+function theaterAdminSelectBackground(filename) {
+  const theater = theaterAdminGetSelected();
+  if (!theater) return;
+  fetch('/api/theaters/' + theater.id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: theater.name,
+      description: theater.description,
+      type: theater.type,
+      active: theater.active !== false,
+      backgroundImage: filename,
+      textureImage: theater.textureImage
+    })
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) alert(res.message || 'Failed to set background');
+      // SSE will refresh the editor + gallery highlight
+    });
+}
+
+// Delete an uploaded background image. If it's in use, deleting also clears
+// it from the theater(s) that reference it (handled server-side).
+function theaterAdminDeleteBackground(filename, inUse) {
+  const msg = inUse
+    ? 'This image is in use by a theater. Deleting will remove it from that theater. Continue?'
+    : 'Delete this image? This cannot be undone.';
+  if (!confirm(msg)) return;
+  fetch('/api/theater-assets/' + encodeURIComponent(filename), { method: 'DELETE' })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) {
+        alert(res.message || 'Failed to delete image');
+        return;
+      }
+      // Re-fetch theaters from the server so ALL local state (theater objects
+      // and the marker-click closures created during render) uses fresh data
+      // with the deleted background cleared. This prevents a stale cached
+      // background from reappearing when a location marker is later clicked.
+      fetch('/api/theaters')
+        .then(r => r.json())
+        .then(theaters => {
+          AdminTheaters.theaters = theaters || [];
+          if (!AdminTheaters.theaters.some(t => t.id === AdminTheaters.selectedTheaterId)) {
+            AdminTheaters.selectedTheaterId = AdminTheaters.theaters[0]
+              ? AdminTheaters.theaters[0].id
+              : null;
+          }
+          theaterAdminRenderList();
+          theaterAdminRenderEditor();
+          theaterAdminRenderGallery();
+        });
     });
 }
 
@@ -189,6 +300,9 @@ function theaterAdminRenderEditor() {
   document.getElementById('admin-theater-description').value = theater.description || '';
   document.getElementById('admin-theater-type').value = theater.type || 'flat';
   document.getElementById('admin-theater-active').checked = theater.active !== false;
+
+  // Render the uploaded-image gallery (highlights the current background)
+  theaterAdminRenderGallery();
 
   // Render map + markers with drag support
   window.TheaterShared.renderFlatTheater(viewport, theater, {

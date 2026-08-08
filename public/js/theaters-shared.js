@@ -3,17 +3,6 @@
  * Used by both the admin editor and the client viewer.
  */
 
-// Escape HTML to avoid injection when building markup from data
-function theaterEscapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 /**
  * Render a flat theater's background + location markers into a viewport element.
  * @param {HTMLElement} viewport - the .theater-map-viewport container
@@ -37,6 +26,9 @@ function renderFlatTheater(viewport, theater, opts) {
     img.className = 'theater-map-image';
     img.src = '/theater-assets/' + encodeURIComponent(theater.backgroundImage);
     img.alt = theater.name || 'Theater';
+    // If the image no longer exists (e.g. it was deleted), remove it so a
+    // stale/broken image isn't shown from cache.
+    img.onerror = () => { img.remove(); };
     viewport.appendChild(img);
   }
 
@@ -54,32 +46,25 @@ function renderFlatTheater(viewport, theater, opts) {
     marker.style.top = (loc.y * 100) + '%';
     marker.dataset.locationId = loc.id;
 
-    // Render the marker icon. When a color is set, tint the whole icon body
-    // by using the emblem SVG as a CSS mask filled with that color. Without a
-    // color, fall back to an inverted <img> so dark SVGs stay visible.
+    // Render the marker icon: the emblem SVG is used as a CSS mask filled with
+    // the location's color (iconColor), with a subtle neutral drop-shadow for
+    // contrast on light backgrounds.
     const scale = Number(loc.iconScale) || 1;
     const size = 32 * scale;
     const iconUrl = '/emblems/' + encodeURIComponent(loc.icon || 'token--world.svg');
 
-    let icon;
-    if (loc.iconColor) {
-      icon = document.createElement('span');
-      icon.className = 'theater-marker-icon';
-      icon.style.width = size + 'px';
-      icon.style.height = size + 'px';
-      icon.style.backgroundColor = loc.iconColor;
-      const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
-      icon.style.webkitMask = maskValue;
-      icon.style.mask = maskValue;
-      // Subtle dark outline for contrast against light backgrounds
-      icon.style.filter = 'drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))';
-    } else {
-      icon = document.createElement('img');
-      icon.src = iconUrl;
-      icon.alt = loc.name || 'Location';
-      icon.style.width = size + 'px';
-      icon.style.height = size + 'px';
-    }
+    const fillColor = loc.iconColor || '#e0e0e0';
+    const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
+
+    const icon = document.createElement('span');
+    icon.className = 'theater-marker-icon';
+    icon.style.width = size + 'px';
+    icon.style.height = size + 'px';
+    icon.style.backgroundColor = fillColor;
+    icon.style.webkitMask = maskValue;
+    icon.style.mask = maskValue;
+    icon.style.filter = 'drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))';
+
     marker.appendChild(icon);
 
     if (opts.showLabels !== false) {
@@ -118,7 +103,6 @@ function viewportClickToNormalized(viewport, event) {
 
 // Expose on window for use by non-module scripts
 window.TheaterShared = {
-  escapeHtml: theaterEscapeHtml,
   renderFlatTheater,
   viewportClickToNormalized
 };

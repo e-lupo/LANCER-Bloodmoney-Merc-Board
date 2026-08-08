@@ -60,16 +60,8 @@
   z-index: 2;
 }
 
-.theater-marker img {
-  width: 32px;
-  height: 32px;
-  pointer-events: none;
-  /* Emblem SVGs are dark; invert so they read on the dark theme */
-  filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
-}
-
-/* Color-tinted marker icon: the emblem SVG is used as a mask and filled
-   with the location's chosen color (set inline in theaters-shared.js). */
+/* Color-tinted marker icon: the emblem SVG is used as a mask and filled with
+   the location's chosen color (set inline in theaters-shared.js). */
 .theater-marker-icon {
   display: inline-block;
   pointer-events: none;
@@ -85,7 +77,7 @@
   color: var(--text-color);
 }
 
-.theater-marker.selected img {
+.theater-marker.selected .theater-marker-icon {
   outline: 2px solid var(--glow-color);
   outline-offset: 2px;
 }
@@ -159,30 +151,6 @@
   border-color: var(--glow-color);
   background: var(--button-bg);
   color: var(--button-text);
-}
-
-/* Admin editor controls */
-.theater-editor-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 10px 0;
-  color: var(--text-color);
-}
-
-.theater-editor-controls label {
-  color: var(--text-color);
-}
-
-.theater-editor-controls input,
-.theater-editor-controls select,
-.theater-editor-controls textarea {
-  background: var(--bg-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  padding: 4px 6px;
-  font-family: 'Courier New', monospace;
 }
 
 .theater-icon-option {
@@ -305,10 +273,6 @@
   padding: 6px;
 }
 
-#theaters-tab .theater-icon-option {
-  filter: invert(1);
-}
-
 #theaters-tab .theater-icon-option.selected {
   border-color: #007bff;
   box-shadow: 0 0 8px #007bff;
@@ -328,12 +292,8 @@
   color: #e0e0e0;
 }
 
-#theaters-tab .theater-marker.selected img {
+#theaters-tab .theater-marker.selected .theater-marker-icon {
   outline: 2px solid #007bff;
-}
-
-#theaters-tab .theater-marker img {
-  filter: invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
 }
 
 /* Inline checkbox + label (not vertically stacked/centered) */
@@ -353,6 +313,65 @@
 #theaters-tab .theater-inline-check label {
   margin: 0;
   color: #e0e0e0;
+}
+
+/* Horizontal gallery of previously uploaded background images */
+#theaters-tab .theater-bg-gallery {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px;
+  border: 1px solid #444;
+  background: #0d0d0d;
+  min-height: 60px;
+}
+
+#theaters-tab .theater-bg-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 60px;
+  border: 2px solid #444;
+  background: #000;
+  cursor: pointer;
+}
+
+#theaters-tab .theater-bg-thumb.selected {
+  border-color: #007bff;
+  box-shadow: 0 0 8px #007bff;
+}
+
+#theaters-tab .theater-bg-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#theaters-tab .theater-bg-thumb-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  line-height: 14px;
+  padding: 0;
+  border: 1px solid #444;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#theaters-tab .theater-bg-thumb-delete:hover:not(:disabled) {
+  background: #ff4444;
+  color: #ffffff;
+}
+
+#theaters-tab .theater-bg-thumb-delete:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Color picker rendered as a compact square swatch (not a wide bar) */

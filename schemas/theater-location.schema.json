@@ -31,7 +31,11 @@
     },
     "iconColor": {
       "type": "string",
-      "description": "CSS color used to tint/highlight the marker"
+      "description": "CSS color used as the fill (body) of the marker icon"
+    },
+    "iconEdgeColor": {
+      "type": "string",
+      "description": "CSS color reserved for the marker icon edge/outline (no UI control yet; kept for a future iteration)"
     },
     "iconScale": {
       "type": "number",

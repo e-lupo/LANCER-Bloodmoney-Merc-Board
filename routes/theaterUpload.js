@@ -5,6 +5,7 @@ const multer = require('multer');
 const helpers = require('../helpers');
 const dataStore = require('../models/dataStore');
 const { requireAdminAuth } = require('../middleware/auth');
+const { broadcastSSE } = require('../lib/sseManager');
 
 const router = express.Router();
 
@@ -82,19 +83,19 @@ function makeUploadHandler(getTargetDir, responseKey) {
   };
 }
 
-// Shared handler: delete an asset by filename if not in use
-function makeDeleteHandler(getTargetDir, inUseCheck) {
+// Shared handler: delete an asset by filename.
+// clearRefs(filename) removes the image from any theater that references it
+// (so an in-use image can still be deleted; references are cleared first).
+function makeDeleteHandler(getTargetDir, clearRefs) {
   return async (req, res) => {
     const filename = req.params.filename;
     if (!isSafeImageFilename(filename)) {
       return res.status(400).json({ success: false, message: 'Invalid filename' });
     }
 
-    if (inUseCheck(filename)) {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot delete: asset is currently in use by a theater'
-      });
+    // Clear any theater references to this asset before deleting the file
+    if (typeof clearRefs === 'function') {
+      clearRefs(filename);
     }
 
     const filePath = path.join(getTargetDir(), filename);
@@ -112,6 +113,28 @@ function makeDeleteHandler(getTargetDir, inUseCheck) {
   };
 }
 
+// List all uploaded theater background images (admin only).
+// Returns [{ filename, inUse }] so the gallery can flag in-use assets.
+router.get('/api/theater-assets', requireAdminAuth, (req, res) => {
+  const dir = dataStore.getTheaterAssetsDir();
+  let files = [];
+  try {
+    files = fs.readdirSync(dir)
+      .filter(f => ALLOWED_EXT.has(path.extname(f).toLowerCase()))
+      .sort();
+  } catch (e) {
+    files = [];
+  }
+
+  const theaters = dataStore.readTheaters();
+  const usedSet = new Set(theaters.map(t => t.backgroundImage).filter(Boolean));
+
+  res.json(files.map(filename => ({
+    filename,
+    inUse: usedSet.has(filename)
+  })));
+});
+
 // Upload theater background (flat map)
 router.post(
   '/upload/theater-background',
@@ -126,23 +149,49 @@ router.post(
   makeUploadHandler(() => dataStore.getPlanetTexturesDir(), 'textureImage')
 );
 
-// Delete theater background
+// Delete theater background — clears the reference from any theater using it.
 router.delete(
   '/api/theater-assets/:filename',
   requireAdminAuth,
   makeDeleteHandler(
     () => dataStore.getTheaterAssetsDir(),
-    (filename) => dataStore.readTheaters().some(t => t.backgroundImage === filename)
+    (filename) => {
+      const theaters = dataStore.readTheaters();
+      let changed = false;
+      theaters.forEach(t => {
+        if (t.backgroundImage === filename) {
+          t.backgroundImage = null;
+          changed = true;
+        }
+      });
+      if (changed) {
+        dataStore.writeTheaters(theaters);
+        broadcastSSE('theaters', { action: 'update', theaters });
+      }
+    }
   )
 );
 
-// Delete planet texture
+// Delete planet texture — clears the reference from any theater using it.
 router.delete(
   '/api/planet-textures/:filename',
   requireAdminAuth,
   makeDeleteHandler(
     () => dataStore.getPlanetTexturesDir(),
-    (filename) => dataStore.readTheaters().some(t => t.textureImage === filename)
+    (filename) => {
+      const theaters = dataStore.readTheaters();
+      let changed = false;
+      theaters.forEach(t => {
+        if (t.textureImage === filename) {
+          t.textureImage = null;
+          changed = true;
+        }
+      });
+      if (changed) {
+        dataStore.writeTheaters(theaters);
+        broadcastSSE('theaters', { action: 'update', theaters });
+      }
+    }
   )
 );
 
