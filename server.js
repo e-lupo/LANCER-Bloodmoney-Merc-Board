@@ -26,8 +26,8 @@ app.use(express.json());
 // Serve static files (no session needed)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/emblems', express.static(path.join(BASE_PATH, 'logo_art')));
-app.use('/theater-assets', express.static(path.join(BASE_PATH, 'theater_assets')));
-app.use('/planet-textures', express.static(path.join(BASE_PATH, 'planet_textures')));
+app.use('/theater-assets', express.static(dataStore.getTheaterAssetsDir()));
+app.use('/planet-textures', express.static(dataStore.getPlanetTexturesDir()));
 
 // Health endpoint for monitoring uptime
 app.get('/health', (req, res) => {

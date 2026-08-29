@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   userGroup: 'FREELANCE_OPERATORS',
   operationProgress: 0,
   openTable: false,
+  theatersVisible: true,
   clientPassword: 'IMHOTEP',
   adminPassword: 'TARASQUE',
   facilityCostModifier: 0,
@@ -47,8 +48,8 @@ function init(config) {
   STORE_CONFIG_FILE = path.join(DATA_DIR, 'store-config.json');
   VOTING_PERIODS_FILE = path.join(DATA_DIR, 'voting-periods.json');
   THEATERS_FILE = path.join(DATA_DIR, 'theaters.json');
-  THEATER_ASSETS_DIR = path.join(BASE_PATH, 'theater_assets');
-  PLANET_TEXTURES_DIR = path.join(BASE_PATH, 'planet_textures');
+  THEATER_ASSETS_DIR = path.join(DATA_DIR, 'theater_assets');
+  PLANET_TEXTURES_DIR = path.join(DATA_DIR, 'planet_textures');
 
   // Ensure directories exist
   if (!fs.existsSync(DATA_DIR)) {

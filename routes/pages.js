@@ -30,11 +30,16 @@ router.get('/client/overview', requireClientAuth, (req, res) => {
   // Convert back to newest-first and take the last 5 for display
   const withCumulativeNewestFirst = [...withCumulativeOldestFirst].reverse();
   const recentWithBalance = withCumulativeNewestFirst.slice(0, 5);
-  
-  res.render('client-overview', { 
-    settings, 
-    colorScheme: settings.colorScheme, 
+
+  // Theaters tab only shows if the GM has it enabled AND at least one theater is active
+  const theaters = dataStore.readTheaters();
+  const showTheaters = !!settings.theatersVisible && theaters.some(t => t.active !== false);
+
+  res.render('client-overview', {
+    settings,
+    colorScheme: settings.colorScheme,
     totalBalance,
+    showTheaters,
     recentTransactions: recentWithBalance
   });
 });
@@ -178,6 +183,9 @@ router.get('/client/reserves', requireClientAuth, (req, res) => {
 
 router.get('/client/theaters', requireClientAuth, (req, res) => {
   const settings = dataStore.readSettings();
+  if (!settings.theatersVisible) {
+    return res.redirect('/client/overview');
+  }
   res.render('client-theaters', { settings, colorScheme: settings.colorScheme });
 });
 
