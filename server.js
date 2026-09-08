@@ -2,9 +2,20 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
+const FileSessionStore = require('./models/sessionStore');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Log and survive an unexpected error instead of crashing the process --
+// a crash restarts the container, and since sessions live in this process,
+// that would otherwise instantly log out every signed-in user.
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+});
 
 // pkg detection and path configuration
 const IS_PKG = typeof process.pkg !== 'undefined';
@@ -34,8 +45,12 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Session configuration
+// Session configuration.
+// Sessions are stored in a file (not the default in-memory store) so a
+// process restart -- an idle-timeout recycle, a crash, a redeploy -- doesn't
+// force everyone to log back in.
 app.use(session({
+  store: new FileSessionStore(path.join(dataStore.getDataDir(), 'sessions.json')),
   secret: process.env.SESSION_SECRET || 'lancer-job-board-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
