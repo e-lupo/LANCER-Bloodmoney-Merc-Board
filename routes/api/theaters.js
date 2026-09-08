@@ -3,6 +3,7 @@ const helpers = require('../../helpers');
 const dataStore = require('../../models/dataStore');
 const { requireAnyAuth, requireAdminAuth } = require('../../middleware/auth');
 const { broadcastSSE } = require('../../lib/sseManager');
+const { locationHasActiveJob, getActiveJobIds, filterTheatersForPlayers } = require('../../lib/theaterVisibility');
 
 const router = express.Router();
 
@@ -13,6 +14,17 @@ function clampNormalized(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return null;
   return Math.min(1, Math.max(0, num));
+}
+
+// Broadcast a theaters update, sending non-admin clients a payload with
+// hidden theaters/locations already stripped out (SSE has no per-client
+// filtering otherwise, so the raw payload must never reach a player).
+function broadcastTheaters(payload) {
+  broadcastSSE('theaters', payload, (data, role) => {
+    if (role === 'admin') return data;
+    const activeJobIds = getActiveJobIds(dataStore.readJobs());
+    return { ...data, theaters: filterTheatersForPlayers(data.theaters, activeJobIds) };
+  });
 }
 
 // Validate and normalize theater-level data (name/description/type/images)
@@ -31,6 +43,7 @@ function validateTheaterData(body) {
     valid: true,
     name: nameValidation.value,
     description: (body.description || '').toString().trim(),
+    galacticPos: (body.galacticPos || '').toString().trim(),
     type,
     active,
     backgroundImage: body.backgroundImage ? String(body.backgroundImage) : null,
@@ -76,29 +89,53 @@ function validateLocationData(body, jobIds) {
     valid: true,
     name: nameValidation.value,
     description: (body.description || '').toString().trim(),
+    galacticPos: (body.galacticPos || '').toString().trim(),
     icon: icon || 'token--world.svg',
     iconColor: body.iconColor ? String(body.iconColor) : '#e0e0e0',
     iconEdgeColor: body.iconEdgeColor ? String(body.iconEdgeColor) : '#000000',
     iconScale: Number.isFinite(Number(body.iconScale)) ? Number(body.iconScale) : 1,
+    visibleToPlayers: !(body.visibleToPlayers === false || body.visibleToPlayers === 'false'),
     x: clampNormalized(body.x),
     y: clampNormalized(body.y),
     lat: Number.isFinite(Number(body.lat)) ? Number(body.lat) : null,
     lon: Number.isFinite(Number(body.lon)) ? Number(body.lon) : null,
+    assignedJobIds,
     childTheaterId: body.childTheaterId ? String(body.childTheaterId) : null
+  };
+}
+
+function locationFields(validation, theaterId) {
+  return {
+    name: validation.name,
+    description: validation.description,
+    galacticPos: validation.galacticPos,
+    icon: validation.icon,
+    iconColor: validation.iconColor,
+    iconEdgeColor: validation.iconEdgeColor,
+    iconScale: validation.iconScale,
+    visibleToPlayers: validation.visibleToPlayers,
+    x: validation.x,
+    y: validation.y,
+    lat: validation.lat,
+    lon: validation.lon,
+    assignedJobIds: validation.assignedJobIds,
+    childTheaterId: validation.childTheaterId === theaterId ? null : validation.childTheaterId
   };
 }
 
 // ==================== Theater CRUD ====================
 
 // GET theaters (any authenticated user).
-// Admins see all theaters; clients only see active (visible) theaters.
+// Admins see all theaters. Clients see enabled theaters plus hidden theaters
+// containing an active job, so active missions are never made unreachable.
 router.get('/', requireAnyAuth, (req, res) => {
   const theaters = dataStore.readTheaters();
   const isAdmin = req.session && req.session.role === 'admin';
   if (isAdmin) {
     return res.json(theaters);
   }
-  res.json(theaters.filter(t => t.active !== false));
+  const activeJobIds = getActiveJobIds(dataStore.readJobs());
+  res.json(filterTheatersForPlayers(theaters, activeJobIds));
 });
 
 // POST create theater (admin)
@@ -113,6 +150,7 @@ router.post('/', requireAdminAuth, (req, res) => {
     id: helpers.generateId(),
     name: validation.name,
     description: validation.description,
+    galacticPos: validation.galacticPos,
     type: validation.type,
     active: validation.active,
     backgroundImage: validation.backgroundImage,
@@ -122,7 +160,7 @@ router.post('/', requireAdminAuth, (req, res) => {
   theaters.push(newTheater);
   dataStore.writeTheaters(theaters);
 
-  broadcastSSE('theaters', { action: 'create', theater: newTheater, theaters });
+  broadcastTheaters({ action: 'create', theater: newTheater, theaters });
   res.json({ success: true, theater: newTheater });
 });
 
@@ -143,6 +181,7 @@ router.put('/:id', requireAdminAuth, (req, res) => {
     ...theaters[index],
     name: validation.name,
     description: validation.description,
+    galacticPos: validation.galacticPos,
     type: validation.type,
     active: validation.active,
     backgroundImage: validation.backgroundImage,
@@ -150,7 +189,7 @@ router.put('/:id', requireAdminAuth, (req, res) => {
   };
   dataStore.writeTheaters(theaters);
 
-  broadcastSSE('theaters', { action: 'update', theater: theaters[index], theaters });
+  broadcastTheaters({ action: 'update', theater: theaters[index], theaters });
   res.json({ success: true, theater: theaters[index] });
 });
 
@@ -174,7 +213,7 @@ router.delete('/:id', requireAdminAuth, (req, res) => {
   });
 
   dataStore.writeTheaters(theaters);
-  broadcastSSE('theaters', { action: 'delete', theaterId: req.params.id, theaters });
+  broadcastTheaters({ action: 'delete', theaterId: req.params.id, theaters });
   res.json({ success: true });
 });
 
@@ -196,37 +235,14 @@ router.post('/:id/locations', requireAdminAuth, (req, res) => {
 
   const newLocation = {
     id: helpers.generateId(),
-    name: validation.name,
-    description: validation.description,
-    icon: validation.icon,
-    iconColor: validation.iconColor,
-    iconEdgeColor: validation.iconEdgeColor,
-    iconScale: validation.iconScale,
-    x: validation.x,
-    y: validation.y,
-    lat: validation.lat,
-    lon: validation.lon,
-    assignedJobIds: [],
-    childTheaterId: validation.childTheaterId
+    ...locationFields(validation, theater.id)
   };
-
-  // Re-validate assignedJobIds through the sanitized array
-  if (Array.isArray(req.body.assignedJobIds) || typeof req.body.assignedJobIds === 'string') {
-    try {
-      const ids = Array.isArray(req.body.assignedJobIds)
-        ? req.body.assignedJobIds
-        : JSON.parse(req.body.assignedJobIds);
-      newLocation.assignedJobIds = ids.filter(id => jobIds.has(id));
-    } catch (e) {
-      newLocation.assignedJobIds = [];
-    }
-  }
 
   if (!Array.isArray(theater.locations)) theater.locations = [];
   theater.locations.push(newLocation);
   dataStore.writeTheaters(theaters);
 
-  broadcastSSE('theaters', { action: 'location-create', theater, theaters });
+  broadcastTheaters({ action: 'location-create', theater, theaters });
   res.json({ success: true, location: newLocation, theater });
 });
 
@@ -249,41 +265,16 @@ router.put('/:id/locations/:locId', requireAdminAuth, (req, res) => {
     return res.status(400).json({ success: false, message: validation.message });
   }
 
-  // Prevent a location from linking to its own theater (basic cycle guard)
-  let childTheaterId = validation.childTheaterId;
-  if (childTheaterId === theater.id) {
-    childTheaterId = null;
-  }
-
-  let assignedJobIds = theater.locations[locIndex].assignedJobIds || [];
-  if (req.body.assignedJobIds !== undefined) {
-    try {
-      const ids = Array.isArray(req.body.assignedJobIds)
-        ? req.body.assignedJobIds
-        : JSON.parse(req.body.assignedJobIds);
-      assignedJobIds = ids.filter(id => jobIds.has(id));
-    } catch (e) {
-      assignedJobIds = [];
-    }
-  }
-
   theater.locations[locIndex] = {
     ...theater.locations[locIndex],
-    name: validation.name,
-    description: validation.description,
-    icon: validation.icon,
-    iconColor: validation.iconColor,
-    iconScale: validation.iconScale,
-    x: validation.x,
-    y: validation.y,
-    lat: validation.lat,
-    lon: validation.lon,
-    assignedJobIds,
-    childTheaterId
+    ...locationFields(validation, theater.id),
+    assignedJobIds: req.body.assignedJobIds === undefined
+      ? theater.locations[locIndex].assignedJobIds || []
+      : validation.assignedJobIds
   };
   dataStore.writeTheaters(theaters);
 
-  broadcastSSE('theaters', { action: 'location-update', theater, theaters });
+  broadcastTheaters({ action: 'location-update', theater, theaters });
   res.json({ success: true, location: theater.locations[locIndex], theater });
 });
 
@@ -302,7 +293,7 @@ router.delete('/:id/locations/:locId', requireAdminAuth, (req, res) => {
   }
 
   dataStore.writeTheaters(theaters);
-  broadcastSSE('theaters', { action: 'location-delete', theater, theaters, locationId: req.params.locId });
+  broadcastTheaters({ action: 'location-delete', theater, theaters, locationId: req.params.locId });
   res.json({ success: true });
 });
 

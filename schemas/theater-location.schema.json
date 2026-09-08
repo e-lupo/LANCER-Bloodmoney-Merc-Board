@@ -24,6 +24,10 @@
       "type": "string",
       "description": "Location description (optional)"
     },
+    "galacticPos": {
+      "type": "string",
+      "description": "Optional galactic position displayed beneath the location name"
+    },
     "icon": {
       "type": "string",
       "description": "SVG filename from logo_art directory used as the marker icon",
@@ -41,6 +45,10 @@
       "type": "number",
       "description": "Scale multiplier for the marker icon",
       "minimum": 0.1
+    },
+    "visibleToPlayers": {
+      "type": "boolean",
+      "description": "Whether this location marker is visible to players"
     },
     "x": {
       "type": ["number", "null"],

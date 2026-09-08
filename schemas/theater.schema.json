@@ -25,6 +25,10 @@
       "type": "string",
       "description": "Theater description (optional)"
     },
+    "galacticPos": {
+      "type": "string",
+      "description": "Optional galactic position displayed beneath the theater name"
+    },
     "type": {
       "type": "string",
       "description": "Rendering type: flat 2D map or planet sphere",
@@ -32,7 +36,7 @@
     },
     "active": {
       "type": "boolean",
-      "description": "Whether the theater is visible to players (inactive theaters are hidden from clients)"
+      "description": "Whether the theater is visible to players; inactive theaters remain visible while one of their locations contains an active job"
     },
     "backgroundImage": {
       "type": ["string", "null"],

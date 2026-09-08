@@ -3,6 +3,7 @@ const fs = require('fs');
 const helpers = require('../helpers');
 const dataStore = require('../models/dataStore');
 const { requireClientAuth, requireAdminAuth } = require('../middleware/auth');
+const { theaterIsVisibleToPlayers, getActiveJobIds } = require('../lib/theaterVisibility');
 
 const router = express.Router();
 
@@ -31,9 +32,12 @@ router.get('/client/overview', requireClientAuth, (req, res) => {
   const withCumulativeNewestFirst = [...withCumulativeOldestFirst].reverse();
   const recentWithBalance = withCumulativeNewestFirst.slice(0, 5);
 
-  // Theaters tab only shows if the GM has it enabled AND at least one theater is active
+  // Theaters tab only shows if the GM has it enabled AND at least one theater
+  // is reachable by players (active, or hidden but holding an active mission).
   const theaters = dataStore.readTheaters();
-  const showTheaters = !!settings.theatersVisible && theaters.some(t => t.active !== false);
+  const activeJobIds = getActiveJobIds(dataStore.readJobs());
+  const showTheaters = !!settings.theatersVisible &&
+    theaters.some(t => theaterIsVisibleToPlayers(t, activeJobIds));
 
   res.render('client-overview', {
     settings,

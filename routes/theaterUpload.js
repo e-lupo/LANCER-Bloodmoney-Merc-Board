@@ -6,6 +6,17 @@ const helpers = require('../helpers');
 const dataStore = require('../models/dataStore');
 const { requireAdminAuth } = require('../middleware/auth');
 const { broadcastSSE } = require('../lib/sseManager');
+const { getActiveJobIds, filterTheatersForPlayers } = require('../lib/theaterVisibility');
+
+// Same role-filtered broadcast as routes/api/theaters.js: non-admin clients
+// must never receive hidden theaters/locations over the raw SSE payload.
+function broadcastTheaters(payload) {
+  broadcastSSE('theaters', payload, (data, role) => {
+    if (role === 'admin') return data;
+    const activeJobIds = getActiveJobIds(dataStore.readJobs());
+    return { ...data, theaters: filterTheatersForPlayers(data.theaters, activeJobIds) };
+  });
+}
 
 const router = express.Router();
 
@@ -42,10 +53,12 @@ const upload = multer({
   limits: { files: 1, fileSize: FILE_UPLOAD.MAX_SIZE }
 });
 
-// Returns true if the filename is a safe image basename (no traversal)
+// Returns true if the filename is a safe image basename (no traversal).
+// Same technique as helpers.isSafeEmblemFilename: a filename is only safe if
+// path.basename() doesn't change it (rules out slashes, "..", and friends).
 function isSafeImageFilename(filename) {
   if (typeof filename !== 'string') return false;
-  if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) return false;
+  if (filename !== path.basename(filename)) return false;
   const ext = path.extname(filename).toLowerCase();
   return ALLOWED_EXT.has(ext);
 }
@@ -93,14 +106,14 @@ function makeDeleteHandler(getTargetDir, clearRefs) {
       return res.status(400).json({ success: false, message: 'Invalid filename' });
     }
 
-    // Clear any theater references to this asset before deleting the file
-    if (typeof clearRefs === 'function') {
-      clearRefs(filename);
-    }
-
     const filePath = path.join(getTargetDir(), filename);
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, message: 'Asset not found' });
+    }
+
+    // Clear any theater references to this asset before deleting the file
+    if (typeof clearRefs === 'function') {
+      clearRefs(filename);
     }
 
     try {
@@ -166,7 +179,7 @@ router.delete(
       });
       if (changed) {
         dataStore.writeTheaters(theaters);
-        broadcastSSE('theaters', { action: 'update', theaters });
+        broadcastTheaters({ action: 'update', theaters });
       }
     }
   )
@@ -189,7 +202,7 @@ router.delete(
       });
       if (changed) {
         dataStore.writeTheaters(theaters);
-        broadcastSSE('theaters', { action: 'update', theaters });
+        broadcastTheaters({ action: 'update', theaters });
       }
     }
   )

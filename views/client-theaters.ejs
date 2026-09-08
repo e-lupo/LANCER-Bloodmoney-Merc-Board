@@ -14,6 +14,7 @@
     <div class="terminal-header-left">
       <h1>> <span id="portal-heading"><%= settings.portalHeading %></span> - OPERATIONAL THEATERS_</h1>
       <p>> USER_GROUP: <span id="user-group"><%= settings.userGroup %></span>_</p>
+      <p>> ACTIVE_THEATERS: <span id="theaters-count">0</span>_</p>
       <a href="/client/overview" class="terminal-link">[OVERVIEW]</a>
     </div>
     <div class="terminal-header-right">
@@ -22,32 +23,36 @@
     </div>
   </div>
 
-  <div class="overview-container">
-    <h2>> SELECT_THEATER_</h2>
-    <div class="theater-list" id="theater-list">
+  <main class="client-theaters-container">
+    <div class="client-theater-grid" id="theater-list">
       <!-- Populated by JavaScript -->
     </div>
 
-    <div class="theater-workspace">
-      <div class="theater-workspace-map">
-        <div class="theater-map-viewport empty" id="theater-viewport">
-          <span>> LOADING_THEATERS_</span>
+    <section id="selected-theater-section" class="selected-theater-section" aria-hidden="true">
+      <h2 class="selected-theater-label">> SELECTED_OPERATIONAL_THEATER_</h2>
+      <div class="client-theater-workspace">
+        <div class="client-theater-map-card">
+          <div class="theater-map-viewport empty" id="theater-viewport">
+            <span>> SELECT_OPERATIONAL_THEATER_</span>
+          </div>
         </div>
-      </div>
 
-      <div class="theater-workspace-side">
-        <div class="theater-location-panel" id="theater-location-panel" style="display: none;">
+        <aside class="theater-location-panel client-theater-info-card" id="theater-location-panel">
           <h3 id="theater-location-name"></h3>
+          <div class="client-theater-galactic-pos client-theater-detail-galactic-pos" id="theater-detail-galactic-pos"></div>
+          <button type="button" class="client-theater-back-link" id="theater-back-btn" hidden>[THEATER]</button>
+          <div class="client-theater-divider"></div>
+          <div class="client-theater-field-label">DESCRIPTION:</div>
           <p id="theater-location-description"></p>
-          <div id="theater-child-link-container" style="display:none; margin-bottom: 10px;">
+          <div id="theater-child-link-container" class="client-theater-child-link" hidden>
             <button class="nav-button" id="theater-child-link-btn">> ZOOM_INTO_SUBLOCATION</button>
           </div>
-          <h4>> ASSIGNED_MISSIONS_</h4>
+          <h4 id="theater-detail-list-heading"></h4>
           <div class="theater-assigned-jobs" id="theater-assigned-jobs"></div>
-        </div>
+        </aside>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <!-- Job Details Modal (reuses shared handlers) -->
   <div id="job-details-modal" class="modal-overlay">

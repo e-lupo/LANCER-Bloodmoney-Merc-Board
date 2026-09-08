@@ -5,7 +5,7 @@
   <!-- Create + edit section (styled like the "Add New Faction" section) -->
   <div class="add-job-section">
     <h2>Operational Theaters</h2>
-    <p style="color: #b0b0b0;">Define theaters (background maps), place locations on them, and assign missions from the job stack to those locations.</p>
+    <p class="theater-admin-muted">Define theaters (background maps), place locations on them, and assign missions from the job stack to those locations.</p>
 
     <div class="form-group">
       <button type="button" class="btn btn-primary" onclick="theaterAdminCreate()">Add New Theater</button>
@@ -20,7 +20,7 @@
     </div>
 
     <!-- Selected theater editor -->
-    <div id="admin-theater-editor" style="display: none;">
+    <div id="admin-theater-editor" hidden>
       <div class="form-group">
         <label for="admin-theater-name">Theater Name</label>
         <input type="text" id="admin-theater-name">
@@ -36,8 +36,9 @@
 
       <div class="form-group theater-inline-check">
         <input type="checkbox" id="admin-theater-active" checked>
-        <label for="admin-theater-active">Active (visible to players)</label>
+        <label for="admin-theater-active">Show to players</label>
       </div>
+      <div id="admin-theater-visibility-warning" class="theater-visibility-warning" hidden></div>
 
       <div class="form-group">
         <label for="admin-theater-description">Description</label>
@@ -45,10 +46,15 @@
       </div>
 
       <div class="form-group">
+        <label for="admin-theater-galactic-pos">Galactic Position (optional)</label>
+        <input type="text" id="admin-theater-galactic-pos">
+      </div>
+
+      <div class="form-group">
         <label for="admin-theater-bg-file">Background Map</label>
         <input type="file" id="admin-theater-bg-file" accept="image/png,image/jpeg,image/bmp">
         <button type="button" class="btn btn-neutral" onclick="theaterAdminUploadBackground()">Upload Map</button>
-        <span id="admin-theater-bg-status" style="color: #b0b0b0;"></span>
+        <span id="admin-theater-bg-status" class="theater-admin-muted"></span>
       </div>
 
       <!-- Gallery of previously uploaded background images -->
@@ -66,7 +72,7 @@
 
       <div class="form-group">
         <button type="button" class="btn btn-neutral" id="admin-place-toggle" onclick="theaterAdminTogglePlacement()">Place New Location</button>
-        <span id="admin-place-hint" style="color: #b0b0b0;"></span>
+        <span id="admin-place-hint" class="theater-admin-muted"></span>
       </div>
 
       <!-- Map + location editor side by side -->
@@ -78,7 +84,7 @@
         </div>
 
         <div class="theater-workspace-side">
-          <div class="theater-item" id="admin-location-editor" style="display: none;">
+          <div class="theater-item" id="admin-location-editor" hidden>
             <h3>Edit Location</h3>
 
             <div class="form-group">
@@ -92,10 +98,21 @@
             </div>
 
             <div class="form-group">
+              <label for="admin-loc-galactic-pos">Galactic Position (optional)</label>
+              <input type="text" id="admin-loc-galactic-pos">
+            </div>
+
+            <div class="form-group theater-inline-check">
+              <input type="checkbox" id="admin-loc-visible" checked>
+              <label for="admin-loc-visible">Show to players</label>
+            </div>
+            <div id="admin-loc-visibility-warning" class="theater-visibility-warning" hidden></div>
+
+            <div class="form-group">
               <label for="admin-loc-color">Marker Color</label>
               <input type="color" id="admin-loc-color" value="#e0e0e0" class="theater-color-swatch">
-              <label for="admin-loc-scale" style="margin-left: 12px;">Scale</label>
-              <input type="number" id="admin-loc-scale" min="0.25" max="4" step="0.25" value="1" style="width:70px;">
+              <label for="admin-loc-scale" class="theater-scale-label">Scale</label>
+              <input type="number" id="admin-loc-scale" class="theater-scale-input" min="0.25" max="4" step="0.25" value="1">
             </div>
 
             <div class="form-group">

@@ -1109,6 +1109,7 @@ function migrateTheatersIfNeeded() {
       if (!patched.hasOwnProperty('iconColor')) { patched.iconColor = '#e0e0e0'; locationsChanged = true; }
       if (!patched.hasOwnProperty('iconEdgeColor')) { patched.iconEdgeColor = '#000000'; locationsChanged = true; }
       if (!patched.hasOwnProperty('iconScale')) { patched.iconScale = 1; locationsChanged = true; }
+      if (!patched.hasOwnProperty('visibleToPlayers')) { patched.visibleToPlayers = true; locationsChanged = true; }
       return patched;
     });
 

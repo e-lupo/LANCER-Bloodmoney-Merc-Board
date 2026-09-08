@@ -26,8 +26,7 @@ function theaterAdminInit() {
     if (AdminTheaters.theaters.length > 0 && !AdminTheaters.selectedTheaterId) {
       AdminTheaters.selectedTheaterId = AdminTheaters.theaters[0].id;
     }
-    theaterAdminRenderList();
-    theaterAdminRenderEditor();
+    theaterAdminRender();
   });
 }
 
@@ -40,13 +39,109 @@ function handleTheatersUpdate(data) {
         ? AdminTheaters.theaters[0].id
         : null;
     }
-    theaterAdminRenderList();
-    theaterAdminRenderEditor();
+    theaterAdminRender();
+  }
+}
+
+// Jobs can be created while the theater tab is open. Keep the assignment list
+// current rather than requiring a page reload before a new location can use it.
+function handleJobsUpdate(data) {
+  if (data && Array.isArray(data.jobs)) {
+    AdminTheaters.jobs = data.jobs;
+    theaterAdminUpdateTheaterVisibilityWarning();
+    if (AdminTheaters.editingLocationId !== null || AdminTheaters.pendingCoords) {
+      // Rebuild the checklist against whatever is currently checked in the
+      // DOM (not the last-saved location), so an in-progress, unsaved
+      // selection survives a jobs list refresh instead of being wiped.
+      const jobsEl = document.getElementById('admin-loc-jobs');
+      const checkedIds = jobsEl
+        ? Array.from(jobsEl.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value)
+        : [];
+      theaterAdminRenderJobChecklist({ assignedJobIds: checkedIds });
+      theaterAdminUpdateLocationVisibilityWarning();
+    }
   }
 }
 
 function theaterAdminGetSelected() {
   return AdminTheaters.theaters.find(t => t.id === AdminTheaters.selectedTheaterId) || null;
+}
+
+function theaterAdminRender() {
+  theaterAdminRenderList();
+  theaterAdminRenderEditor();
+}
+
+function theaterAdminStoreTheater(theater) {
+  const index = AdminTheaters.theaters.findIndex(item => item.id === theater.id);
+  if (index !== -1) AdminTheaters.theaters[index] = theater;
+}
+
+function theaterAdminGetEditingLocation(theater) {
+  if (!theater || !AdminTheaters.editingLocationId) return null;
+  return (theater.locations || []).find(loc => loc.id === AdminTheaters.editingLocationId) || null;
+}
+
+function theaterAdminTheaterBody(theater, overrides) {
+  return {
+    name: theater.name,
+    description: theater.description || '',
+    galacticPos: theater.galacticPos || '',
+    type: theater.type || 'flat',
+    active: theater.active !== false,
+    backgroundImage: theater.backgroundImage || null,
+    textureImage: theater.textureImage || null,
+    ...(overrides || {})
+  };
+}
+
+function theaterAdminLocationBody(location, overrides) {
+  return {
+    name: location.name || '',
+    description: location.description || '',
+    galacticPos: location.galacticPos || '',
+    icon: location.icon || 'token--world.svg',
+    iconColor: location.iconColor || '#e0e0e0',
+    iconEdgeColor: location.iconEdgeColor || '#000000',
+    iconScale: Number(location.iconScale) || 1,
+    visibleToPlayers: location.visibleToPlayers !== false,
+    x: typeof location.x === 'number' ? location.x : null,
+    y: typeof location.y === 'number' ? location.y : null,
+    lat: typeof location.lat === 'number' ? location.lat : null,
+    lon: typeof location.lon === 'number' ? location.lon : null,
+    assignedJobIds: location.assignedJobIds || [],
+    childTheaterId: location.childTheaterId || null,
+    ...(overrides || {})
+  };
+}
+
+function theaterAdminSetWarning(warning, show, message) {
+  if (!warning) return;
+  warning.hidden = !show;
+  warning.textContent = show ? message : '';
+}
+
+function theaterAdminGetActiveJobsForTheater(theater) {
+  if (!theater) return [];
+  const assignedIds = new Set();
+  (theater.locations || []).forEach(loc => {
+    (loc.assignedJobIds || []).forEach(jobId => assignedIds.add(jobId));
+  });
+  const activeJobIds = window.TheaterShared.getActiveJobIds(AdminTheaters.jobs);
+  return AdminTheaters.jobs.filter(job => assignedIds.has(job.id) && activeJobIds.has(job.id));
+}
+
+function theaterAdminUpdateTheaterVisibilityWarning() {
+  const warning = document.getElementById('admin-theater-visibility-warning');
+  const visible = document.getElementById('admin-theater-active');
+  if (!warning || !visible) return;
+  const activeJobs = theaterAdminGetActiveJobsForTheater(theaterAdminGetSelected());
+  const showWarning = !visible.checked && activeJobs.length > 0;
+  theaterAdminSetWarning(
+    warning,
+    showWarning,
+    'Warning: this theater has active missions at one or more locations, so it will still be shown to players. Active: ' + activeJobs.map(job => job.name).join(', ')
+  );
 }
 
 // ==================== Theater CRUD ====================
@@ -72,14 +167,13 @@ function theaterAdminCreate() {
 function theaterAdminSaveDetails() {
   const theater = theaterAdminGetSelected();
   if (!theater) return;
-  const body = {
+  const body = theaterAdminTheaterBody(theater, {
     name: document.getElementById('admin-theater-name').value,
     description: document.getElementById('admin-theater-description').value,
+    galacticPos: document.getElementById('admin-theater-galactic-pos').value,
     type: document.getElementById('admin-theater-type').value,
-    active: document.getElementById('admin-theater-active').checked,
-    backgroundImage: theater.backgroundImage,
-    textureImage: theater.textureImage
-  };
+    active: document.getElementById('admin-theater-active').checked
+  });
   fetch('/api/theaters/' + theater.id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -87,7 +181,12 @@ function theaterAdminSaveDetails() {
   })
     .then(r => r.json())
     .then(res => {
-      if (!res.success) alert(res.message || 'Failed to save theater');
+      if (!res.success) {
+        alert(res.message || 'Failed to save theater');
+        return;
+      }
+      theaterAdminStoreTheater(res.theater);
+      theaterAdminRender();
     });
 }
 
@@ -129,15 +228,16 @@ function theaterAdminUploadBackground() {
       return fetch('/api/theaters/' + theater.id, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: theater.name,
-          description: theater.description,
-          type: theater.type,
-          active: theater.active !== false,
-          backgroundImage: res.backgroundImage,
-          textureImage: theater.textureImage
-        })
-      }).then(() => theaterAdminRenderGallery());
+        body: JSON.stringify(theaterAdminTheaterBody(theater, {
+          backgroundImage: res.backgroundImage
+        }))
+      })
+        .then(r => r.json())
+        .then(update => {
+          if (!update.success) throw new Error(update.message || 'Failed to save background');
+          theaterAdminStoreTheater(update.theater);
+          theaterAdminRenderEditor();
+        });
     })
     .catch(() => {
       status.textContent = ' Upload error';
@@ -156,7 +256,7 @@ function theaterAdminRenderGallery() {
     .then(assets => {
       gallery.innerHTML = '';
       if (!Array.isArray(assets) || assets.length === 0) {
-        gallery.innerHTML = '<span style="color:#b0b0b0;">No uploaded images yet.</span>';
+        gallery.innerHTML = '<span class="theater-admin-muted">No uploaded images yet.</span>';
         return;
       }
 
@@ -193,7 +293,7 @@ function theaterAdminRenderGallery() {
       });
     })
     .catch(() => {
-      gallery.innerHTML = '<span style="color:#b0b0b0;">Failed to load images.</span>';
+      gallery.innerHTML = '<span class="theater-admin-muted">Failed to load images.</span>';
     });
 }
 
@@ -204,19 +304,16 @@ function theaterAdminSelectBackground(filename) {
   fetch('/api/theaters/' + theater.id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: theater.name,
-      description: theater.description,
-      type: theater.type,
-      active: theater.active !== false,
-      backgroundImage: filename,
-      textureImage: theater.textureImage
-    })
+    body: JSON.stringify(theaterAdminTheaterBody(theater, { backgroundImage: filename }))
   })
     .then(r => r.json())
     .then(res => {
-      if (!res.success) alert(res.message || 'Failed to set background');
-      // SSE will refresh the editor + gallery highlight
+      if (!res.success) {
+        alert(res.message || 'Failed to set background');
+        return;
+      }
+      theaterAdminStoreTheater(res.theater);
+      theaterAdminRenderEditor();
     });
 }
 
@@ -247,9 +344,7 @@ function theaterAdminDeleteBackground(filename, inUse) {
               ? AdminTheaters.theaters[0].id
               : null;
           }
-          theaterAdminRenderList();
-          theaterAdminRenderEditor();
-          theaterAdminRenderGallery();
+          theaterAdminRender();
         });
     });
 }
@@ -261,7 +356,7 @@ function theaterAdminRenderList() {
   if (!list) return;
   list.innerHTML = '';
   if (AdminTheaters.theaters.length === 0) {
-    list.innerHTML = '<span style="opacity:0.6;">No theaters yet.</span>';
+    list.innerHTML = '<span class="theater-admin-empty">No theaters yet.</span>';
   }
   AdminTheaters.theaters.forEach(theater => {
     const item = document.createElement('div');
@@ -275,9 +370,8 @@ function theaterAdminRenderList() {
     item.onclick = () => {
       AdminTheaters.selectedTheaterId = theater.id;
       AdminTheaters.placingMode = false;
-      theaterAdminCloseLocationEditor();
-      theaterAdminRenderList();
-      theaterAdminRenderEditor();
+      theaterAdminCloseLocationEditor(true);
+      theaterAdminRender();
     };
     list.appendChild(item);
   });
@@ -291,15 +385,22 @@ function theaterAdminRenderEditor() {
   if (!editor || !viewport) return;
 
   if (!theater) {
-    editor.style.display = 'none';
+    editor.hidden = true;
     return;
   }
 
-  editor.style.display = 'block';
+  editor.hidden = false;
   document.getElementById('admin-theater-name').value = theater.name || '';
   document.getElementById('admin-theater-description').value = theater.description || '';
+  document.getElementById('admin-theater-galactic-pos').value = theater.galacticPos || '';
   document.getElementById('admin-theater-type').value = theater.type || 'flat';
   document.getElementById('admin-theater-active').checked = theater.active !== false;
+  const activeCheckbox = document.getElementById('admin-theater-active');
+  if (!activeCheckbox.dataset.warningBound) {
+    activeCheckbox.addEventListener('change', theaterAdminUpdateTheaterVisibilityWarning);
+    activeCheckbox.dataset.warningBound = 'true';
+  }
+  theaterAdminUpdateTheaterVisibilityWarning();
 
   // Render the uploaded-image gallery (highlights the current background)
   theaterAdminRenderGallery();
@@ -329,36 +430,57 @@ function theaterAdminRenderEditor() {
 function theaterAdminEnableMarkerDrag(viewport, theater) {
   const markers = viewport.querySelectorAll('.theater-marker');
   markers.forEach(marker => {
-    let dragging = false;
+    const locId = marker.dataset.locationId;
 
-    marker.addEventListener('mousedown', (e) => {
-      // left button only
+    marker.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
-      dragging = true;
-      e.preventDefault();
+      let pointerDown = true;
+      let dragging = AdminTheaters.editingLocationId === locId;
+      const startPoint = { x: e.clientX, y: e.clientY };
+
+      // A selected marker can move on a deliberate second press. Otherwise a
+      // press must be held for 800ms before movement is enabled.
+      const holdTimer = dragging ? null : setTimeout(() => {
+        if (pointerDown) dragging = true;
+      }, 800);
       e.stopPropagation();
-    });
 
-    document.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      const coords = window.TheaterShared.viewportClickToNormalized(viewport, e);
-      marker.style.left = (coords.x * 100) + '%';
-      marker.style.top = (coords.y * 100) + '%';
-    });
+      const onMouseMove = moveEvent => {
+        if (!pointerDown || !dragging) return;
+        moveEvent.preventDefault();
+        const coords = window.TheaterShared.viewportClickToNormalized(viewport, moveEvent);
+        marker.style.left = (coords.x * 100) + '%';
+        marker.style.top = (coords.y * 100) + '%';
+      };
 
-    document.addEventListener('mouseup', (e) => {
-      if (!dragging) return;
-      dragging = false;
-      const coords = window.TheaterShared.viewportClickToNormalized(viewport, e);
-      const locId = marker.dataset.locationId;
-      const loc = (theater.locations || []).find(l => l.id === locId);
-      if (loc) {
-        theaterAdminPersistLocation(theater.id, {
-          ...loc,
-          x: coords.x,
-          y: coords.y
-        });
-      }
+      const onMouseUp = upEvent => {
+        pointerDown = false;
+        if (holdTimer) clearTimeout(holdTimer);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        const didDrag = dragging &&
+          (Math.abs(upEvent.clientX - startPoint.x) > 2 || Math.abs(upEvent.clientY - startPoint.y) > 2);
+        // A plain (non-drag) click just selects the marker; the marker's own
+        // click handler (renderFlatTheater) opens the editor and sets
+        // editingLocationId, which is what allows a deliberate second press
+        // to drag immediately.
+        if (!didDrag) return;
+
+        const coords = window.TheaterShared.viewportClickToNormalized(viewport, upEvent);
+        const loc = (theater.locations || []).find(l => l.id === locId);
+        if (!loc) return;
+        // If this location's editor is open, persist its current (possibly
+        // unsaved) form values instead of the stale last-saved object, so a
+        // drag doesn't silently discard in-progress edits.
+        const body = AdminTheaters.editingLocationId === locId
+          ? theaterAdminGatherLocationBody(loc)
+          : theaterAdminLocationBody(loc);
+        theaterAdminPersistLocation(theater.id, { ...body, id: loc.id, x: coords.x, y: coords.y });
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
     });
   });
 }
@@ -380,21 +502,114 @@ function theaterAdminSelectIcon(icon) {
   document.querySelectorAll('#admin-loc-icon-grid .theater-icon-option').forEach(el => {
     el.classList.toggle('selected', el.dataset.icon === icon);
   });
+  theaterAdminUpdateLocationPreview();
+}
+
+function theaterAdminGetPreviewLocation() {
+  const theater = theaterAdminGetSelected();
+  if (!theater) return null;
+  const existingLoc = theaterAdminGetEditingLocation(theater);
+  if (!existingLoc && !AdminTheaters.pendingCoords) return null;
+
+  return {
+    ...(existingLoc || {}),
+    id: existingLoc ? existingLoc.id : '__location-preview__',
+    name: document.getElementById('admin-loc-name').value || 'New Location',
+    galacticPos: document.getElementById('admin-loc-galactic-pos').value || '',
+    icon: AdminTheaters.pendingIcon,
+    iconColor: document.getElementById('admin-loc-color').value || '#e0e0e0',
+    iconScale: parseFloat(document.getElementById('admin-loc-scale').value) || 1,
+    x: AdminTheaters.pendingCoords ? AdminTheaters.pendingCoords.x : existingLoc.x,
+    y: AdminTheaters.pendingCoords ? AdminTheaters.pendingCoords.y : existingLoc.y
+  };
+}
+
+function theaterAdminUpdateLocationPreview() {
+  const preview = theaterAdminGetPreviewLocation();
+  const viewport = document.getElementById('admin-theater-viewport');
+  if (!preview || !viewport) return;
+
+  let marker = viewport.querySelector(`.theater-marker[data-location-id="${preview.id}"]`);
+  if (!marker) {
+    const theater = theaterAdminGetSelected();
+    if (!theater) return;
+    const previewTheater = {
+      ...theater,
+      locations: [...(theater.locations || []), preview]
+    };
+    window.TheaterShared.renderFlatTheater(viewport, previewTheater, {
+      selectedLocationId: preview.id,
+      onMarkerClick: loc => {
+        if (loc.id !== '__location-preview__') theaterAdminOpenLocationEditor(loc);
+      }
+    });
+    theaterAdminEnableMarkerDrag(viewport, theater);
+    marker = viewport.querySelector(`.theater-marker[data-location-id="${preview.id}"]`);
+  }
+  if (!marker) return;
+
+  marker.classList.add('selected', 'preview');
+  window.TheaterShared.updateFlatTheaterMarker(marker, preview);
+}
+
+function theaterAdminGetSelectedActiveJobs() {
+  const selectedIds = new Set(Array.from(
+    document.querySelectorAll('#admin-loc-jobs input[type="checkbox"]:checked')
+  ).map(input => input.value));
+  const activeJobIds = window.TheaterShared.getActiveJobIds(AdminTheaters.jobs);
+  return AdminTheaters.jobs.filter(job => selectedIds.has(job.id) && activeJobIds.has(job.id));
+}
+
+function theaterAdminUpdateLocationVisibilityWarning() {
+  const warning = document.getElementById('admin-loc-visibility-warning');
+  const visible = document.getElementById('admin-loc-visible');
+  if (!warning || !visible) return;
+  const activeJobs = theaterAdminGetSelectedActiveJobs();
+  const showWarning = !visible.checked && activeJobs.length > 0;
+  theaterAdminSetWarning(
+    warning,
+    showWarning,
+    'Warning: hidden locations with active missions are still shown to players. Active: ' + activeJobs.map(job => job.name).join(', ')
+  );
+}
+
+function theaterAdminBindLivePreview() {
+  ['admin-loc-name', 'admin-loc-galactic-pos', 'admin-loc-color', 'admin-loc-scale'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input && !input.dataset.previewBound) {
+      input.addEventListener('input', theaterAdminUpdateLocationPreview);
+      input.dataset.previewBound = 'true';
+    }
+  });
+  const visible = document.getElementById('admin-loc-visible');
+  if (visible && !visible.dataset.previewBound) {
+    visible.addEventListener('change', theaterAdminUpdateLocationVisibilityWarning);
+    visible.dataset.previewBound = 'true';
+  }
 }
 
 function theaterAdminOpenLocationEditor(loc) {
   const panel = document.getElementById('admin-location-editor');
   if (!panel) return;
-  panel.style.display = 'block';
+  panel.hidden = false;
 
+  // pendingCoords only belongs to a not-yet-created location; opening an
+  // existing one must not let a leftover placement click overwrite its position.
+  if (loc) AdminTheaters.pendingCoords = null;
   AdminTheaters.editingLocationId = loc ? loc.id : null;
+  document.querySelectorAll('#admin-theater-viewport .theater-marker').forEach(marker => {
+    marker.classList.toggle('selected', !!loc && marker.dataset.locationId === loc.id);
+  });
 
   document.getElementById('admin-loc-name').value = loc ? (loc.name || '') : '';
   document.getElementById('admin-loc-description').value = loc ? (loc.description || '') : '';
+  document.getElementById('admin-loc-galactic-pos').value = loc ? (loc.galacticPos || '') : '';
+  document.getElementById('admin-loc-visible').checked = loc ? loc.visibleToPlayers !== false : true;
   document.getElementById('admin-loc-color').value = loc ? (loc.iconColor || '#e0e0e0') : '#e0e0e0';
   document.getElementById('admin-loc-scale').value = loc ? (loc.iconScale || 1) : 1;
   AdminTheaters.pendingIcon = loc ? (loc.icon || 'token--world.svg') : 'token--world.svg';
   theaterAdminSelectIcon(AdminTheaters.pendingIcon);
+  theaterAdminBindLivePreview();
 
   // Populate child-theater dropdown (exclude self)
   const childSelect = document.getElementById('admin-loc-child-theater');
@@ -410,29 +625,48 @@ function theaterAdminOpenLocationEditor(loc) {
     });
   childSelect.value = loc && loc.childTheaterId ? loc.childTheaterId : '';
 
-  // Populate job checklist
+  theaterAdminRenderJobChecklist(loc);
+}
+
+function theaterAdminRenderJobChecklist(loc) {
   const jobsEl = document.getElementById('admin-loc-jobs');
+  if (!jobsEl) return;
   const assigned = new Set(loc ? (loc.assignedJobIds || []) : []);
   jobsEl.innerHTML = '';
+  if (AdminTheaters.jobs.length === 0) {
+    jobsEl.innerHTML = '<span class="theater-admin-empty">No jobs available.</span>';
+    return;
+  }
   AdminTheaters.jobs.forEach(job => {
     const label = document.createElement('label');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = job.id;
     cb.checked = assigned.has(job.id);
+    cb.addEventListener('change', theaterAdminUpdateLocationVisibilityWarning);
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(
-      ' ' + job.name + ' [' + (job.state || '') + ']'
-    ));
+    const text = document.createElement('span');
+    text.className = 'theater-job-label-text';
+    text.textContent = job.name + ' [' + (job.state || '') + ']';
+    label.appendChild(text);
     jobsEl.appendChild(label);
   });
+  theaterAdminUpdateLocationVisibilityWarning();
+  theaterAdminUpdateLocationPreview();
 }
 
-function theaterAdminCloseLocationEditor() {
+function theaterAdminCloseLocationEditor(skipRender) {
   const panel = document.getElementById('admin-location-editor');
-  if (panel) panel.style.display = 'none';
+  if (panel) panel.hidden = true;
   AdminTheaters.editingLocationId = null;
   AdminTheaters.pendingCoords = null;
+  const warning = document.getElementById('admin-loc-visibility-warning');
+  theaterAdminSetWarning(warning, false, '');
+  document.querySelectorAll('#admin-theater-viewport .theater-marker.selected').forEach(marker => {
+    marker.classList.remove('selected');
+  });
+  // Discard unsaved preview changes (or the unsaved marker) from the map.
+  if (!skipRender && theaterAdminGetSelected()) theaterAdminRenderEditor();
 }
 
 function theaterAdminGatherLocationBody(existingLoc) {
@@ -450,26 +684,26 @@ function theaterAdminGatherLocationBody(existingLoc) {
     y = AdminTheaters.pendingCoords.y;
   }
 
-  return {
+  return theaterAdminLocationBody(existingLoc || {}, {
     name: document.getElementById('admin-loc-name').value,
     description: document.getElementById('admin-loc-description').value,
+    galacticPos: document.getElementById('admin-loc-galactic-pos').value,
     icon: AdminTheaters.pendingIcon,
     iconColor: document.getElementById('admin-loc-color').value,
     iconScale: parseFloat(document.getElementById('admin-loc-scale').value) || 1,
+    visibleToPlayers: document.getElementById('admin-loc-visible').checked,
     x: x,
     y: y,
     assignedJobIds: assignedJobIds,
     childTheaterId: childVal || null
-  };
+  });
 }
 
 function theaterAdminSaveLocation() {
   const theater = theaterAdminGetSelected();
   if (!theater) return;
 
-  const existingLoc = AdminTheaters.editingLocationId
-    ? (theater.locations || []).find(l => l.id === AdminTheaters.editingLocationId)
-    : null;
+  const existingLoc = theaterAdminGetEditingLocation(theater);
 
   const body = theaterAdminGatherLocationBody(existingLoc);
 
@@ -495,7 +729,9 @@ function theaterAdminSaveLocation() {
     .then(r => r.json())
     .then(res => {
       if (res.success) {
-        theaterAdminCloseLocationEditor();
+        theaterAdminStoreTheater(res.theater);
+        theaterAdminCloseLocationEditor(true);
+        theaterAdminRenderEditor();
       } else {
         alert(res.message || 'Failed to save location');
       }
@@ -507,17 +743,7 @@ function theaterAdminPersistLocation(theaterId, loc) {
   fetch('/api/theaters/' + theaterId + '/locations/' + loc.id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: loc.name,
-      description: loc.description,
-      icon: loc.icon,
-      iconColor: loc.iconColor,
-      iconScale: loc.iconScale,
-      x: loc.x,
-      y: loc.y,
-      assignedJobIds: loc.assignedJobIds || [],
-      childTheaterId: loc.childTheaterId || null
-    })
+    body: JSON.stringify(theaterAdminLocationBody(loc))
   })
     .then(r => r.json())
     .then(res => {
@@ -535,7 +761,7 @@ function theaterAdminDeleteLocation() {
     .then(r => r.json())
     .then(res => {
       if (res.success) {
-        theaterAdminCloseLocationEditor();
+        theaterAdminCloseLocationEditor(true);
       } else {
         alert(res.message || 'Failed to delete location');
       }

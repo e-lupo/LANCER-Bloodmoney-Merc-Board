@@ -42,37 +42,22 @@ function renderFlatTheater(viewport, theater, opts) {
     if (opts.selectedLocationId && loc.id === opts.selectedLocationId) {
       marker.classList.add('selected');
     }
-    marker.style.left = (loc.x * 100) + '%';
-    marker.style.top = (loc.y * 100) + '%';
     marker.dataset.locationId = loc.id;
 
     // Render the marker icon: the emblem SVG is used as a CSS mask filled with
     // the location's color (iconColor), with a subtle neutral drop-shadow for
     // contrast on light backgrounds.
-    const scale = Number(loc.iconScale) || 1;
-    const size = 32 * scale;
-    const iconUrl = '/emblems/' + encodeURIComponent(loc.icon || 'token--world.svg');
-
-    const fillColor = loc.iconColor || '#e0e0e0';
-    const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
-
     const icon = document.createElement('span');
     icon.className = 'theater-marker-icon';
-    icon.style.width = size + 'px';
-    icon.style.height = size + 'px';
-    icon.style.backgroundColor = fillColor;
-    icon.style.webkitMask = maskValue;
-    icon.style.mask = maskValue;
-    icon.style.filter = 'drop-shadow(0 0 1px rgba(0, 0, 0, 0.9))';
-
     marker.appendChild(icon);
 
     if (opts.showLabels !== false) {
       const label = document.createElement('div');
       label.className = 'theater-marker-label';
-      label.textContent = loc.name || '';
       marker.appendChild(label);
     }
+
+    updateFlatTheaterMarker(marker, loc);
 
     if (typeof opts.onMarkerClick === 'function') {
       marker.addEventListener('click', (e) => {
@@ -83,6 +68,28 @@ function renderFlatTheater(viewport, theater, opts) {
 
     viewport.appendChild(marker);
   });
+}
+
+/** Update an existing marker without rebuilding the map. */
+function updateFlatTheaterMarker(marker, location) {
+  if (!marker || !location) return;
+  marker.style.left = (location.x * 100) + '%';
+  marker.style.top = (location.y * 100) + '%';
+
+  const icon = marker.querySelector('.theater-marker-icon');
+  if (icon) {
+    const size = 32 * (Number(location.iconScale) || 1);
+    const iconUrl = '/emblems/' + encodeURIComponent(location.icon || 'token--world.svg');
+    const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
+    icon.style.width = size + 'px';
+    icon.style.height = size + 'px';
+    icon.style.backgroundColor = location.iconColor || '#e0e0e0';
+    icon.style.webkitMask = maskValue;
+    icon.style.mask = maskValue;
+  }
+
+  const label = marker.querySelector('.theater-marker-label');
+  if (label) label.textContent = location.name || '';
 }
 
 /**
@@ -101,8 +108,44 @@ function viewportClickToNormalized(viewport, event) {
   };
 }
 
+/**
+ * Shared "is this visible to players" rules (mirrors lib/theaterVisibility.js
+ * server-side). A hidden theater/location stays reachable to players while
+ * it holds an active job, so a mission is never made unreachable.
+ */
+function getActiveJobIds(jobs) {
+  return new Set((jobs || []).filter(job => job.state === 'Active').map(job => job.id));
+}
+
+function locationHasActiveJob(location, activeJobIds) {
+  return ((location && location.assignedJobIds) || []).some(jobId => activeJobIds.has(jobId));
+}
+
+function theaterIsVisibleToPlayers(theater, activeJobIds) {
+  return theater.active !== false || (theater.locations || []).some(location =>
+    locationHasActiveJob(location, activeJobIds)
+  );
+}
+
+function filterVisibleTheaters(theaters, jobs) {
+  const activeJobIds = getActiveJobIds(jobs);
+  return (theaters || [])
+    .filter(theater => theaterIsVisibleToPlayers(theater, activeJobIds))
+    .map(theater => ({
+      ...theater,
+      locations: (theater.locations || []).filter(location =>
+        location.visibleToPlayers !== false || locationHasActiveJob(location, activeJobIds)
+      )
+    }));
+}
+
 // Expose on window for use by non-module scripts
 window.TheaterShared = {
   renderFlatTheater,
-  viewportClickToNormalized
+  updateFlatTheaterMarker,
+  viewportClickToNormalized,
+  getActiveJobIds,
+  locationHasActiveJob,
+  theaterIsVisibleToPlayers,
+  filterVisibleTheaters
 };

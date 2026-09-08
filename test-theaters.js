@@ -31,7 +31,14 @@ function test(name, fn) {
 function validateLocation(loc, pathLabel) {
   assert(typeof loc.id === 'string' && loc.id.length > 0, `${pathLabel}.id must be non-empty string`);
   assert(typeof loc.name === 'string' && loc.name.length > 0, `${pathLabel}.name must be non-empty string`);
+  if (loc.description !== undefined) {
+    assert(typeof loc.description === 'string', `${pathLabel}.description must be a string`);
+  }
+  if (loc.galacticPos !== undefined) {
+    assert(typeof loc.galacticPos === 'string', `${pathLabel}.galacticPos must be a string`);
+  }
   assert(Array.isArray(loc.assignedJobIds), `${pathLabel}.assignedJobIds must be an array`);
+  assert(typeof loc.visibleToPlayers === 'boolean', `${pathLabel}.visibleToPlayers must be boolean`);
   if (loc.x !== null && loc.x !== undefined) {
     assert(loc.x >= 0 && loc.x <= 1, `${pathLabel}.x must be within [0,1]`);
   }
@@ -43,6 +50,12 @@ function validateLocation(loc, pathLabel) {
 function validateTheater(theater, pathLabel) {
   assert(typeof theater.id === 'string' && theater.id.length > 0, `${pathLabel}.id must be non-empty string`);
   assert(typeof theater.name === 'string' && theater.name.length > 0, `${pathLabel}.name must be non-empty string`);
+  if (theater.description !== undefined) {
+    assert(typeof theater.description === 'string', `${pathLabel}.description must be a string`);
+  }
+  if (theater.galacticPos !== undefined) {
+    assert(typeof theater.galacticPos === 'string', `${pathLabel}.galacticPos must be a string`);
+  }
   assert(['flat', 'planet'].includes(theater.type), `${pathLabel}.type must be flat|planet`);
   assert(Array.isArray(theater.locations), `${pathLabel}.locations must be an array`);
   theater.locations.forEach((loc, i) => validateLocation(loc, `${pathLabel}.locations[${i}]`));
@@ -52,6 +65,7 @@ test('sample theater conforms to expected shape', () => {
   const sample = {
     id: 'theater-1',
     name: 'Skaer-5 Theater',
+    galacticPos: 'SKAER-5',
     description: 'Primary operational area',
     type: 'flat',
     backgroundImage: 'map1.png',
@@ -60,6 +74,7 @@ test('sample theater conforms to expected shape', () => {
       {
         id: 'loc-1',
         name: 'Drop Site Alpha',
+        galacticPos: 'SKAER-5 // ALPHA',
         description: 'LZ',
         icon: 'token--world.svg',
         iconColor: '#e0e0e0',
@@ -69,6 +84,7 @@ test('sample theater conforms to expected shape', () => {
         lat: null,
         lon: null,
         assignedJobIds: [],
+        visibleToPlayers: true,
         childTheaterId: null
       }
     ]
@@ -95,6 +111,7 @@ test('planet theater with lat/lon location is valid', () => {
         lat: 45.2,
         lon: -12.7,
         assignedJobIds: ['job-abc'],
+        visibleToPlayers: true,
         childTheaterId: null
       }
     ]
@@ -146,6 +163,7 @@ test('migrateTheatersIfNeeded back-fills fields and is idempotent', () => {
   assert(loc.childTheaterId === null, 'childTheaterId back-filled to null');
   assert(loc.iconColor === '#e0e0e0', 'iconColor back-filled');
   assert(loc.iconScale === 1, 'iconScale back-filled');
+  assert(loc.visibleToPlayers === true, 'visibleToPlayers back-filled');
 
   // Second migration should be a no-op (idempotent)
   const before = fs.readFileSync(theatersFile, 'utf8');
