@@ -42,13 +42,21 @@
   opacity: 0.6;
 }
 
+/* Sized/positioned in JS (syncTheaterMapContent) to exactly match the
+   background image's rendered rect, so % marker positions stay accurate
+   regardless of viewport aspect ratio. */
+.theater-map-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 .theater-map-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;

@@ -20,16 +20,28 @@ function renderFlatTheater(viewport, theater, opts) {
     return;
   }
 
+  // Markers are positioned as % of this content box, which is kept in sync
+  // (on load/resize) to exactly match the background image's rendered
+  // area — see syncTheaterMapContent. That keeps marker placement identical
+  // regardless of the viewport's own aspect ratio/size (admin vs client,
+  // any screen size).
+  const content = document.createElement('div');
+  content.className = 'theater-map-content';
+  viewport.appendChild(content);
+
   // Background image
   if (theater.backgroundImage) {
     const img = document.createElement('img');
     img.className = 'theater-map-image';
     img.src = '/theater-assets/' + encodeURIComponent(theater.backgroundImage);
     img.alt = theater.name || 'Theater';
+    img.onload = () => syncTheaterMapContent(viewport);
     // If the image no longer exists (e.g. it was deleted), remove it so a
     // stale/broken image isn't shown from cache.
-    img.onerror = () => { img.remove(); };
-    viewport.appendChild(img);
+    img.onerror = () => { img.remove(); syncTheaterMapContent(viewport); };
+    content.appendChild(img);
+    // Cached images can already be complete by the time onload is attached.
+    if (img.complete) syncTheaterMapContent(viewport);
   }
 
   // Markers
@@ -66,7 +78,84 @@ function renderFlatTheater(viewport, theater, opts) {
       });
     }
 
-    viewport.appendChild(marker);
+    content.appendChild(marker);
+  });
+
+  syncTheaterMapContent(viewport);
+
+  // Keep the content box aligned with the image as the viewport is resized
+  // (admin's box is fluid-width/fixed-ratio, client's is fluid in both —
+  // both need a resync, not just a one-time layout).
+  if (!viewport._theaterResizeObserver) {
+    viewport._theaterResizeObserver = new ResizeObserver(() => syncTheaterMapContent(viewport));
+    viewport._theaterResizeObserver.observe(viewport);
+  }
+}
+
+/**
+ * Resize/reposition a viewport's .theater-map-content box (in px) to exactly
+ * match the background image's rendered content rect, replicating
+ * object-fit:contain math ourselves so markers (positioned as % of this box)
+ * line up with the image regardless of the viewport's own aspect ratio.
+ */
+function syncTheaterMapContent(viewport) {
+  const content = viewport.querySelector('.theater-map-content');
+  if (!content) return;
+
+  const img = content.querySelector('.theater-map-image');
+  const boxW = viewport.clientWidth;
+  const boxH = viewport.clientHeight;
+
+  if (!img || !img.naturalWidth || !img.naturalHeight || !boxW || !boxH) {
+    // No image (or not loaded yet) — content box is just the full viewport.
+    content.style.left = '0px';
+    content.style.top = '0px';
+    content.style.width = boxW + 'px';
+    content.style.height = boxH + 'px';
+    return;
+  }
+
+  const imageRatio = img.naturalWidth / img.naturalHeight;
+  const boxRatio = boxW / boxH;
+  let width, height;
+  if (imageRatio > boxRatio) {
+    width = boxW;
+    height = boxW / imageRatio;
+  } else {
+    height = boxH;
+    width = boxH * imageRatio;
+  }
+
+  content.style.left = ((boxW - width) / 2) + 'px';
+  content.style.top = ((boxH - height) / 2) + 'px';
+  content.style.width = width + 'px';
+  content.style.height = height + 'px';
+
+  resyncMarkerIconSizes(viewport);
+}
+
+// Icon sizes are authored in "map pixels" (the background image's native
+// resolution), then scaled to match how large the image is actually being
+// rendered — so an icon stays the same size relative to the map art at any
+// screen size, instead of a fixed CSS px size that would loom larger as the
+// map shrinks (or shrink to nothing on a small screen).
+const MIN_ICON_PX = 10;
+
+function getTheaterMapScale(viewport) {
+  const content = viewport.querySelector('.theater-map-content');
+  const img = content && content.querySelector('.theater-map-image');
+  if (!img || !img.naturalWidth) return 1;
+  return content.getBoundingClientRect().width / img.naturalWidth;
+}
+
+function resyncMarkerIconSizes(viewport) {
+  const scale = getTheaterMapScale(viewport);
+  viewport.querySelectorAll('.theater-marker-icon').forEach(icon => {
+    const mapSize = Number(icon.dataset.mapSize);
+    if (!mapSize) return;
+    const size = Math.max(MIN_ICON_PX, mapSize * scale);
+    icon.style.width = size + 'px';
+    icon.style.height = size + 'px';
   });
 }
 
@@ -78,7 +167,11 @@ function updateFlatTheaterMarker(marker, location) {
 
   const icon = marker.querySelector('.theater-marker-icon');
   if (icon) {
-    const size = 32 * (Number(location.iconScale) || 1);
+    const mapSize = 32 * (Number(location.iconScale) || 1);
+    icon.dataset.mapSize = mapSize;
+    const viewport = marker.closest('.theater-map-viewport');
+    const scale = viewport ? getTheaterMapScale(viewport) : 1;
+    const size = Math.max(MIN_ICON_PX, mapSize * scale);
     const iconUrl = '/emblems/' + encodeURIComponent(location.icon || 'token--world.svg');
     const maskValue = "url('" + iconUrl + "') no-repeat center / contain";
     icon.style.width = size + 'px';
@@ -99,7 +192,8 @@ function updateFlatTheaterMarker(marker, location) {
  * @returns {{x:number, y:number}}
  */
 function viewportClickToNormalized(viewport, event) {
-  const rect = viewport.getBoundingClientRect();
+  const content = viewport.querySelector('.theater-map-content');
+  const rect = (content || viewport).getBoundingClientRect();
   const x = (event.clientX - rect.left) / rect.width;
   const y = (event.clientY - rect.top) / rect.height;
   return {
@@ -142,6 +236,7 @@ function filterVisibleTheaters(theaters, jobs) {
 // Expose on window for use by non-module scripts
 window.TheaterShared = {
   renderFlatTheater,
+  syncTheaterMapContent,
   updateFlatTheaterMarker,
   viewportClickToNormalized,
   getActiveJobIds,
