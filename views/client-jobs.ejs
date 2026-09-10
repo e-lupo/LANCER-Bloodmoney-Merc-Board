@@ -219,9 +219,10 @@
       get: () => currentOngoingVotingPeriod,
       configurable: true
     });
-    window.isVotingActive = () => isVotingActive();
-    window.getVoteCount = (jobId) => getVoteCount(jobId);
-    window.openVotingModal = (jobId) => openVotingModal(jobId);
+    // isVotingActive/getVoteCount/openVotingModal are top-level function
+    // declarations, so they are already window properties. Do NOT re-assign
+    // them to wrapper arrows here: the wrapper body resolves the name back to
+    // the wrapper itself and recurses until the stack overflows.
 
     // Check if voting is currently active (ongoing period and not past end time)
     // Note: This uses client-side time for UI responsiveness, but server validates with server time
