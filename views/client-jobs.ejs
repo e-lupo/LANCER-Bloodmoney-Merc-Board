@@ -58,6 +58,13 @@
           <span class="field-value"><%= job.faction ? job.faction.title : 'FIELD_NULL' %></span>
         </div>
         
+        <% if (job.location) { %>
+        <div class="job-field">
+          <span class="field-label">LOCATION:</span>
+          <span class="field-value"><%= job.location.name %></span>
+        </div>
+        <% } %>
+
         <div class="job-field">
           <span class="field-label">JOB_TYPE:</span>
           <span class="field-value"><%= job.jobType %></span>
@@ -408,6 +415,12 @@
               }</span>
             </div>
             
+            ${job.location ? `
+            <div class="job-field">
+              <span class="field-label">LOCATION:</span>
+              <span class="field-value">${job.location.name}</span>
+            </div>` : ''}
+
             <div class="job-field">
               <span class="field-label">JOB_TYPE:</span>
               <span class="field-value">${job.jobType}</span>

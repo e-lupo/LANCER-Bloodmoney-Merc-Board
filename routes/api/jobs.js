@@ -4,16 +4,36 @@ const dataStore = require('../../models/dataStore');
 const { requireAnyAuth, requireAdminAuth } = require('../../middleware/auth');
 const { broadcastSSE } = require('../../lib/sseManager');
 
+const { getActiveJobIds, filterTheatersForPlayers } = require('../../lib/theaterVisibility');
+const theatersRouter = require('./theaters');
+
 const router = express.Router();
 
+// Enrich jobs with faction + assigned location data
+// Non-admins only see locations that are visible to players (SSE broadcasts go to everyone, so they use the filtered view too)
+function enrichJobs(jobs, isAdmin = false) {
+  const withFactions = dataStore.enrichJobsWithFactions(jobs, dataStore.readFactions());
+  const theaters = dataStore.readTheaters();
+  return dataStore.enrichJobsWithLocations(
+    withFactions,
+    isAdmin ? theaters : filterTheatersForPlayers(theaters, getActiveJobIds(jobs))
+  );
+}
+
+// Apply body.locationId (when sent) to the job; returns an error message or null
+function applyLocation(jobId, locationId) {
+  if (locationId === undefined) return null;
+  const id = String(locationId || '');
+  if (id && !dataStore.readTheaters().some(t => (t.locations || []).some(l => l.id === id))) {
+    return 'Location not found';
+  }
+  const theaters = dataStore.setJobLocation(jobId, id);
+  if (theaters) theatersRouter.broadcastTheaters({ action: 'location-update', theaters });
+  return null;
+}
+
 router.get('/', requireAnyAuth, (req, res) => {
-  const jobs = dataStore.readJobs();
-  const factions = dataStore.readFactions();
-  
-  // Enrich jobs with faction data
-  const enrichedJobs = dataStore.enrichJobsWithFactions(jobs, factions);
-  
-  res.json(enrichedJobs);
+  res.json(enrichJobs(dataStore.readJobs(), req.session && req.session.role === 'admin'));
 });
 
 router.post('/', requireAdminAuth, (req, res) => {
@@ -40,11 +60,15 @@ router.post('/', requireAdminAuth, (req, res) => {
     state: validation.state,
     factionId: validation.factionId
   };
+  const locationError = applyLocation(newJob.id, req.body.locationId);
+  if (locationError) {
+    return res.status(400).json({ success: false, message: locationError });
+  }
   jobs.push(newJob);
   dataStore.writeJobs(jobs);
-  
+
   // Broadcast SSE update
-  broadcastSSE('jobs', { action: 'create', job: newJob, jobs });
+  broadcastSSE('jobs', { action: 'create', job: newJob, jobs: enrichJobs(jobs) });
   
   res.json({ success: true, job: newJob });
 });
@@ -83,6 +107,10 @@ router.put('/:id', requireAdminAuth, async (req, res) => {
     factionId: validation.factionId
   };
   
+  const locationError = applyLocation(newJob.id, req.body.locationId);
+  if (locationError) {
+    return res.status(400).json({ success: false, message: locationError });
+  }
   jobs[index] = newJob;
   dataStore.writeJobs(jobs);
   
@@ -92,7 +120,7 @@ router.put('/:id', requireAdminAuth, async (req, res) => {
   }
   
   // Broadcast SSE update
-  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs });
+  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs: enrichJobs(jobs) });
   
   res.json({ success: true, job: jobs[index] });
 });
@@ -103,7 +131,7 @@ router.delete('/:id', requireAdminAuth, (req, res) => {
   dataStore.writeJobs(jobs);
   
   // Broadcast SSE update
-  broadcastSSE('jobs', { action: 'delete', jobId: req.params.id, jobs });
+  broadcastSSE('jobs', { action: 'delete', jobId: req.params.id, jobs: enrichJobs(jobs) });
   
   res.json({ success: true });
 });
@@ -137,7 +165,7 @@ router.put('/:id/state', requireAdminAuth, async (req, res) => {
   }
   
   // Broadcast SSE update
-  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs });
+  broadcastSSE('jobs', { action: 'update', job: jobs[index], jobs: enrichJobs(jobs) });
   
   res.json({ success: true, job: jobs[index] });
 });

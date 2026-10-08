@@ -231,6 +231,48 @@ function enrichJobsWithFactions(jobs, factions) {
   }));
 }
 
+// Helper function to enrich jobs with their assigned theater location.
+// Assignment lives on the location (assignedJobIds); a job shows the first match.
+function enrichJobsWithLocations(jobs, theaters) {
+  const locationByJob = {};
+  theaters.forEach(theater => {
+    (theater.locations || []).forEach(loc => {
+      (loc.assignedJobIds || []).forEach(jobId => {
+        if (!locationByJob[jobId]) {
+          locationByJob[jobId] = { id: loc.id, name: loc.name, theaterId: theater.id, theaterName: theater.name };
+        }
+      });
+    });
+  });
+  return jobs.map(job => {
+    const location = locationByJob[job.id] || null;
+    return { ...job, location, locationId: location ? location.id : '' };
+  });
+}
+
+// Move a job to a single location (empty/unknown locationId = unassign everywhere).
+// Returns true when theaters were changed and written.
+function setJobLocation(jobId, locationId) {
+  const theaters = readTheaters();
+  let changed = false;
+  theaters.forEach(theater => {
+    (theater.locations || []).forEach(loc => {
+      const ids = loc.assignedJobIds || [];
+      const has = ids.includes(jobId);
+      const want = loc.id === locationId;
+      if (has && !want) {
+        loc.assignedJobIds = ids.filter(id => id !== jobId);
+        changed = true;
+      } else if (!has && want) {
+        loc.assignedJobIds = [...ids, jobId];
+        changed = true;
+      }
+    });
+  });
+  if (changed) writeTheaters(theaters);
+  return changed ? theaters : null;
+}
+
 // Helper function to enrich all factions with job counts
 function enrichAllFactions(factions, jobs) {
   return factions.map(faction => helpers.enrichFactionWithJobCounts(faction, jobs));
@@ -1187,6 +1229,8 @@ module.exports = {
   migrateJobsIfNeeded,
   createFactionMap,
   enrichJobsWithFactions,
+  enrichJobsWithLocations,
+  setJobLocation,
   enrichAllFactions,
   enrichPilotsWithBalance,
   validateJobData,

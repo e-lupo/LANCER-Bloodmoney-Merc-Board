@@ -3,7 +3,7 @@ const fs = require('fs');
 const helpers = require('../helpers');
 const dataStore = require('../models/dataStore');
 const { requireClientAuth, requireAdminAuth } = require('../middleware/auth');
-const { theaterIsVisibleToPlayers, getActiveJobIds } = require('../lib/theaterVisibility');
+const { theaterIsVisibleToPlayers, getActiveJobIds, filterTheatersForPlayers } = require('../lib/theaterVisibility');
 
 const router = express.Router();
 
@@ -83,8 +83,10 @@ router.get('/client/jobs', requireClientAuth, (req, res) => {
   const factions = dataStore.readFactions();
   
   // Enrich jobs with faction data
-  const enrichedJobs = dataStore.enrichJobsWithFactions(jobs, factions);
-  
+  const enrichedJobs = dataStore.enrichJobsWithLocations(
+    dataStore.enrichJobsWithFactions(jobs, factions),
+    filterTheatersForPlayers(dataStore.readTheaters(), getActiveJobIds(allJobs))
+  );
   res.render('client-jobs', { jobs: enrichedJobs, settings, colorScheme: settings.colorScheme });
 });
 
@@ -222,11 +224,11 @@ router.get('/admin', requireAdminAuth, (req, res) => {
   const factionMap = dataStore.createFactionMap(enrichedFactions);
   
   // Enrich jobs with faction data and state class, then reverse for newest first
-  const enrichedJobs = jobs.map(job => ({
+  const enrichedJobs = dataStore.enrichJobsWithLocations(jobs.map(job => ({
     ...job,
     stateClass: job.state ? job.state.toLowerCase() : helpers.DEFAULT_JOB_STATE.toLowerCase(),
     faction: factionMap[job.factionId] || null
-  })).reverse();
+  })), theaters).reverse();
   
   // Get active job IDs for voting period creation
   const activeJobIds = jobs.filter(j => j.state === 'Active').map(j => j.id);

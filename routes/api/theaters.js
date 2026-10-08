@@ -297,4 +297,5 @@ router.delete('/:id/locations/:locId', requireAdminAuth, (req, res) => {
   res.json({ success: true });
 });
 
+router.broadcastTheaters = broadcastTheaters;
 module.exports = router;
